@@ -1,9 +1,10 @@
+// src/utils/sound.js
+
 // Singleton para mantener el contexto de audio vivo
 let audioCtx = null;
 
 const getAudioContext = () => {
     if (!audioCtx) {
-        // Soporte estándar y Safari
         const AudioContext = window.AudioContext || window.webkitAudioContext;
         if (AudioContext) {
             audioCtx = new AudioContext();
@@ -17,7 +18,6 @@ export const playOwlHoot = () => {
     const ctx = getAudioContext();
     if (!ctx) return;
 
-    // CRÍTICO: Si el contexto está suspendido (común en móviles), lo reanudamos
     if (ctx.state === 'suspended') {
         ctx.resume().catch(err => console.warn("No se pudo reanudar el audio:", err));
     }
@@ -34,7 +34,7 @@ export const playOwlHoot = () => {
         osc.frequency.setValueAtTime(startFreq, startTime); 
         osc.frequency.exponentialRampToValueAtTime(endFreq, startTime + duration);
 
-        // Volumen (Subido un poco respecto a la versión anterior)
+        // Volumen AJUSTADO: Bajamos a 0.2 para que sea sutil frente a la voz
         gain.gain.setValueAtTime(0, startTime);
         gain.gain.linearRampToValueAtTime(maxVol, startTime + (duration * 0.1));
         gain.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
@@ -46,9 +46,9 @@ export const playOwlHoot = () => {
         osc.stop(startTime + duration + 0.1);
     };
 
-    // Secuencia "Huuu... Huuuuu" con volumen mejorado (0.3 en lugar de 0.15)
-    createHoot(t, 0.4, 600, 450, 0.3);       
-    createHoot(t + 0.5, 0.6, 550, 400, 0.25); 
+    // Secuencia "Huuu... Huuuuu" con volumen SUAVE (0.2)
+    createHoot(t, 0.4, 600, 450, 0.2);       
+    createHoot(t + 0.5, 0.6, 550, 400, 0.15); 
 
   } catch (e) {
     console.error("Audio error:", e);
@@ -56,6 +56,8 @@ export const playOwlHoot = () => {
 };
 
 export const playExitSound = () => {
+    // Mantenemos esta función por si la necesitas en el futuro, 
+    // pero ahora usaremos playOwlHoot para salir.
     try {
         const ctx = getAudioContext();
         if (!ctx) return;
@@ -65,8 +67,7 @@ export const playExitSound = () => {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
 
-        osc.type = 'triangle'; // Sonido tipo "Game Over" suave
-
+        osc.type = 'triangle'; 
         osc.frequency.setValueAtTime(300, t);
         osc.frequency.exponentialRampToValueAtTime(50, t + 0.4);
 

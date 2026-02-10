@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, computed, watch, nextTick } from 'vue';
 import { 
-  ArrowLeft, RefreshCw, Trophy, Eraser, Sparkles, Divide
+  ArrowLeft, RefreshCw, Trophy, Eraser, Sparkles, Divide, X as CloseIcon, HelpCircle 
 } from 'lucide-vue-next';
 import SimpleConfetti from './SimpleConfetti.vue';
 import OwlImage from './OwlImage.vue';
@@ -20,6 +20,7 @@ const selectedIndices = ref([]);
 const isSelectionComplete = ref(false); 
 const showConfetti = ref(false);
 const isSuccess = ref(false);
+const showTableModal = ref(false); // Controla el modal de ayuda
 
 const inputsRef = ref({});
 const uid = Math.random().toString(36).substring(7);
@@ -38,6 +39,16 @@ const currentHint = ref({
   message: '',
   activeKeys: [],
   theme: THEMES[0]
+});
+
+// --- LÓGICA DE TABLA DE MULTIPLICAR (AYUDA) ---
+const multiplicationTable = computed(() => {
+    const d = divisor.value;
+    const list = [];
+    for(let i=1; i<=10; i++) {
+        list.push({ n1: d, n2: i, res: d*i });
+    }
+    return list;
 });
 
 // --- LÓGICA MATEMÁTICA ---
@@ -310,7 +321,6 @@ const setProblem = (div, dvr) => {
 onMounted(generateNewProblem);
 watch([difficulty, forcedDivisor], generateNewProblem);
 
-// --- CEREBRO INTELIGENTE DEL PROFESOR BÚHO ---
 const calculateHint = () => {
     if (isSuccess.value) {
         currentHint.value = { message: "¡INCREÍBLE! ¡Lo has logrado!", activeKeys: [], theme: THEMES[0] };
@@ -365,38 +375,23 @@ const calculateHint = () => {
                  msg = `Ahora restamos: ${minuendo} - ${sustraendo} = ${resultadoResta}. Escribe el ${resultadoResta}.`;
             }
         }
-        
         currentHint.value = { message: msg, activeKeys: [activeKey.value], theme };
     }
 };
 
-// ESTILOS DINÁMICOS COMPACTOS
 const getCellClass = (key) => {
     const isTarget = activeKey.value === key; 
     const val = userInputs.value[key];
     const isCorrect = checkValueCorrectness(key, val);
-    
-    // REDUCCIÓN: h-9 y text-xl
     let base = "w-8 h-9 text-center text-xl font-mono border-b-2 outline-none transition-all font-bold rounded-sm ";
-    
     if (isSuccess.value) return base + "bg-green-100 text-green-800 border-green-500 shadow-inner";
-    
-    if (val && isCorrect) {
-        return base + "bg-green-100 border-transparent text-green-700 font-black scale-100";
-    }
-
+    if (val && isCorrect) return base + "bg-green-100 border-transparent text-green-700 font-black scale-100";
     if (!isSelectionComplete.value) return base + "bg-transparent border-transparent"; 
-    
     if (isTarget) {
-        if (waitingForDropIndex.value !== null && !val) {
-             return base + "bg-orange-50 border-orange-300 border-2 border-dashed opacity-70 cursor-not-allowed";
-        }
-        if (val && !isCorrect) {
-            return base + "bg-red-50 border-red-500 text-red-600 ring-2 ring-red-300 z-20 scale-105";
-        }
+        if (waitingForDropIndex.value !== null && !val) return base + "bg-orange-50 border-orange-300 border-2 border-dashed opacity-70 cursor-not-allowed";
+        if (val && !isCorrect) return base + "bg-red-50 border-red-500 text-red-600 ring-2 ring-red-300 z-20 scale-105 animate-shake";
         return base + "bg-yellow-50 border-yellow-500 ring-4 ring-yellow-200 z-20 scale-110 shadow-lg text-slate-900";
     }
-    
     return base + "bg-white/50 border-slate-200/50";
 };
 
@@ -410,12 +405,45 @@ const isFinalRemainder = (row, col) => {
 </script>
 
 <template>
-  <div class="h-[100dvh] w-full bg-blue-600 font-sans flex justify-center overflow-hidden">
+  <div class="h-[100dvh] w-full bg-slate-100 font-sans flex justify-center overflow-hidden select-none">
     
     <SimpleConfetti :isActive="showConfetti" />
     
     <div class="w-full max-w-xl h-full flex flex-col bg-blue-600 shadow-2xl relative">
         
+        <div v-if="showTableModal" 
+             class="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in"
+             @click.self="showTableModal = false">
+            
+            <div class="bg-white rounded-2xl shadow-2xl w-[90%] max-w-xs border-4 border-blue-200 overflow-hidden flex flex-col max-h-[80vh]">
+                <div class="bg-blue-50 p-3 border-b border-blue-100 flex justify-between items-center text-slate-700 font-black shrink-0">
+                    <div class="flex items-center gap-2">
+                        <HelpCircle :size="20" class="text-blue-500"/> Tabla del {{ divisor }}
+                    </div>
+                    <button @click="showTableModal = false" class="p-1 bg-white rounded-full text-slate-400 hover:text-red-500 transition shadow-sm">
+                        <CloseIcon :size="20" />
+                    </button>
+                </div>
+
+                <div class="overflow-y-auto p-3 bg-white scrollbar-thin">
+                    <div class="grid grid-cols-1 gap-2">
+                        <div v-for="item in multiplicationTable" :key="item.n2" 
+                             class="flex justify-between items-center p-2 rounded-xl border border-blue-100 bg-blue-50/50 shadow-sm">
+                            <span class="text-lg font-bold text-slate-600 font-mono">
+                                {{ item.n1 }} <span class="text-blue-400 mx-1">×</span> {{ item.n2 }}
+                            </span>
+                            <span class="text-xl font-black text-blue-600">= {{ item.res }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-3 bg-slate-50 border-t border-slate-100 text-center shrink-0">
+                    <button @click="showTableModal = false" class="w-full py-3 bg-blue-600 text-white font-bold rounded-xl shadow-md active:scale-95 transition hover:bg-blue-500">
+                        ¡Entendido!
+                    </button>
+                </div>
+            </div>
+        </div>
         <div class="flex-none pt-2 px-4 pb-2 z-10">
             <div class="w-full flex flex-col md:flex-row justify-between items-center gap-2 text-white">
                 <div class="flex items-center justify-between w-full">
@@ -434,19 +462,24 @@ const isFinalRemainder = (row, col) => {
                 </div>
                 
                 <div class="flex flex-row gap-2 items-center w-full justify-center">
-                     <div class="flex bg-blue-700/50 p-1 rounded-lg backdrop-blur-sm border border-blue-500/50">
+                      <div class="flex bg-blue-700/50 p-1 rounded-lg backdrop-blur-sm border border-blue-500/50">
                         <button @click="difficulty = 1" :class="`px-3 py-1 rounded font-bold text-sm transition-colors ${difficulty===1 ? 'bg-white text-blue-700 shadow-sm' : 'text-blue-100 hover:bg-white/10'}`">Nivel 1</button>
                         <button @click="difficulty = 2" :class="`px-3 py-1 rounded font-bold text-sm transition-colors ${difficulty===2 ? 'bg-white text-blue-700 shadow-sm' : 'text-blue-100 hover:bg-white/10'}`">Nivel 2</button>
-                     </div>
-                     <div class="flex flex-row gap-2 items-center bg-blue-700/50 p-1.5 rounded-xl shadow-sm border border-blue-500/50">
+                      </div>
+                      
+                      <div class="flex flex-row gap-2 items-center bg-blue-700/50 p-1.5 rounded-xl shadow-sm border border-blue-500/50">
                         <div class="flex items-center gap-1 px-2">
-                            <span class="text-xs text-blue-200 font-bold">Tabla:</span>
-                            <select v-model="forcedDivisor" class="font-black text-base text-white bg-transparent outline-none cursor-pointer">
+                            <span class="text-xs text-blue-200 font-bold hidden sm:inline">Tabla:</span>
+                            <select v-model="forcedDivisor" class="font-black text-base text-white bg-transparent outline-none cursor-pointer w-auto text-right md:text-center appearance-none">
                                 <option value="random" class="text-slate-900">Aleatoria</option>
                                 <option v-for="n in 10" :key="n" :value="n" class="text-slate-900">{{ n }}</option>
                             </select>
                         </div>
-                     </div>
+                      </div>
+                      
+                      <button @click="showTableModal = true" class="p-2 bg-blue-700/50 rounded-lg text-blue-100 border border-blue-500/50 hover:bg-white/10 active:scale-95 transition" title="Ver Tabla de Ayuda">
+                          <HelpCircle :size="20" />
+                      </button>
                 </div>
             </div>
         </div>
@@ -467,33 +500,28 @@ const isFinalRemainder = (row, col) => {
             </div>
         </div>
 
-        <div class="flex-1 w-full overflow-hidden relative bg-slate-50 rounded-t-[2rem] mt-2 shadow-inner">
-            <div class="w-full h-full overflow-auto p-4 flex flex-col items-center justify-start">
+        <div class="flex-1 w-full overflow-hidden relative bg-blue-600 rounded-t-[2rem] mt-2 shadow-inner">
+            <div class="w-full h-full overflow-y-auto p-4 flex flex-col items-center">
                 
-                <div class="bg-[#fff9c4] border-4 border-[#fbc02d] rounded-2xl shadow-2xl p-2 w-[98%] max-w-lg relative mt-4 mb-4 pt-8"
-                     style="background-image: linear-gradient(#e1f5fe 1px, transparent 1px); background-size: 100% 2em;">
+                <div class="bg-[#fff9c4] border-4 border-[#fbc02d] rounded-2xl shadow-2xl p-2 w-[98%] max-w-lg relative transition-all duration-300 my-auto"
+                     style="background-image: linear-gradient(#e1f5fe 1px, transparent 1px); background-size: 100% 2em; padding-top: 2rem;">
                     
                     <div class="absolute top-0 bottom-0 left-6 w-1 bg-red-300 opacity-50"></div>
                     
                     <div class="flex items-start gap-4 pl-2 relative z-10 justify-center">
-                        
                         <div class="flex flex-col relative">
-                              <div class="absolute -top-4 w-full text-center pl-1 text-[10px] font-bold text-slate-400 tracking-widest uppercase">
-                                  Dividendo
-                              </div>
-
+                              <div class="absolute -top-6 w-full text-center pl-1 text-[10px] font-bold text-slate-400 tracking-widest uppercase">Dividendo</div>
                               <div class="flex relative justify-center">
                                   <div v-for="(digit, idx) in dividend.toString()" :key="`d-${idx}`" 
                                     @click="handleDigitClick(idx)"
                                     :class="`w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center text-2xl font-black font-mono border-b-2 transition-all cursor-pointer select-none rounded-md mx-0.5
                                         ${selectedIndices.includes(idx) ? 'bg-green-200 text-green-900 border-green-500 shadow-sm' : 'border-transparent text-slate-700 hover:bg-white/50'}
                                         ${((!isSelectionComplete && idx === selectedIndices.length) || (waitingForDropIndex === idx)) ? 'animate-bounce bg-green-100 ring-2 ring-green-400 z-50' : ''}
-                                    `"
-                                  >
+                                    `">
                                       {{ digit }}
                                       <div v-if="waitingForDropIndex === idx || (!isSelectionComplete && idx === selectedIndices.length)" 
                                             class="absolute -top-8 text-green-600 animate-bounce left-1/2 -translate-x-1/2 bg-white/80 rounded-full p-1 shadow-sm">
-                                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>
                                       </div>
                                   </div>
                               </div>
@@ -501,25 +529,18 @@ const isFinalRemainder = (row, col) => {
                               <div class="grid mt-1" :style="{ gridTemplateColumns: `repeat(${dividend.toString().length}, min-content)` }">
                                   <template v-for="r in ((solutionSteps.length * 2) + 2)" :key="`row-${r}`">
                                       <div v-for="(d, c) in dividend.toString()" :key="`cell-${r}-${c}`" class="w-8 h-8 sm:w-10 sm:h-10 p-0.5 relative flex items-center justify-center mx-0.5">
-                                          <input 
-                                              v-if="orderedKeys.includes(`grid-${r}-${c}`)"
+                                          <input v-if="orderedKeys.includes(`grid-${r}-${c}`)"
                                               :ref="(el) => setRef(`grid-${r}-${c}`, el)"
-                                              type="tel"
-                                              autocomplete="off"
-                                              :name="`div_g_${uid}_${r}_${c}`"
-                                              data-lpignore="true"
-                                              readonly inputmode="none"
+                                              type="tel" autocomplete="off" :name="`div_g_${uid}_${r}_${c}`" data-lpignore="true" readonly inputmode="none"
                                               :value="userInputs[`grid-${r}-${c}`]"
                                               :disabled="activeKey !== `grid-${r}-${c}` && !isSuccess" 
                                               :class="getCellClass(`grid-${r}-${c}`)"
                                               @click="activeKey.value = `grid-${r}-${c}`"
                                           />
-                                          
                                           <div v-if="solutionSteps.some(s => s.type === 'product' && s.row === r && c >= s.colEnd - s.value.toString().length + 1 && c <= s.colEnd)" 
-                                                class="absolute bottom-0 left-0 right-0 border-b-2 border-slate-800 pointer-events-none">
-                                          </div>
+                                                 class="absolute bottom-0 left-0 right-0 border-b-2 border-slate-800 pointer-events-none"></div>
                                           <span v-if="solutionSteps.some(s => s.type === 'product' && s.row === r && s.colEnd - s.value.toString().length === c - 1)"
-                                                class="absolute -left-3 top-1 text-slate-500 font-bold pointer-events-none text-sm">-</span>
+                                                  class="absolute -left-3 top-1 text-slate-500 font-bold pointer-events-none text-sm">-</span>
                                           <span v-if="isFinalRemainder(r, c)" class="absolute left-full ml-2 top-1/2 -translate-y-1/2 text-[9px] font-bold text-slate-400 tracking-widest px-1 whitespace-nowrap uppercase">Residuo</span>
                                       </div>
                                   </template>
@@ -527,33 +548,23 @@ const isFinalRemainder = (row, col) => {
                         </div>
 
                         <div class="flex flex-col relative">
-                            <div class="absolute -top-4 w-full text-center text-[10px] sm:text-xs font-bold text-slate-400 tracking-widest uppercase">
-                                Divisor
-                            </div>
-
+                            <div class="absolute -top-6 w-full text-center text-[10px] sm:text-xs font-bold text-slate-400 tracking-widest uppercase">Divisor</div>
                             <div class="border-b-2 border-l-2 border-slate-800 px-3 py-1 h-10 flex items-center justify-center min-w-[60px] bg-white/50">
                                 <span class="text-2xl font-black text-slate-800">{{ divisor }}</span>
                             </div>
-                            
                             <div class="flex gap-1 justify-start flex-wrap max-w-[150px] mt-2">
                                 <div v-for="(digit, idx) in dividend.toString()" :key="`q-${idx}`">
-                                      <input 
-                                          v-if="solutionSteps.some(s => s.type === 'quotient' && s.index === idx)"
+                                      <input v-if="solutionSteps.some(s => s.type === 'quotient' && s.index === idx)"
                                           :ref="(el) => setRef(`q-${idx}`, el)"
-                                          type="tel"
-                                          autocomplete="off"
-                                          readonly inputmode="none"
+                                          type="tel" autocomplete="off" readonly inputmode="none"
                                           :value="userInputs[`q-${idx}`]"
                                           :disabled="activeKey !== `q-${idx}` && !isSuccess"
                                           :class="getCellClass(`q-${idx}`)"
                                       />
                                 </div>
                             </div>
-                            <div class="text-center w-full mt-1 text-[10px] font-bold text-slate-400 tracking-widest uppercase">
-                                Cociente
-                            </div>
+                            <div class="text-center w-full mt-1 text-[10px] font-bold text-slate-400 tracking-widest uppercase">Cociente</div>
                         </div>
-
                     </div>
                 </div>
             </div>
@@ -562,12 +573,15 @@ const isFinalRemainder = (row, col) => {
         <div class="flex-none bg-white z-20 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
             <VirtualKeypad @press="handleKeypadPress" @delete="handleDelete" />
         </div>
-
     </div>
   </div>
 </template>
 
 <style scoped>
+.animate-shake { animation: shake 0.4s; }
+@keyframes shake { 0%,100%{transform:translateX(0);} 25%{transform:translateX(-5px);} 75%{transform:translateX(5px);} }
+.animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
+@keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }

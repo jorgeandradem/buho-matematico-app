@@ -77,7 +77,6 @@ const operationConfig = computed(() => {
   return configs[props.operation] || configs.add;
 });
 
-// NUEVO: Colores de tema para la etiqueta "Nivel 1"
 const themeColors = computed(() => {
     const map = {
         add: { bg: 'bg-green-50', border: 'border-green-100', text: 'text-green-700', iconBg: 'bg-green-500' },
@@ -99,11 +98,10 @@ const getOperatorColorClass = () => {
 const generateRandomExercise = (id) => {
   let top, bot;
   if (props.operation === 'sub') {
-    top = Math.floor(Math.random() * 700) + 250; 
+    top = Math.floor(Math.random() * 900) + 100; 
     let units = (top % 10);
-    bot = Math.floor(Math.random() * (top - 100)) + 50;
-    bot = (Math.floor(bot / 10) * 10) + (units === 9 ? 9 : units + 1);
-    if (bot >= top) bot = top - 15;
+    bot = Math.floor(Math.random() * (top - 50)) + 10;
+    if (bot >= top) bot = top - 1;
   } else if (props.operation === 'mult') {
     top = Math.floor(Math.random() * 800) + 100;
     bot = Math.floor(Math.random() * 8) + 2;
@@ -119,20 +117,41 @@ const generateRandomExercise = (id) => {
 
 const exercises = ref(Array.from({ length: 5 }, (_, i) => generateRandomExercise(i)));
 
-// --- MOTOR DE MATRIZ RÍGIDA (6 COLUMNAS) ---
+// --- MOTOR DE MATRIZ RÍGIDA (CEREBRO MATEMÁTICO INTEGRAL) ---
 const processStandardOperation = (ex) => {
   if (!ex) return null;
-  const getDigits = (num) => num.toString().split('').reverse().map(Number);
-  const topDigits = getDigits(ex.top); 
-  const botDigits = getDigits(ex.bot); 
   
-  let resultVal = 0;
-  if (props.operation === 'add') resultVal = ex.top + ex.bot;
-  else if (props.operation === 'sub') resultVal = ex.top - ex.bot;
-  else if (props.operation === 'mult') resultVal = ex.top * ex.bot;
-  
-  const resultDigits = resultVal.toString().length;
-  const logicalLength = Math.max(topDigits.length, botDigits.length, resultDigits);
+  const tDigits = ex.top.toString().split('').reverse().map(Number);
+  const bDigits = ex.bot.toString().split('').reverse().map(Number);
+  const maxLength = Math.max(tDigits.length, bDigits.length);
+
+  // --- SIMULADOR DE PRÉSTAMOS (RESTA) ---
+  const finalTopDigits = [...tDigits]; 
+  const borrowedStatus = new Array(maxLength).fill(false); 
+  const originalTopDigits = [...tDigits]; 
+
+  if (props.operation === 'sub') {
+      for (let i = 0; i < maxLength; i++) {
+          const topVal = finalTopDigits[i] || 0;
+          const botVal = bDigits[i] || 0;
+          
+          if (topVal < botVal) {
+              let j = i + 1;
+              while (j < finalTopDigits.length) {
+                  if (finalTopDigits[j] > 0) {
+                      finalTopDigits[j] -= 1;
+                      borrowedStatus[j] = true;
+                      for (let k = j - 1; k >= i; k--) {
+                          if (k === i) finalTopDigits[k] += 10;
+                          else { finalTopDigits[k] = 9; borrowedStatus[k] = true; }
+                      }
+                      break;
+                  }
+                  j++;
+              }
+          }
+      }
+  }
 
   const columns = [];
   let carry = 0; 
@@ -142,42 +161,89 @@ const processStandardOperation = (ex) => {
           columns.push({ colIdx: i, type: 'OPERATOR' });
           continue;
       }
-      if (i >= logicalLength) {
-          columns.push({ colIdx: i, type: 'GHOST' });
-          continue;
+      if (i >= maxLength && (props.operation === 'sub' || carry === 0)) {
+          if (i >= maxLength) {
+             columns.push({ colIdx: i, type: 'GHOST' });
+             continue;
+          }
       }
 
-      const t = topDigits[i] || 0; 
-      const b = props.operation === 'mult' ? ex.bot : (botDigits[i] || 0);
-      let resDigit = 0, nextCarry = 0, ovalValue = 0, showOval = false;
-      let intermediateVal = t - carry; 
+      const tOrg = originalTopDigits[i] || 0; 
+      const b = props.operation === 'mult' ? ex.bot : (bDigits[i] || 0);
+      
+      let resDigit = 0, ovalValue = 0, showOval = false;
+      let owlMsgType = ''; 
+      let subEffectiveTop = 0;
+      let owlTotalSum = 0;
+      let owlNextCarry = 0;
 
+      // --- LÓGICA RESTA ---
       if (props.operation === 'sub') {
-          if (intermediateVal < b && i < logicalLength - 1) { 
-              ovalValue = intermediateVal + 10; resDigit = ovalValue - b; nextCarry = 1; showOval = true; 
+          subEffectiveTop = finalTopDigits[i] !== undefined ? finalTopDigits[i] : 0;
+          resDigit = subEffectiveTop - b;
+          
+          const isLender = borrowedStatus[i]; 
+          const valAfterLending = tOrg - (isLender ? 1 : 0); 
+          const isBorrower = subEffectiveTop > valAfterLending; 
+
+          if (isLender && isBorrower) {
+              showOval = true; ovalValue = subEffectiveTop; owlMsgType = 'sub_lender_borrower';
+          } else if (isBorrower) {
+              showOval = true; ovalValue = subEffectiveTop; owlMsgType = 'sub_borrow_rx';
+          } else if (isLender) {
+              showOval = true; ovalValue = subEffectiveTop;
+              owlMsgType = subEffectiveTop === 0 ? 'sub_lender_zero' : 'sub_lender_normal';
           } else {
-              resDigit = intermediateVal - b; nextCarry = 0; 
-              if (carry > 0) { showOval = true; ovalValue = intermediateVal; }
+              owlMsgType = 'sub_simple';
           }
+
+      // --- LÓGICA SUMA / MULT ---
       } else {
-          const valTotal = (props.operation === 'mult' ? t * b : t + b) + carry;
-          resDigit = valTotal % 10; nextCarry = Math.floor(valTotal / 10);
-          showOval = i > 0 && carry > 0; ovalValue = carry;
+          // Diferenciar Suma vs Mult
+          const product = props.operation === 'mult' ? tOrg * b : tOrg + b;
+          const valTotal = product + carry;
+          
+          resDigit = valTotal % 10;
+          owlNextCarry = Math.floor(valTotal / 10);
+          owlTotalSum = valTotal;
+
+          if (props.operation === 'add') {
+              if (carry > 0) owlMsgType = 'add_carry_rx'; 
+              else if (owlNextCarry > 0) owlMsgType = 'add_carry_tx'; 
+              else owlMsgType = 'add_simple';
+          } else if (props.operation === 'mult') {
+              // Nueva lógica para Multiplicación
+              if (carry > 0) owlMsgType = 'mult_carry_rx';
+              else if (owlNextCarry > 0) owlMsgType = 'mult_carry_tx';
+              else owlMsgType = 'mult_simple';
+          }
+
+          if (carry > 0 || (props.operation === 'mult' && carry > 0)) {
+             showOval = carry > 0;
+             ovalValue = carry;
+          }
+          
+          carry = owlNextCarry;
       }
 
       columns.push({ 
           colIdx: i, 
           type: 'DATA',
-          top: t, 
+          top: tOrg, 
           bot: b, 
-          isTopVisible: i < topDigits.length,
-          isBotVisible: i < (props.operation === 'mult' ? 1 : botDigits.length), 
+          isTopVisible: i < originalTopDigits.length,
+          isBotVisible: i < (props.operation === 'mult' ? 1 : bDigits.length), 
           expectedResult: resDigit, 
           showOval, 
           ovalValue, 
-          fullBot: ex.bot
+          fullBot: ex.bot,
+          // Datos Búho
+          owlMsgType,
+          subEffectiveTop,
+          owlTotalSum,
+          owlNextCarry,
+          owlPrevCarry: (props.operation === 'add' || props.operation === 'mult' ? (showOval ? ovalValue : 0) : 0)
       });
-      carry = nextCarry;
   }
   return { ...ex, processedCols: columns };
 };
@@ -191,6 +257,7 @@ const currentExercise = computed(() => {
   return computedExercises.value[activeExerciseIndex.value];
 });
 
+// --- CEREBRO DEL BÚHO INTELIGENTE (3 OPERACIONES) ---
 const owlAdvice = computed(() => {
   const ex = currentExercise.value;
   if (!activeCell.value || !ex) return "¡Vamos búho!";
@@ -203,16 +270,70 @@ const owlAdvice = computed(() => {
   const { type, colIdx } = activeCell.value;
   const col = ex.processedCols[colIdx];
 
-  if (props.operation === 'sub' && col && col.type === 'DATA') {
-      if (type === 'carry') return "Anota la llevada.";
-      const valBase = col.showOval ? col.ovalValue : col.top;
-      return `¡Resta ahora!\n${valBase} - ${col.bot} = ${col.expectedResult}`;
+  if (!col) return "Selecciona casilla.";
+
+  // === RESTA AVANZADA ===
+  if (props.operation === 'sub') {
+      const effTop = col.subEffectiveTop;
+      const orgTop = col.top;
+      const bot = col.bot;
+
+      if (type === 'carry') {
+          if (col.owlMsgType === 'sub_borrow_rx') return `Resta ${orgTop} - ${bot}. No puedes. Pide 1 a tu vecino y quedas en ${effTop}. Escríbelo.`;
+          if (col.owlMsgType === 'sub_lender_borrower') {
+              if (orgTop === 0) return `Eras 0. Pediste 1 (10) y prestaste 1. Ahora eres ${effTop}. Escríbelo.`;
+              return `Eras ${orgTop}. Prestaste 1 (quedaste en ${orgTop-1}). Pediste 1 prestado y ahora eres ${effTop}. Escríbelo.`;
+          }
+          if (col.owlMsgType === 'sub_lender_zero') return `Prestaste 1 ahora eres 0. Escríbelo.`;
+          if (col.owlMsgType === 'sub_lender_normal') return `Prestaste 1 ahora eres ${effTop}. Escríbelo.`;
+      }
+      if (type === 'result') return `Resta ${effTop} - ${bot} = ${col.expectedResult}. Escríbelo.`;
   }
-  if (props.operation === 'add' && col && col.type === 'DATA') return "Suma los números.";
-  if (props.operation === 'mult' && col && col.type === 'DATA') {
-      if (type === 'carry') return `Llevada de la anterior.`;
-      return `Multiplica: ${col.top} x ${col.bot} ${col.ovalValue > 0 ? `+ ${col.ovalValue}` : ''}`;
+
+  // === SUMA AVANZADA ===
+  if (props.operation === 'add') {
+      if (type === 'carry') return `Escribe el ${col.ovalValue} que te dio tu vecino.`;
+      if (type === 'result') {
+          const t = col.top;
+          const b = col.bot;
+          const total = col.owlTotalSum;
+          const nextC = col.owlNextCarry;
+          const resD = col.expectedResult;
+
+          if (col.owlMsgType === 'add_carry_rx') {
+              return `Suma ${t} + ${b} = ${t+b}. Más ${col.ovalValue} que llevas son ${total}. Anota ${resD}${nextC > 0 ? ' y lleva ' + nextC : '.'}`;
+          } else if (nextC > 0) {
+              return `Suma ${t} + ${b} = ${total}. Anota ${resD} y escribe ${nextC} en las llevadas del vecino.`;
+          } else {
+              return `Suma ${t} + ${b} = ${total}. Escríbelo.`;
+          }
+      }
   }
+  
+  // === MULTIPLICACIÓN AVANZADA (NIVEL 1) ===
+  // Nota: Nombrar primero al Multiplicador (bot) y luego al Multiplicando (top)
+  if (props.operation === 'mult' && col.type === 'DATA') {
+      if (type === 'carry') return `Escribe el ${col.ovalValue} que llevas de la multiplicación anterior.`;
+      
+      if (type === 'result') {
+          const t = col.top;
+          const b = col.bot; // En mult nivel 1, bot es un solo dígito
+          const total = col.owlTotalSum;
+          const nextC = col.owlNextCarry;
+          const resD = col.expectedResult;
+          const prevC = col.owlPrevCarry;
+
+          if (col.owlMsgType === 'mult_carry_rx') {
+              const baseProd = b * t; // Orden visual b x t
+              return `Multiplica ${b} x ${t} = ${baseProd}. Más ${prevC} que llevas son ${total}. Escribe ${resD}${nextC > 0 ? ' y lleva ' + nextC : '.'}`;
+          } else if (nextC > 0) {
+              return `Multiplica ${b} x ${t} = ${total}. Escribe ${resD} y lleva ${nextC} en las unidades.`;
+          } else {
+              return `Multiplica ${b} x ${t} = ${total}. Escríbelo.`;
+          }
+      }
+  }
+  
   return "Toca la casilla y escribe.";
 });
 
@@ -225,10 +346,17 @@ const handleKeypadPress = (num) => {
   if (exercises.value[exIdx].inputs[id] === 'error') { exercises.value[exIdx].inputs[id] = null; exercises.value[exIdx].inputs[id + '_val'] = ""; }
   let cur = exercises.value[exIdx].inputs[id + '_val'] || "";
   let newVal = cur + num.toString();
+  
+  const expStr = expected.toString();
+  
   if (parseInt(newVal) === expected) {
-    exercises.value[exIdx].inputs[id] = 'correct'; exercises.value[exIdx].inputs[id + '_val'] = ""; nextTick(() => { if (nextFn) nextFn(); });
-  } else if (newVal.length >= expected.toString().length) {
-    exercises.value[exIdx].inputs[id] = 'error'; exercises.value[exIdx].inputs[id + '_val'] = ""; if (navigator.vibrate) navigator.vibrate(200);
+    exercises.value[exIdx].inputs[id] = 'correct'; 
+    exercises.value[exIdx].inputs[id + '_val'] = ""; 
+    nextTick(() => { if (nextFn) nextFn(); });
+  } else if (newVal.length >= expStr.length) {
+    exercises.value[exIdx].inputs[id] = 'error'; 
+    exercises.value[exIdx].inputs[id + '_val'] = ""; 
+    if (navigator.vibrate) navigator.vibrate(200);
   } else {
     exercises.value[exIdx].inputs[id + '_val'] = newVal;
   }
@@ -255,28 +383,34 @@ const autoFocus = () => {
   nextTick(() => {
     const idx = activeExerciseIndex.value; const ex = currentExercise.value; 
     if(!ex) return;
-    const firstDataCol = ex.processedCols.find(c => c.type === 'DATA');
+    const firstDataCol = ex.processedCols.find(c => c.type === 'DATA' && c.colIdx === 0);
     if(firstDataCol) {
-        const type = firstDataCol.showOval ? 'carry' : 'result';
-        handleFocus(idx, type, firstDataCol.colIdx, null, type==='carry' ? firstDataCol.ovalValue : firstDataCol.expectedResult, () => nextStepStd(idx, firstDataCol.colIdx, type));
+        // Inicio inteligente: si hay que pedir prestado o sumar llevada (y el ovalo es visible), empezamos ahí
+        const startType = (firstDataCol.showOval) ? 'carry' : 'result';
+        handleFocus(idx, startType, 0, null, startType==='carry' ? firstDataCol.ovalValue : firstDataCol.expectedResult, () => nextStepStd(idx, 0, startType));
     }
   });
 };
 
 const nextStepStd = (idx, colIdx, type) => {
   const ex = currentExercise.value; if (!ex) return;
-  
-  if (type === 'carry') {
-    const col = ex.processedCols[colIdx];
-    handleFocus(idx, 'result', colIdx, null, col.expectedResult, () => nextStepStd(idx, colIdx, 'result'));
-  } else {
-    const nextColIndex = colIdx + 1;
-    const nextCol = ex.processedCols.find(c => c.colIdx === nextColIndex);
+  const col = ex.processedCols.find(c => c.colIdx === colIdx);
 
-    if (nextCol && nextCol.type === 'DATA') {
-      const nextType = nextCol.showOval ? 'carry' : 'result';
+  // 1. De Óvalo a Resultado (Misma columna)
+  if (type === 'carry') {
+      handleFocus(idx, 'result', colIdx, null, col.expectedResult, () => nextStepStd(idx, colIdx, 'result'));
+      return;
+  }
+
+  // 2. De Resultado a Siguiente Columna (Izquierda)
+  const nextColIndex = colIdx + 1;
+  const nextCol = ex.processedCols.find(c => c.colIdx === nextColIndex);
+
+  if (nextCol && nextCol.type === 'DATA') {
+      const nextHasAction = nextCol.showOval; 
+      const nextType = nextHasAction ? 'carry' : 'result';
       handleFocus(idx, nextType, nextCol.colIdx, null, nextType === 'carry' ? nextCol.ovalValue : nextCol.expectedResult, () => nextStepStd(idx, nextCol.colIdx, nextType));
-    } else {
+  } else {
       exercises.value[idx].completed = true; 
       activeCell.value = null; 
       
@@ -289,7 +423,6 @@ const nextStepStd = (idx, colIdx, type) => {
           }, 1500);
       }
     }
-  }
 };
 
 const fullReset = async () => {
@@ -355,18 +488,29 @@ onMounted(autoFocus);
                    <button @click="showSolution = !showSolution" :class="`p-2 md:p-2.5 rounded-lg shadow-sm transition active:scale-95 ${showSolution ? 'bg-indigo-100 text-indigo-600 ring-2 ring-indigo-300' : 'bg-white text-slate-500 hover:text-indigo-600'}`"><component :is="showSolution ? EyeOff : Eye" class="w-4 h-4 md:w-5 md:h-5" /></button>
                 </div>
             </div>
-            <SmartGuide :currentAdvice="owlAdvice" />
+            
+            <div class="w-full mb-1 z-30">
+                <div class="bg-white/90 backdrop-blur-sm border-l-4 border-blue-500 rounded-r-xl p-3 shadow-md flex gap-3 items-center animate-fade-in">
+                    <div class="text-2xl select-none">🦉</div>
+                    <p class="text-slate-700 font-bold text-sm md:text-base leading-tight">
+                        {{ owlAdvice }}
+                    </p>
+                </div>
+            </div>
         </div>
 
         <div class="flex-1 flex flex-col items-center justify-center p-0 relative bg-slate-50 overflow-hidden">
             <div v-if="currentExercise" :key="currentExercise.id" class="w-[98%] max-w-lg flex flex-col justify-center h-full animate-fade-in">
                  
-                 <div class="relative p-4 md:p-10 rounded-[2.5rem] border-4 w-full h-[95%] shadow-2xl bg-yellow-50 border-yellow-400 flex flex-col justify-center items-center transition-all duration-500" 
-                      :class="{ 'bg-green-50 border-green-300': currentExercise.completed }">
+                 <div class="relative p-4 md:p-10 rounded-[2.5rem] border-4 w-full h-[95%] shadow-2xl flex flex-col justify-center items-center transition-all duration-500" 
+                      :class="currentExercise.completed ? 'bg-green-100 border-green-400' : 'bg-[#fff9c4] border-yellow-400'"
+                      style="background-image: linear-gradient(#e1f5fe 1px, transparent 1px); background-size: 100% 2.1rem;">
                     
                     <div v-if="currentExercise.completed" class="absolute inset-0 flex items-center justify-center z-30 pointer-events-none animate-fade-in-scale">
-                        <Check class="w-48 h-48 md:w-64 md:h-64 text-green-500/20" stroke-width="4" />
+                        <Check class="w-48 h-48 md:w-64 md:h-64 text-green-500/40" stroke-width="4" />
                     </div>
+
+                    <div class="absolute top-0 bottom-0 left-4 md:left-8 w-0.5 bg-red-300 opacity-40"></div>
 
                     <div class="absolute -top-4 -left-2 bg-white text-slate-700 font-black text-lg md:text-xl w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center shadow-md border-2 border-slate-200">{{ activeExerciseIndex + 1 }}</div>
 
@@ -375,37 +519,37 @@ onMounted(autoFocus);
                             
                             <div v-for="col in currentExercise.processedCols" :key="col.colIdx" class="flex flex-col items-center">
                                 
-                                <div v-if="col.type === 'OPERATOR'" class="w-12 md:w-[4.5rem] h-full flex flex-col items-center justify-end pb-16 md:pb-28">
+                                <div v-if="col.type === 'OPERATOR'" class="w-14 md:w-[4.5rem] h-full flex flex-col items-center justify-end pb-16 md:pb-28">
                                      <div :class="`text-5xl md:text-7xl font-black ${getOperatorColorClass()}`">{{ opSymbol }}</div>
                                 </div>
 
-                                <div v-else-if="col.type === 'GHOST'" class="w-12 md:w-[4.5rem] pointer-events-none"></div>
+                                <div v-else-if="col.type === 'GHOST'" class="w-14 md:w-[4.5rem] pointer-events-none"></div>
 
                                 <template v-else>
                                     <div class="h-14 md:h-20 flex items-end justify-center w-full mb-1">
                                         <div v-if="col.showOval" 
-                                             :class="[ 'flex items-center justify-center cursor-pointer w-10 h-8 md:w-16 md:h-10 rounded-lg border-2 text-xl md:text-2xl font-bold shadow-inner transition-all z-10', 
-                                                       currentExercise.inputs[`in-${activeExerciseIndex}-c${col.colIdx}-carry`] === 'correct' ? 'bg-green-100 border-green-500 text-green-700' : 
-                                                       currentExercise.inputs[`in-${activeExerciseIndex}-c${col.colIdx}-carry`] === 'error' ? 'bg-red-50 border-red-500 text-red-600 animate-shake' : 
-                                                       (activeCell?.exIdx === activeExerciseIndex && activeCell?.colIdx === col.colIdx && activeCell?.type === 'carry') ? 'bg-yellow-50 focus-neon' : 'bg-white border-slate-300' ]"
-                                             @click="handleFocus(activeExerciseIndex, 'carry', col.colIdx, null, col.ovalValue, () => nextStepStd(activeExerciseIndex, col.colIdx, 'carry'))">
+                                          :class="[ 'flex items-center justify-center cursor-pointer w-10 h-8 md:w-16 md:h-10 rounded-lg border-2 text-xl md:text-2xl font-bold shadow-inner transition-all z-10', 
+                                                   currentExercise.inputs[`in-${activeExerciseIndex}-c${col.colIdx}-carry`] === 'correct' ? 'bg-green-100 border-green-500 text-green-700' : 
+                                                   currentExercise.inputs[`in-${activeExerciseIndex}-c${col.colIdx}-carry`] === 'error' ? 'bg-red-50 border-red-500 text-red-600 animate-shake' : 
+                                                   (activeCell?.exIdx === activeExerciseIndex && activeCell?.colIdx === col.colIdx && activeCell?.type === 'carry') ? 'bg-yellow-50 focus-neon' : 'bg-white border-slate-300' ]"
+                                          @click="handleFocus(activeExerciseIndex, 'carry', col.colIdx, null, col.ovalValue, () => nextStepStd(activeExerciseIndex, col.colIdx, 'carry'))">
                                             {{ currentExercise.inputs[`in-${activeExerciseIndex}-c${col.colIdx}-carry`] === 'correct' ? col.ovalValue : (currentExercise.inputs[`in-${activeExerciseIndex}-c${col.colIdx}-carry_val`] || '') }}
                                         </div>
                                     </div>
 
-                                    <div class="w-12 md:w-[4.5rem] h-14 md:h-20 flex items-center justify-center text-4xl md:text-6xl font-mono font-bold text-slate-700">
+                                    <div class="w-14 md:w-[4.5rem] h-16 md:h-20 flex items-center justify-center text-5xl md:text-6xl font-mono font-bold text-slate-700">
                                         {{ col.isTopVisible ? col.top : '' }}
                                     </div>
                                     
-                                    <div class="w-12 md:w-[4.5rem] h-14 md:h-20 flex items-center justify-center text-4xl md:text-6xl font-mono font-bold text-slate-700 border-b-[4px] md:border-b-[6px] border-slate-800">
+                                    <div class="w-14 md:w-[4.5rem] h-16 md:h-20 flex items-center justify-center text-5xl md:text-6xl font-mono font-bold text-slate-700 border-b-[4px] md:border-b-[6px] border-slate-800">
                                         {{ col.isBotVisible ? (props.operation === 'mult' ? col.fullBot : col.bot) : '' }}
                                     </div>
 
-                                    <div :class="[ 'flex items-center justify-center cursor-pointer w-12 h-14 md:w-[4.5rem] md:h-24 rounded-xl md:rounded-2xl border-2 text-4xl md:text-6xl mt-2 md:mt-4 shadow-inner transition-all', 
+                                    <div :class="[ 'flex items-center justify-center cursor-pointer w-14 h-16 md:w-[4.5rem] md:h-24 rounded-xl md:rounded-2xl border-2 text-5xl md:text-6xl mt-2 md:mt-4 shadow-inner transition-all', 
                                                    currentExercise.inputs[`in-${activeExerciseIndex}-c${col.colIdx}-result`] === 'correct' ? 'bg-green-100 border-green-500 text-green-700' : 
                                                    currentExercise.inputs[`in-${activeExerciseIndex}-c${col.colIdx}-result`] === 'error' ? 'bg-red-50 border-red-500 text-red-600 animate-shake' : 
                                                    (activeCell?.exIdx === activeExerciseIndex && activeCell?.colIdx === col.colIdx && activeCell?.type === 'result') ? 'bg-yellow-50 focus-neon' : 'bg-white border-slate-300' ]"
-                                         @click="handleFocus(activeExerciseIndex, 'result', col.colIdx, null, col.expectedResult, () => nextStepStd(activeExerciseIndex, col.colIdx, 'result'))">
+                                      @click="handleFocus(activeExerciseIndex, 'result', col.colIdx, null, col.expectedResult, () => nextStepStd(activeExerciseIndex, col.colIdx, 'result'))">
                                         {{ currentExercise.inputs[`in-${activeExerciseIndex}-c${col.colIdx}-result`] === 'correct' ? col.expectedResult : (currentExercise.inputs[`in-${activeExerciseIndex}-c${col.colIdx}-result_val`] || '') }}
                                     </div>
                                 </template>
@@ -431,6 +575,8 @@ onMounted(autoFocus);
 @keyframes shake { 0%,100%{transform:translateX(0);} 25%{transform:translateX(-5px);} 75%{transform:translateX(5px);} }
 .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
 @keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
+
+/* ANIMACIÓN DEL CHECK TRASLUCIDO */
 .animate-fade-in-scale { animation: fadeInScale 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
 @keyframes fadeInScale { from { opacity: 0; transform: scale(0.5); } to { opacity: 1; transform: scale(1); } }
 

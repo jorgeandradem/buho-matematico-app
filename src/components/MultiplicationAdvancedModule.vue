@@ -9,37 +9,30 @@ const emit = defineEmits(['back']);
 
 // --- ESTADOS ---
 const showConfetti = ref(false);
-const showSolution = ref(false); // Modal de tablas
+const showSolution = ref(false);
 const activeExerciseIndex = ref(0);
-const isFinished = ref(false); // Estado de ejercicio completado
-const selectedTableMode = ref('current'); // Para el modal del ojo
+const isFinished = ref(false);
+const selectedTableMode = ref('current');
 
-// Números del ejercicio
+// Números
 const topNum = ref(0);
 const botNum = ref(0);
 
-// Estado de la Secuencia
+// Secuencia
 const steps = ref([]);        
 const currentStepIdx = ref(0); 
 const userInputs = ref({});   
 
-// Resetear selector al abrir modal
 watch(showSolution, (newVal) => { if (newVal) selectedTableMode.value = 'current'; });
 
-// --- LÓGICA DE SOLUCIONES (TABLAS) ---
+// --- SOLUCIONES ---
 const displayedSolutions = computed(() => {
     if (selectedTableMode.value === 'current') {
-        // Mostrar la operación actual desglosada
-        return [
-            { id: 'curr', n1: topNum.value, op: '×', n2: botNum.value, result: topNum.value * botNum.value, isCurrent: true }
-        ];
+        return [{ id: 'curr', n1: topNum.value, op: '×', n2: botNum.value, result: topNum.value * botNum.value, isCurrent: true }];
     } else {
-        // Mostrar tabla seleccionada
         const tableNum = parseInt(selectedTableMode.value);
         const list = [];
-        for (let i = 1; i <= 10; i++) {
-            list.push({ id: `tbl-${i}`, n1: tableNum, op: '×', n2: i, result: tableNum * i, isCurrent: false });
-        }
+        for (let i = 1; i <= 10; i++) list.push({ id: `tbl-${i}`, n1: tableNum, op: '×', n2: i, result: tableNum * i, isCurrent: false });
         return list;
     }
 });
@@ -49,16 +42,12 @@ const generateNumbers = () => {
     isFinished.value = false;
     userInputs.value = {};
     currentStepIdx.value = 0;
-    
-    // Top: 2 a 4 dígitos
     topNum.value = Math.floor(Math.random() * (9999 - 10 + 1)) + 10;
-    // Bot: 2 dígitos
     botNum.value = Math.floor(Math.random() * (99 - 10 + 1)) + 10;
-    
     calculateSteps();
 };
 
-// --- EL CEREBRO: SECUENCIA LÓGICA ---
+// --- EL CEREBRO MATEMÁTICO ---
 const calculateSteps = () => {
     steps.value = [];
     
@@ -67,8 +56,7 @@ const calculateSteps = () => {
     const tDigits = tStr.split('').reverse().map(Number); 
     const bDigits = bStr.split('').reverse().map(Number); 
 
-    // --- FASE 1: Multiplicar por la UNIDAD (Row 3) ---
-    // bIdx = 0 (Unidad del multiplicador)
+    // --- FASE 1: UNIDADES ---
     let carry = 0;
     const bUnit = bDigits[0];
     
@@ -77,33 +65,27 @@ const calculateSteps = () => {
         const resultDigit = product % 10;
         const nextCarry = Math.floor(product / 10);
 
-        // 1. Resultado
-        // mIdx: Qué dígito de arriba estamos operando
-        // bIdx: Qué dígito de abajo estamos usando (0 = unidad)
         steps.value.push({
             phase: 'prod1', type: 'result', row: 3, col: i, val: resultDigit, mIdx: i, bIdx: 0,
             hint: `Multiplica: ${bUnit} x ${tDigits[i]} ${carry ? '+ ' + carry : ''}`
         });
 
-        // 2. Llevada (Row 0)
         if (nextCarry > 0 && i < tDigits.length - 1) {
             steps.value.push({
                 phase: 'prod1', type: 'carry', row: 0, col: i + 1, val: nextCarry, mIdx: i, bIdx: 0,
                 hint: `Llevas ${nextCarry}.`
             });
         }
-        
         carry = nextCarry;
     }
     if (carry > 0) {
         steps.value.push({
             phase: 'prod1', type: 'result', row: 3, col: tDigits.length, val: carry, mIdx: tDigits.length - 1, bIdx: 0,
-            hint: `Escribe la llevada final: ${carry}`
+            hint: `Llevada final: ${carry}`
         });
     }
 
-    // --- FASE 2: Multiplicar por la DECENA (Row 4) ---
-    // bIdx = 1 (Decena del multiplicador)
+    // --- FASE 2: DECENAS ---
     carry = 0;
     const bTen = bDigits[1];
     
@@ -133,8 +115,7 @@ const calculateSteps = () => {
         });
     }
 
-    // --- FASE 3: SUMA FINAL (Row 5) ---
-    // bIdx = -1 (Ya no hay multiplicador activo)
+    // --- FASE 3: SUMA FINAL ---
     const p1Digits = (topNum.value * bUnit).toString().split('').reverse().map(Number);
     const p2Digits = (topNum.value * bTen).toString().split('').reverse().map(Number); 
     
@@ -189,7 +170,6 @@ const handleKeypadPress = (num) => {
     if (num === step.val) {
         userInputs.value[key] = { val: num, status: 'correct' };
         
-        // Limpieza de llevadas al cambiar de fase
         const currentPhase = step.phase;
         const nextIdx = currentStepIdx.value + 1;
         
@@ -202,18 +182,14 @@ const handleKeypadPress = (num) => {
 
         currentStepIdx.value++;
         
-        // --- FIN DEL EJERCICIO ---
         if (currentStepIdx.value >= steps.value.length) {
             isFinished.value = true;
-            
-            // 1. Si es el último ejercicio (4 porque array 0-4), lanzar confeti
             if (activeExerciseIndex.value === 4) {
                 showConfetti.value = true;
             } else {
-                // 2. Si no, esperar y pasar al siguiente
                 setTimeout(() => {
                     activeExerciseIndex.value++;
-                    generateNumbers(); // Siguiente ejercicio
+                    generateNumbers(); 
                 }, 1500);
             }
         }
@@ -236,24 +212,23 @@ const resetExercise = () => {
 };
 
 // --- VISUALIZACIÓN ---
-
-// 1. Check Verde Multiplicando (Arriba)
 const shouldShowTopCheck = (colIdx) => {
     if (!currentStep.value) return false;
     const phase = currentStep.value.phase;
     if (phase !== 'prod1' && phase !== 'prod2') return false;
-    // Mostrar si colIdx <= índice actual del multiplicando
     return colIdx <= currentStep.value.mIdx;
 };
 
-// 2. Check Verde Multiplicador (Abajo)
+// Nueva función para saber si es el check ACTIVO (para que pulse)
+const isTopCheckActive = (colIdx) => {
+    if (!currentStep.value) return false;
+    return colIdx === currentStep.value.mIdx;
+};
+
 const shouldShowBotCheck = (colIdx) => {
     if (!currentStep.value) return false;
     const phase = currentStep.value.phase;
     if (phase !== 'prod1' && phase !== 'prod2') return false;
-    
-    // bIdx es 0 (Unidad) o 1 (Decena).
-    // colIdx en la grilla es el índice matemático (0=Unidad, 1=Decena)
     return colIdx === currentStep.value.bIdx;
 };
 
@@ -280,7 +255,6 @@ const getCellClass = (row, col) => {
     const inputData = userInputs.value[key];
     const isTarget = currentStep.value && currentStep.value.row === row && currentStep.value.col === col;
 
-    // Ajuste PC: md:h-14 (Antes h-16) para reducir altura
     let base = "flex items-center justify-center font-mono font-bold transition-all rounded-md sm:rounded-lg border-2 select-none ";
     let size = "w-9 h-10 text-xl md:w-14 md:h-14 md:text-4xl ";
     
@@ -382,7 +356,6 @@ onMounted(() => {
                          <span class="font-black text-xs md:text-sm uppercase text-purple-700">Nivel 2</span>
                     </div>
                 </div>
-                <div class="text-xs md:text-sm font-bold text-slate-400 uppercase tracking-widest">Ej {{ activeExerciseIndex + 1 }} / 5</div>
                 <div class="flex gap-2">
                    <button @click="resetExercise" class="p-2 md:p-2.5 bg-white shadow-sm rounded-lg text-slate-500 active:scale-95 transition hover:text-indigo-600"><Eraser class="w-4 h-4 md:w-5 md:h-5" /></button>
                    <button @click="showSolution = !showSolution" :class="`p-2 md:p-2.5 rounded-lg shadow-sm transition active:scale-95 ${showSolution ? 'bg-indigo-100 text-indigo-600 ring-2 ring-indigo-300' : 'bg-white text-slate-500 hover:text-indigo-600'}`"><component :is="showSolution ? EyeOff : Eye" class="w-4 h-4 md:w-5 md:h-5" /></button>
@@ -397,6 +370,10 @@ onMounted(() => {
                  :class="isFinished ? 'bg-green-100 border-green-400' : 'bg-[#fff9c4] border-yellow-400'"
                  style="background-image: linear-gradient(#e1f5fe 1px, transparent 1px); background-size: 100% 2.1rem;">
                 
+                <div class="absolute -top-4 -left-2 bg-white text-slate-700 font-black text-lg md:text-xl w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center shadow-md border-2 border-slate-200 z-20">
+                    {{ activeExerciseIndex + 1 }}
+                </div>
+
                 <div v-if="isFinished" class="absolute inset-0 flex items-center justify-center z-40 pointer-events-none animate-fade-in-scale">
                     <Check class="w-48 h-48 md:w-64 md:h-64 text-green-500/40" stroke-width="4" />
                 </div>
@@ -414,7 +391,7 @@ onMounted(() => {
 
                                 <div class="h-4 md:h-6 flex items-end justify-center w-full">
                                     <Check v-if="shouldShowTopCheck(7-cIndex)" 
-                                           class="w-3 h-3 md:w-5 md:h-5 text-green-600 animate-fade-in-scale" 
+                                           :class="['w-3 h-3 md:w-5 md:h-5 text-green-600', isTopCheckActive(7-cIndex) ? 'animate-heartbeat' : 'animate-fade-in-scale']" 
                                            stroke-width="4" />
                                 </div>
 
@@ -424,10 +401,9 @@ onMounted(() => {
 
                                 <div class="relative flex items-center justify-center w-9 h-10 md:w-14 md:h-14 text-2xl md:text-5xl font-mono font-bold text-slate-800 border-b-4 border-slate-800">
                                     <span v-if="7-cIndex === 6" class="text-purple-600 font-black">×</span>
-                                    
                                     <template v-else>
                                         {{ getDigit(2, 7-cIndex) }}
-                                        <div v-if="shouldShowBotCheck(7-cIndex)" class="absolute -top-1 -right-1 md:-top-2 md:-right-2 bg-white rounded-full p-0.5 shadow-sm z-30 animate-fade-in-scale">
+                                        <div v-if="shouldShowBotCheck(7-cIndex)" class="absolute -top-1 -right-1 md:-top-2 md:-right-2 bg-white rounded-full p-0.5 shadow-sm z-30 animate-heartbeat">
                                             <Check class="w-3 h-3 md:w-4 md:h-4 text-green-600" stroke-width="4" />
                                         </div>
                                     </template>
@@ -437,11 +413,11 @@ onMounted(() => {
                                     {{ getDigit(3, 7-cIndex) }}
                                 </div>
 
-                                <div class="relative w-full flex justify-center">
-                                    <div v-if="7-cIndex === 6" class="absolute right-0 top-1/2 -translate-y-1/2 text-orange-500 font-black text-xl md:text-3xl">+</div>
-                                    <div :class="getCellClass(4, 7-cIndex)">
-                                        {{ getDigit(4, 7-cIndex) }}
-                                    </div>
+                                <div v-if="7-cIndex === 6" class="flex items-center justify-center w-9 h-10 md:w-14 md:h-14 text-2xl md:text-5xl font-mono font-black text-green-600">
+                                    +
+                                </div>
+                                <div v-else :class="getCellClass(4, 7-cIndex)">
+                                    {{ getDigit(4, 7-cIndex) }}
                                 </div>
 
                                 <div :class="['w-full h-1 my-0.5', 7-cIndex === 6 ? 'bg-transparent' : 'bg-slate-800 opacity-80']"></div>
@@ -471,6 +447,15 @@ onMounted(() => {
 </template>
 
 <style scoped>
+/* ANIMACIÓN LATIDO (NUEVA) */
+@keyframes heartbeat {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.3); filter: drop-shadow(0 0 2px rgba(34, 197, 94, 0.6)); }
+}
+.animate-heartbeat {
+    animation: heartbeat 1.2s infinite ease-in-out;
+}
+
 .focus-neon { 
   border-color: #FACC15 !important; 
   border-width: 3px !important; 

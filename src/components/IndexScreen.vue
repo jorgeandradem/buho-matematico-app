@@ -5,8 +5,7 @@ import {
   User, Pencil, Check, BookOpen, Play, X as CloseIcon 
 } from 'lucide-vue-next';
 import OwlImage from './OwlImage.vue';
-import { useOnline } from '@vueuse/core';
-import { playExitSound } from '../utils/sound'; 
+import { playOwlHoot } from '../utils/sound'; 
 import { incentiveMessages } from '../utils/messages';
 
 const emit = defineEmits(['select', 'exit']);
@@ -17,7 +16,6 @@ const studentName = ref(localStorage.getItem('owlStudentName') || "");
 const isEditingName = ref(!localStorage.getItem('owlStudentName'));
 const showOwl = ref(false); 
 const greeting = ref("");
-const isOnline = useOnline();
 
 // --- SISTEMA DE VOZ ---
 const speak = (text) => {
@@ -74,9 +72,9 @@ const startGame = () => {
 const handleExit = () => {
     const byeText = studentName.value ? `¡Hasta pronto ${studentName.value}!` : "¡Hasta pronto!";
     greeting.value = byeText;
-    showOwl.value = true; // El Búho regresa para despedirse
+    showOwl.value = true; 
     speak(byeText);
-    playExitSound();
+    playOwlHoot(); 
     
     setTimeout(() => {
         emit('exit');
@@ -87,12 +85,10 @@ onMounted(() => {
   pickRandomMessage();
   if ('speechSynthesis' in window) window.speechSynthesis.getVoices();
 
-  // 1. LÓGICA DE ESCALERA (RETORNO AL SALÓN)
   if (props.fromView && ['add', 'sub', 'mult', 'div'].includes(props.fromView)) {
       setTimeout(() => { openConfig(props.fromView); }, 50);
   }
 
-  // 2. COREOGRAFÍA DEL BÚHO (ENTRADA)
   const isComingFromCover = props.fromView === 'cover' || !props.fromView;
 
   setTimeout(() => {
