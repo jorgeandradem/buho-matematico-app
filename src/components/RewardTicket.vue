@@ -14,9 +14,24 @@ const emit = defineEmits(['close', 'share']);
 const ticketRef = ref(null);
 const isDownloading = ref(false);
 
+// NUEVO QR Web-Link: Genera una URL segura hacia el validador aislado
 const qrValue = computed(() => {
     if (!props.product) return '';
-    return `🦉 EL BÚHO MATEMÁTICO 🦉\n=======================\nPremio: ${props.product.name}\nPagado: ${props.product.cost} Monedas\nCódigo: ${props.product.code}\n=======================\n¡Felicidades por tu esfuerzo!`;
+    
+    // Obtenemos el dominio actual (localhost en tu PC, o el .vercel.app en internet)
+    const baseUrl = window.location.origin;
+    
+    // Empaquetamos los datos en la URL
+    const params = new URLSearchParams({
+        name: props.product.name,
+        icon: props.product.icon,
+        cost: props.product.cost,
+        type: props.product.type,
+        code: props.product.code
+    });
+    
+    // El QR ahora es un enlace limpio a la página fantasma (validator.html)
+    return `${baseUrl}/validator.html?${params.toString()}`;
 });
 
 // FUNCIÓN MÁGICA PARA COMPARTIR/GUARDAR COMO IMAGEN NATIVA

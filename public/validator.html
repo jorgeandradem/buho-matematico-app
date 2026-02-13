@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Validación de Premio - Búho Matemático</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 min-h-screen flex items-center justify-center p-4 font-sans text-slate-800">
+    
+    <div class="bg-white rounded-3xl shadow-2xl p-8 max-w-sm w-full text-center border-t-8 border-indigo-500 relative overflow-hidden">
+        
+        <div class="absolute -right-10 -top-10 opacity-5 rotate-12 text-9xl">🦉</div>
+
+        <h1 class="text-sm font-black text-indigo-400 uppercase tracking-widest mb-1">El Búho Matemático</h1>
+        <h2 class="text-xl font-black text-indigo-900 uppercase tracking-widest mb-6">✅ Ticket Validado</h2>
+        
+        <div id="icon" class="text-7xl mb-4 filter drop-shadow-md transform hover:scale-110 transition-transform">🎁</div>
+        <h3 id="name" class="text-2xl font-black text-slate-800 leading-tight mb-6">Cargando...</h3>
+        
+        <div class="bg-slate-50 rounded-xl p-4 w-full border border-slate-200 flex justify-between items-center mb-6 shadow-inner">
+            <div class="text-left">
+                <p class="text-[10px] text-slate-400 font-bold uppercase">Costo Autorizado</p>
+                <p id="cost" class="text-sm font-black text-slate-700">-</p>
+            </div>
+            <div class="text-right">
+                <p class="text-[10px] text-slate-400 font-bold uppercase">Cód. Seguridad</p>
+                <p id="code" class="text-sm font-mono font-black text-indigo-600">-</p>
+            </div>
+        </div>
+
+        <p class="text-xs text-green-600 font-bold bg-green-100 py-2 rounded-lg">Este premio es válido y ha sido pagado.</p>
+    </div>
+
+    <script>
+        // Esta pequeña magia lee la URL del QR y rellena los datos en la pantalla
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        document.getElementById('icon').textContent = urlParams.get('icon') || '🦉';
+        document.getElementById('name').textContent = urlParams.get('name') || 'Premio Especial';
+        
+        const cost = urlParams.get('cost');
+        const type = urlParams.get('type');
+        document.getElementById('cost').textContent = cost ? `${cost} ${type}` : 'Pagado';
+        
+        document.getElementById('code').textContent = '#' + (urlParams.get('code') || '00000');
+    </script>
+</body>
+</html>
