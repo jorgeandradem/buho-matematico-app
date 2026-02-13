@@ -3,14 +3,16 @@ import { ref, onMounted, computed } from 'vue';
 import { 
   Plus, Minus, X as MultiplyIcon, Divide, LogOut, 
   User, Pencil, Check, BookOpen, Play, X as CloseIcon,
-  ShoppingBag // Agregado para el botón de la tienda
+  ShoppingBag, Zap, Flame // <-- Importamos Flame (Fuego)
 } from 'lucide-vue-next';
 import OwlImage from './OwlImage.vue';
 import { playOwlHoot } from '../utils/sound'; 
 import { incentiveMessages } from '../utils/messages';
 import StatusBoard from './StatusBoard.vue';
 import SessionSummary from './SessionSummary.vue';
-import RewardShop from './RewardShop.vue'; // NUEVO: Importamos la Tienda
+import RewardShop from './RewardShop.vue';
+import QuizModule from './QuizModule.vue'; 
+import DailyMissions from './DailyMissions.vue'; // <-- Importamos el modal de Misiones
 import { useGamificationStore } from '../stores/useGamificationStore';
 import { speak } from '../utils/voice';
 
@@ -28,7 +30,9 @@ const greeting = ref("");
 
 // Variables para modales
 const showSummary = ref(false);
-const showShop = ref(false); // NUEVO: Controla la visibilidad de la tienda
+const showShop = ref(false); 
+const showQuiz = ref(false); 
+const showMissions = ref(false); // <-- Controla la visibilidad de las misiones
 
 const pickRandomMessage = () => {
   const randomIndex = Math.floor(Math.random() * incentiveMessages.length);
@@ -125,6 +129,10 @@ const currentSubjectLabel = computed(() => {
         </div>
 
         <RewardShop v-if="showShop" @close="showShop = false" />
+        
+        <QuizModule v-if="showQuiz" @close="showQuiz = false" />
+        
+        <DailyMissions v-if="showMissions" @close="showMissions = false" />
 
         <div v-if="showConfigModal" class="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
             <div class="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl relative flex flex-col gap-4 border-4 border-indigo-100 max-h-[90vh] overflow-y-auto">
@@ -158,14 +166,21 @@ const currentSubjectLabel = computed(() => {
         </div>
 
         <header class="flex justify-between items-center w-full z-30 mb-2">
-             <button @click="handleExit" class="p-2 bg-white rounded-full text-indigo-600 shadow-md border-2 border-indigo-100"><LogOut :size="20" class="transform rotate-180" /></button>
+            <div class="flex gap-2">
+                <button @click="handleExit" class="p-2 bg-white rounded-full text-indigo-600 shadow-md border-2 border-indigo-100"><LogOut :size="20" class="transform rotate-180" /></button>
+                
+                <button @click="showMissions = true" class="px-3 py-1 bg-gradient-to-b from-orange-400 to-red-500 rounded-full text-white shadow-md border-2 border-red-200 hover:scale-105 active:scale-95 transition-transform flex items-center gap-1 font-black">
+                    <Flame :size="18" fill="currentColor" class="text-yellow-300" />
+                    {{ gamificationStore.currentStreak || 0 }}
+                </button>
+            </div>
              
-             <div class="bg-white px-4 py-1 rounded-full shadow-md"><span class="text-lg font-black text-indigo-600 tracking-wider">MATERIAS</span></div>
+            <div class="bg-white px-4 py-1 rounded-full shadow-md hidden sm:block"><span class="text-lg font-black text-indigo-600 tracking-wider">MATERIAS</span></div>
              
-             <button @click="showShop = true" class="p-2 bg-gradient-to-b from-yellow-300 to-yellow-500 rounded-full text-yellow-900 shadow-lg border-2 border-yellow-200 hover:scale-110 active:scale-95 transition-transform flex items-center justify-center animate-bounce-slow relative">
+            <button @click="showShop = true" class="p-2 bg-gradient-to-b from-yellow-300 to-yellow-500 rounded-full text-yellow-900 shadow-lg border-2 border-yellow-200 hover:scale-110 active:scale-95 transition-transform flex items-center justify-center animate-bounce-slow relative">
                  <ShoppingBag :size="20" stroke-width="2.5" />
                  <span class="absolute top-0 right-0 w-3 h-3 bg-red-500 border-2 border-white rounded-full"></span>
-             </button>
+            </button>
         </header>
 
         <div class="w-full grid grid-cols-2 px-2 z-20 mb-2 items-end h-32 shrink-0">
@@ -187,24 +202,38 @@ const currentSubjectLabel = computed(() => {
            </div>
         </div>
 
-        <div class="grid grid-cols-2 gap-6 w-full py-4 z-10 px-2 flex-none">
+        <div class="grid grid-cols-2 gap-4 sm:gap-6 w-full py-4 z-10 px-2 flex-none">
           <button v-for="opt in options" :key="opt.id" @click="openConfig(opt.id)"
-            class="group bg-white p-4 rounded-3xl border-4 border-white hover:border-indigo-200 shadow-xl active:scale-95 flex flex-col items-center justify-center gap-2 h-full min-h-[130px] transition-all">
-            <div :class="`w-14 h-14 rounded-full ${opt.color} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform`">
-              <component :is="opt.icon" :size="28" class="text-white" :stroke-width="3" />
+            class="group bg-white p-3 sm:p-4 rounded-3xl border-4 border-white hover:border-indigo-200 shadow-xl active:scale-95 flex flex-col items-center justify-center gap-2 h-full min-h-[110px] sm:min-h-[130px] transition-all">
+            <div :class="`w-12 h-12 sm:w-14 sm:h-14 rounded-full ${opt.color} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform`">
+              <component :is="opt.icon" :size="24" class="text-white" :stroke-width="3" />
             </div>
             <div class="text-center">
-              <h3 class="text-xl font-black text-slate-800 leading-none">{{ opt.label }}</h3>
-              <p class="text-slate-500 font-bold text-[10px] mt-1 tracking-wide uppercase">{{ opt.desc }}</p>
+              <h3 class="text-lg sm:text-xl font-black text-slate-800 leading-none">{{ opt.label }}</h3>
+              <p class="text-slate-500 font-bold text-[9px] sm:text-[10px] mt-1 tracking-wide uppercase">{{ opt.desc }}</p>
             </div>
           </button>
         </div>
 
+        <div class="px-2 w-full z-10 mb-2">
+            <button @click="showQuiz = true" class="w-full bg-gradient-to-r from-yellow-400 to-orange-500 rounded-3xl p-1 shadow-[0_6px_0_rgb(194,65,12)] active:translate-y-1 active:shadow-none transition-all group">
+                <div class="bg-white/20 rounded-2xl p-3 flex items-center gap-4">
+                    <div class="w-12 h-12 shrink-0 rounded-full bg-white flex items-center justify-center group-hover:scale-110 group-hover:rotate-12 transition-transform shadow-inner">
+                        <Zap size="28" class="text-orange-500" fill="currentColor" />
+                    </div>
+                    <div class="text-left text-white">
+                        <h3 class="font-black text-lg leading-tight uppercase tracking-wide">Desafío Contrarreloj</h3>
+                        <p class="text-orange-100 text-[10px] font-bold mt-0.5">⏱️ 60 segundos para ganar Cobre</p>
+                    </div>
+                </div>
+            </button>
+        </div>
+
         <div class="mt-auto w-full flex flex-col gap-2 z-20 pb-4 px-2">
             
-            <div class="bg-indigo-50/90 rounded-2xl border-2 border-indigo-100 p-3 flex items-center justify-center gap-3 shadow-sm w-full animate-fade-in">
-                <BookOpen class="text-indigo-600 shrink-0" :size="20" />
-                <p class="text-slate-800 text-xs sm:text-sm font-black italic text-center leading-tight">
+            <div class="bg-indigo-50/90 rounded-2xl border-2 border-indigo-100 p-2 sm:p-3 flex items-center justify-center gap-3 shadow-sm w-full animate-fade-in">
+                <BookOpen class="text-indigo-600 shrink-0" :size="18" />
+                <p class="text-slate-800 text-[11px] sm:text-xs font-black italic text-center leading-tight">
                     {{ randomIncentive }}
                 </p>
             </div>
