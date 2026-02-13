@@ -2,13 +2,18 @@
 import { ref, onMounted, watch } from 'vue';
 import { useGamificationStore } from '../stores/useGamificationStore';
 import { storeToRefs } from 'pinia';
+// NUEVAS IMPORTACIONES: El sonido y la lluvia de monedas
+import { playCoinSound } from '../utils/sound';
+import CoinRain from './CoinRain.vue';
 
 // Conectamos con el Banco
 const store = useGamificationStore();
 // Extraemos los saldos REALES (Objetivos)
 const { copper, silver, gold } = storeToRefs(store);
 
-// --- LÓGICA DE ANIMACIÓN (SLOT MACHINE) ---
+// Variables para controlar la celebración
+const showRain = ref(false);
+const rainType = ref('copper'); 
 
 // Estos son los valores que se MUESTRAN en pantalla (empiezan en 0)
 const displayCopper = ref(0);
@@ -43,14 +48,55 @@ const animateValue = (start, end, duration, elementRef) => {
   window.requestAnimationFrame(step);
 };
 
-// Al montar el componente, animamos desde 0
+// Al montar el componente, animamos y vigilamos si hay premios nuevos
 onMounted(() => {
+    // 1. Animación secuencial de los números (tu efecto original)
     animateValue(0, gold.value, 1500, displayGold);
     animateValue(0, silver.value, 1500, displaySilver);
     animateValue(0, copper.value, 1500, displayCopper);
+
+    // 2. EL VIGILANTE DE PREMIOS
+    const earnedGold = store.sessionGoldEarned || 0;
+    const earnedSilver = store.sessionSilverEarned || 0;
+    const earnedCopper = store.sessionCopperEarned || 0;
+    
+    const currentSessionTotal = earnedGold + earnedSilver + earnedCopper;
+    
+    // Leemos en memoria temporal cuánto habíamos celebrado ya
+    const lastCelebrated = parseInt(sessionStorage.getItem('lastCelebratedTotal') || '0');
+
+    // Si el total de la sesión es mayor a lo que habíamos celebrado... ¡Hay ganancias nuevas!
+    if (currentSessionTotal > 0 && currentSessionTotal > lastCelebrated) {
+        
+        // Actualizamos la memoria para no repetir la celebración si recarga la página
+        sessionStorage.setItem('lastCelebratedTotal', currentSessionTotal.toString());
+
+        // Decidimos de qué color será la lluvia (la moneda de mayor valor ganada)
+        if (earnedGold > 0) rainType.value = 'gold';
+        else if (earnedSilver > 0) rainType.value = 'silver';
+        else rainType.value = 'copper';
+
+        // Disparamos efectos
+        showRain.value = true;
+        
+        // Pequeño retraso para que el sonido cuadre justo cuando la moneda toca la pantalla
+        setTimeout(() => {
+            playCoinSound();
+        }, 100);
+
+        // Apagamos la lluvia después de 4 segundos
+        setTimeout(() => {
+            showRain.value = false;
+        }, 4000);
+
+    } else if (currentSessionTotal === 0) {
+        // Si la sesión está en 0 (porque el niño le dio al botón Salir y se reinició),
+        // limpiamos también el vigilante para la próxima partida.
+        sessionStorage.setItem('lastCelebratedTotal', '0');
+    }
 });
 
-// Si el saldo cambia en tiempo real
+// Si el saldo cambia en tiempo real estando en esta pantalla
 watch(copper, (newVal, oldVal) => animateValue(oldVal, newVal, 500, displayCopper));
 watch(silver, (newVal, oldVal) => animateValue(oldVal, newVal, 500, displaySilver));
 watch(gold, (newVal, oldVal) => animateValue(oldVal, newVal, 500, displayGold));
@@ -59,6 +105,9 @@ watch(gold, (newVal, oldVal) => animateValue(oldVal, newVal, 500, displayGold));
 
 <template>
   <div class="status-board">
+    
+    <CoinRain v-if="showRain" :type="rainType" :count="25" />
+
     <div class="coin-stat gold">
       <img src="/images/coin-gold.png" alt="Oro" class="coin-icon" />
       <span class="count">{{ displayGold }}</span>

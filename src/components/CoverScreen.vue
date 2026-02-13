@@ -60,7 +60,7 @@ onMounted(() => {
       <div class="p-4 text-center relative z-10 flex flex-col items-center mb-2">
           <div class="flex flex-col items-center gap-1">
               <p class="text-white text-sm sm:text-base font-bold drop-shadow-sm">@Copyright 2026</p>
-              <p class="text-white text-xs sm:text-sm font-medium drop-shadow-sm opacity-100">v2.1 Static Edition</p>
+              <p class="text-white text-xs sm:text-sm font-medium drop-shadow-sm opacity-100">v2.2 Static Edition Pro</p>
           </div>
       </div>
     </div>

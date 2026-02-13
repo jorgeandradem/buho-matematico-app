@@ -2,13 +2,15 @@
 import { ref, onMounted, computed } from 'vue';
 import { 
   Plus, Minus, X as MultiplyIcon, Divide, LogOut, 
-  User, Pencil, Check, BookOpen, Play, X as CloseIcon 
+  User, Pencil, Check, BookOpen, Play, X as CloseIcon,
+  ShoppingBag // Agregado para el botón de la tienda
 } from 'lucide-vue-next';
 import OwlImage from './OwlImage.vue';
 import { playOwlHoot } from '../utils/sound'; 
 import { incentiveMessages } from '../utils/messages';
 import StatusBoard from './StatusBoard.vue';
 import SessionSummary from './SessionSummary.vue';
+import RewardShop from './RewardShop.vue'; // NUEVO: Importamos la Tienda
 import { useGamificationStore } from '../stores/useGamificationStore';
 import { speak } from '../utils/voice';
 
@@ -24,8 +26,9 @@ const isEditingName = ref(!localStorage.getItem('owlStudentName'));
 const showOwl = ref(false); 
 const greeting = ref("");
 
-// Variable para controlar el Modal de Resumen localmente
+// Variables para modales
 const showSummary = ref(false);
+const showShop = ref(false); // NUEVO: Controla la visibilidad de la tienda
 
 const pickRandomMessage = () => {
   const randomIndex = Math.floor(Math.random() * incentiveMessages.length);
@@ -121,6 +124,8 @@ const currentSubjectLabel = computed(() => {
             <SessionSummary @close="finalExit" />
         </div>
 
+        <RewardShop v-if="showShop" @close="showShop = false" />
+
         <div v-if="showConfigModal" class="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
             <div class="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl relative flex flex-col gap-4 border-4 border-indigo-100 max-h-[90vh] overflow-y-auto">
                 <button @click="showConfigModal = false" class="absolute top-3 right-3 text-slate-400 hover:text-red-500"><CloseIcon /></button>
@@ -154,8 +159,13 @@ const currentSubjectLabel = computed(() => {
 
         <header class="flex justify-between items-center w-full z-30 mb-2">
              <button @click="handleExit" class="p-2 bg-white rounded-full text-indigo-600 shadow-md border-2 border-indigo-100"><LogOut :size="20" class="transform rotate-180" /></button>
+             
              <div class="bg-white px-4 py-1 rounded-full shadow-md"><span class="text-lg font-black text-indigo-600 tracking-wider">MATERIAS</span></div>
-             <div class="w-10"></div> 
+             
+             <button @click="showShop = true" class="p-2 bg-gradient-to-b from-yellow-300 to-yellow-500 rounded-full text-yellow-900 shadow-lg border-2 border-yellow-200 hover:scale-110 active:scale-95 transition-transform flex items-center justify-center animate-bounce-slow relative">
+                 <ShoppingBag :size="20" stroke-width="2.5" />
+                 <span class="absolute top-0 right-0 w-3 h-3 bg-red-500 border-2 border-white rounded-full"></span>
+             </button>
         </header>
 
         <div class="w-full grid grid-cols-2 px-2 z-20 mb-2 items-end h-32 shrink-0">
@@ -210,4 +220,12 @@ const currentSubjectLabel = computed(() => {
 <style scoped>
 .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Animación sutil para llamar la atención a la tienda */
+.animate-bounce-slow { animation: float 3s ease-in-out infinite; }
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-4px); }
+  100% { transform: translateY(0px); }
+}
 </style>

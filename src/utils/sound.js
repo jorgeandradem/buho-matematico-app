@@ -13,6 +13,9 @@ const getAudioContext = () => {
     return audioCtx;
 };
 
+// ----------------------------------------------------
+// 1. SONIDO DEL BÚHO (Ulular Sintetizado)
+// ----------------------------------------------------
 export const playOwlHoot = () => {
   try {
     const ctx = getAudioContext();
@@ -55,9 +58,10 @@ export const playOwlHoot = () => {
   }
 };
 
+// ----------------------------------------------------
+// 2. SONIDO DE SALIDA
+// ----------------------------------------------------
 export const playExitSound = () => {
-    // Mantenemos esta función por si la necesitas en el futuro, 
-    // pero ahora usaremos playOwlHoot para salir.
     try {
         const ctx = getAudioContext();
         if (!ctx) return;
@@ -82,4 +86,24 @@ export const playExitSound = () => {
     } catch (e) {
         console.error("Audio error exit:", e);
     }
+};
+
+// ----------------------------------------------------
+// 3. NUEVO: SONIDO DE MONEDAS CAYENDO
+// ----------------------------------------------------
+export const playCoinSound = () => {
+  try {
+    // Apunta al archivo físico public/audios/coins.mp3
+    const audio = new Audio('/audios/coins.mp3');
+    
+    // Volumen al 50% para que sea agradable y no asuste
+    audio.volume = 0.5; 
+    
+    // Reproducimos capturando posibles bloqueos del navegador
+    audio.play().catch(error => {
+      console.warn('El navegador bloqueó el sonido de la moneda:', error);
+    });
+  } catch (error) {
+    console.error('Error general al intentar reproducir coins.mp3:', error);
+  }
 };

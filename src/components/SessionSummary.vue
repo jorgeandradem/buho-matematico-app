@@ -40,10 +40,16 @@ const handleClose = () => {
         speak("Recuerda practicar tus ejercicios, por lo menos quince minutos al día.");
     }
     
-    // Pausa inteligente: 
-    // - Si ganó: 2 segundos (rápido)
-    // - Si es consejo: 5 segundos (para que escuche el mensaje completo)
+    // Pausa inteligente
     setTimeout(() => {
+        
+        // 🔥 ESTA ES LA SOLUCIÓN 🔥
+        // Vaciamos los contadores de "sesión" justo antes de salir.
+        // Así, la próxima vez que el niño entre, empezará desde 0.
+        store.sessionGoldEarned = 0;
+        store.sessionSilverEarned = 0;
+        store.sessionCopperEarned = 0;
+
         emit('close');
     }, hasActivity.value ? 2000 : 5000); 
 };
