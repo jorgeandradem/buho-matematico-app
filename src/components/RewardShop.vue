@@ -1,15 +1,19 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { X, ShoppingBag, Settings, Save, Backpack } from 'lucide-vue-next';
-import { products } from '../data/products';
+import { X, ShoppingBag, Settings, Save, Backpack, Lock } from 'lucide-vue-next';
 import { useGamificationStore } from '../stores/useGamificationStore';
 import { speak } from '../utils/voice';
 import RewardTicket from './RewardTicket.vue';
 
+// --- NUEVO: IMPORTAMOS FIREBASE ---
+import { auth, db } from '../firebaseConfig';
+import { doc, updateDoc, increment } from "firebase/firestore";
+// ----------------------------------
+
 const emit = defineEmits(['close']);
 const store = useGamificationStore();
 
-const activeTab = ref('gold'); // 'gold', 'silver', 'copper', o 'vales'
+const activeTab = ref('gold'); 
 const selectedProduct = ref(null); 
 const productToConfirm = ref(null); 
 const showSettings = ref(false);
@@ -18,11 +22,115 @@ const parentPhone = ref('');
 // --- ZONA PARENTAL (RETO MATEMÁTICO) ---
 const mathChallenge = ref(null);
 const mathAnswer = ref('');
-const pendingAction = ref(null); // 'refund' | 'reset'
+const pendingAction = ref(null); 
+
+// --- INVENTARIO "VIVO" (90 PRODUCTOS) ---
+const rawInventory = [
+    // --- 🟠 NIVEL COBRE ---
+    { id: 'c1', name: 'Un Abrazo de Oso', cost: 50, type: 'copper', icon: '🐻', desc: 'Un abrazo fuerte y cariñoso' },
+    { id: 'c2', name: 'Chocar los 5', cost: 20, type: 'copper', icon: '✋', desc: '¡Dame esos cinco!' },
+    { id: 'c3', name: 'Una Pegatina', cost: 100, type: 'copper', icon: '⭐', desc: 'Para tu colección' },
+    { id: 'c4', name: 'Un Chicle', cost: 150, type: 'copper', icon: '🍬', desc: 'Sabor a frutas' },
+    { id: 'c5', name: 'Cosquillas (1 min)', cost: 80, type: 'copper', icon: '🤣', desc: 'Ataque de risa garantizado' },
+    { id: 'c6', name: 'Elegir Canción Coche', cost: 100, type: 'copper', icon: '🎵', desc: 'Tú eres el DJ hoy' },
+    { id: 'c7', name: 'Vaso Leche Choco', cost: 120, type: 'copper', icon: '🥛', desc: 'Bebida deliciosa' },
+    { id: 'c8', name: 'Dibujo Sorpresa', cost: 50, type: 'copper', icon: '🎨', desc: 'Te hago un dibujo' },
+    { id: 'c9', name: 'Chiste de Papá', cost: 30, type: 'copper', icon: '🤡', desc: 'Prepárate para reír (o no)' },
+    { id: 'c10', name: 'Una Piruleta', cost: 150, type: 'copper', icon: '🍭', desc: 'Dulce y redonda' },
+    { id: 'c11', name: '5 min extra Tablet', cost: 250, type: 'copper', icon: '📱', desc: 'Un poquito más' },
+    { id: 'c12', name: 'Elegir el Postre', cost: 200, type: 'copper', icon: '🍮', desc: 'Hoy mandas tú en el postre' },
+    { id: 'c13', name: 'Guerra Almohadas', cost: 150, type: 'copper', icon: '🛏️', desc: 'Batalla suave' },
+    { id: 'c14', name: 'Peinado Loco', cost: 100, type: 'copper', icon: '💇', desc: 'Hazme un peinado divertido' },
+    { id: 'c15', name: 'Masaje de Pies', cost: 200, type: 'copper', icon: '🦶', desc: 'Relax total' },
+    { id: 'c16', name: 'Una Nube (Chuche)', cost: 100, type: 'copper', icon: '☁️', desc: 'Esponjosa' },
+    { id: 'c17', name: 'Bailar una canción', cost: 50, type: 'copper', icon: '💃', desc: 'Fiesta improvisada' },
+    { id: 'c18', name: 'Hacer una mueca', cost: 20, type: 'copper', icon: '🤪', desc: 'La cara más rara' },
+    { id: 'c19', name: 'Un globo', cost: 100, type: 'copper', icon: '🎈', desc: 'Para jugar' },
+    { id: 'c20', name: 'Grabar un audio', cost: 80, type: 'copper', icon: '🎤', desc: 'Mensaje de voz divertido' },
+    { id: 'c21', name: 'Pintarse la cara', cost: 150, type: 'copper', icon: '🖌️', desc: 'Como un tigre o mariposa' },
+    { id: 'c22', name: 'Un caramelo', cost: 80, type: 'copper', icon: '🍬', desc: 'Pequeño premio dulce' },
+    { id: 'c23', name: 'Saltar en la cama', cost: 200, type: 'copper', icon: '🦘', desc: 'Solo 1 minuto' },
+    { id: 'c24', name: 'Leer cuento corto', cost: 100, type: 'copper', icon: '📖', desc: 'Historia rápida' },
+    { id: 'c25', name: 'Un beso sonoro', cost: 40, type: 'copper', icon: '💋', desc: '¡Muac!' },
+    { id: 'c26', name: 'Avión de papel', cost: 90, type: 'copper', icon: '✈️', desc: 'Volando voy' },
+    { id: 'c27', name: 'Beber con pajita', cost: 60, type: 'copper', icon: '🥤', desc: 'Es más divertido' },
+    { id: 'c28', name: 'Ver fotos bebé', cost: 100, type: 'copper', icon: '👶', desc: 'Qué pequeño eras' },
+    { id: 'c29', name: 'Jugar al Veo Veo', cost: 50, type: 'copper', icon: '👀', desc: 'Adivina qué veo' },
+    { id: 'c30', name: 'Andar a caballito', cost: 250, type: 'copper', icon: '🐎', desc: '¡Arre!' },
+
+    // --- ⚪ NIVEL PLATA ---
+    { id: 's1', name: 'Huevo Sorpresa', cost: 25, type: 'silver', icon: '🥚', desc: 'Chocolate y juguete' },
+    { id: 's2', name: 'Sobre de Cartas', cost: 30, type: 'silver', icon: '🃏', desc: 'Para tu álbum' },
+    { id: 's3', name: 'Ir al Parque', cost: 20, type: 'silver', icon: '🌳', desc: 'Tú eliges cuál' },
+    { id: 's4', name: 'Helado Pequeño', cost: 25, type: 'silver', icon: '🍦', desc: 'Refrescante' },
+    { id: 's5', name: '15 min Tablet', cost: 40, type: 'silver', icon: '🎮', desc: 'Tiempo extra de juego' },
+    { id: 's6', name: 'Ayudar a Cocinar', cost: 15, type: 'silver', icon: '🍕', desc: 'Chef por un día' },
+    { id: 's7', name: 'Ver YouTube (20m)', cost: 30, type: 'silver', icon: '📺', desc: 'Tus videos favoritos' },
+    { id: 's8', name: 'Boli de Colores', cost: 35, type: 'silver', icon: '🖊️', desc: 'Para dibujar bonito' },
+    { id: 's9', name: 'Libreta Pequeña', cost: 30, type: 'silver', icon: '📓', desc: 'Para tus notas' },
+    { id: 's10', name: 'Bolsa Gusanitos', cost: 20, type: 'silver', icon: '🥨', desc: 'Saladitos' },
+    { id: 's11', name: 'Juego de Mesa', cost: 15, type: 'silver', icon: '🎲', desc: 'Una partida juntos' },
+    { id: 's12', name: 'Pintar Témperas', cost: 25, type: 'silver', icon: '🎨', desc: 'Arte con pinceles' },
+    { id: 's13', name: 'Elegir Merienda', cost: 20, type: 'silver', icon: '🥪', desc: 'Lo que tú quieras' },
+    { id: 's14', name: 'Un Comic Corto', cost: 40, type: 'silver', icon: '📚', desc: 'Lectura divertida' },
+    { id: 's15', name: 'Pompero', cost: 35, type: 'silver', icon: '🫧', desc: 'Hacer burbujas' },
+    { id: 's16', name: 'Hacer Slime', cost: 45, type: 'silver', icon: '🧪', desc: 'Experimento casero' },
+    { id: 's17', name: 'No recoger mesa', cost: 50, type: 'silver', icon: '🍽️', desc: 'Te libras por hoy' },
+    { id: 's18', name: 'Elegir Peli Sábado', cost: 40, type: 'silver', icon: '🎬', desc: 'Cine en familia' },
+    { id: 's19', name: 'Baño con espuma', cost: 20, type: 'silver', icon: '🛁', desc: 'Como en un spa' },
+    { id: 's20', name: 'Hacer una cabaña', cost: 25, type: 'silver', icon: '⛺', desc: 'Con sábanas y cojines' },
+    { id: 's21', name: 'Zumo especial', cost: 15, type: 'silver', icon: '🍹', desc: 'Sabor tropical' },
+    { id: 's22', name: 'Barrita Chocolate', cost: 30, type: 'silver', icon: '🍫', desc: 'Delicioso premio' },
+    { id: 's23', name: 'Pegatinas Brilli', cost: 35, type: 'silver', icon: '✨', desc: 'Brillan mucho' },
+    { id: 's24', name: 'Tarde Disfraces', cost: 20, type: 'silver', icon: '🎭', desc: 'Ser quien quieras' },
+    { id: 's25', name: 'Jugar Plastilina', cost: 15, type: 'silver', icon: '🗿', desc: 'Crear figuras' },
+    { id: 's26', name: 'Carrera coches', cost: 15, type: 'silver', icon: '🏎️', desc: 'A toda velocidad' },
+    { id: 's27', name: 'Elegir ropa', cost: 20, type: 'silver', icon: '👕', desc: 'Tu outfit de mañana' },
+    { id: 's28', name: 'Helado de hielo', cost: 20, type: 'silver', icon: '🧊', desc: 'Polo fresquito' },
+    { id: 's29', name: 'Bolsa de Pipas', cost: 15, type: 'silver', icon: '🌻', desc: 'Para pelar' },
+    { id: 's30', name: 'Hacer Galletas', cost: 40, type: 'silver', icon: '🍪', desc: 'Repostería rica' },
+
+    // --- 🟡 NIVEL ORO ---
+    { id: 'g1', name: 'Revista Favorita', cost: 8, type: 'gold', icon: '📖', desc: 'Con juguete de regalo' },
+    { id: 'g2', name: 'Coche Juguete', cost: 5, type: 'gold', icon: '🚗', desc: 'Tipo Hot Wheels' },
+    { id: 'g3', name: 'Cine Premium', cost: 6, type: 'gold', icon: '🍿', desc: 'En casa con palomitas' },
+    { id: 'g4', name: 'Hamburguesa', cost: 10, type: 'gold', icon: '🍔', desc: 'Menú infantil' },
+    { id: 'g5', name: 'Bolsa Lego', cost: 12, type: 'gold', icon: '🧱', desc: 'Para construir' },
+    { id: 'g6', name: 'Slime Grande', cost: 8, type: 'gold', icon: '🟢', desc: 'Bote gigante' },
+    { id: 'g7', name: 'Squishy', cost: 8, type: 'gold', icon: '🧸', desc: 'Para apretar' },
+    { id: 'g8', name: '1h Videojuegos', cost: 10, type: 'gold', icon: '🎮', desc: 'Jugar con papá/mamá' },
+    { id: 'g9', name: 'Elegir Cena', cost: 15, type: 'gold', icon: '🍕', desc: 'Pizza, etc.' },
+    { id: 'g10', name: 'Excursión Bici', cost: 5, type: 'gold', icon: '🚲', desc: 'Aventura sobre ruedas' },
+    { id: 'g11', name: 'Pijamada Salón', cost: 12, type: 'gold', icon: '⛺', desc: 'Dormir fuera de la cama' },
+    { id: 'g12', name: 'Ir al Cine', cost: 20, type: 'gold', icon: '🎟️', desc: 'Ver estreno en sala' },
+    { id: 'g13', name: 'Pistola Agua', cost: 8, type: 'gold', icon: '🔫', desc: 'Para el verano' },
+    { id: 'g14', name: 'Libro Cuentos', cost: 15, type: 'gold', icon: '📘', desc: 'Nueva historia' },
+    { id: 'g15', name: 'Peluche Peque', cost: 12, type: 'gold', icon: '🐻', desc: 'Nuevo amigo suave' },
+    { id: 'g16', name: 'Rotuladores', cost: 10, type: 'gold', icon: '🖍️', desc: 'Caja nueva' },
+    { id: 'g17', name: 'Tarde Playa/Río', cost: 10, type: 'gold', icon: '🏖️', desc: 'Naturaleza' },
+    { id: 'g18', name: 'Desayuno Cama', cost: 8, type: 'gold', icon: '🥐', desc: 'Como un rey/reina' },
+    { id: 'g19', name: 'Jugar Bolos', cost: 18, type: 'gold', icon: '🎳', desc: 'Partida en la bolera' },
+    { id: 'g20', name: 'Puzzle Nuevo', cost: 12, type: 'gold', icon: '🧩', desc: 'Desafío mental' },
+    { id: 'g21', name: 'Balón Espuma', cost: 8, type: 'gold', icon: '⚽', desc: 'Para jugar en casa' },
+    { id: 'g22', name: 'Set Plastilina', cost: 10, type: 'gold', icon: '🗿', desc: 'Con moldes' },
+    { id: 'g23', name: 'Helado Copa', cost: 8, type: 'gold', icon: '🍨', desc: 'Grande con toppings' },
+    { id: 'g24', name: 'Parque Bolas', cost: 15, type: 'gold', icon: '🎪', desc: 'Entrada para saltar' },
+    { id: 'g25', name: 'Planta propia', cost: 6, type: 'gold', icon: '🪴', desc: 'Para cuidar tú solo' },
+    { id: 'g26', name: 'Dominó', cost: 8, type: 'gold', icon: '🁙', desc: 'Juego clásico' },
+    { id: 'g27', name: 'Linterna', cost: 10, type: 'gold', icon: '🔦', desc: 'Para explorar' },
+    { id: 'g28', name: 'Cuerda Saltar', cost: 6, type: 'gold', icon: '➰', desc: 'Ejercicio divertido' },
+    { id: 'g29', name: 'Tarde sin tareas', cost: 20, type: 'gold', icon: '🚫', desc: 'Descanso total' },
+    { id: 'g30', name: 'Invitar Amigo', cost: 15, type: 'gold', icon: '🤝', desc: 'Jugar en casa' }
+];
+
+const shuffledProducts = ref([]);
 
 onMounted(() => {
     const savedPhone = localStorage.getItem('owlParentPhone');
     if (savedPhone) parentPhone.value = savedPhone;
+
+    shuffledProducts.value = [...rawInventory].sort(() => Math.random() - 0.5);
+    speak("¡Bienvenido a la tienda! Mira qué cosas nuevas hay hoy.");
 });
 
 const savePhone = () => {
@@ -32,10 +140,11 @@ const savePhone = () => {
 };
 
 const filteredProducts = computed(() => {
-    return products.filter(p => p.type === activeTab.value);
+    if (activeTab.value === 'vales') return [];
+    return shuffledProducts.value.filter(p => p.type === activeTab.value);
 });
 
-// PASO 1 DE COMPRA: Abrir cuadro de confirmación
+// PASO 1: Confirmar
 const confirmBuy = (product) => {
     let hasFunds = false;
     if (product.type === 'gold' && store.gold >= product.cost) hasFunds = true;
@@ -50,21 +159,45 @@ const confirmBuy = (product) => {
     }
 };
 
-// PASO 2 DE COMPRA: Ejecutar la compra definitiva
+// --- FUNCIÓN PARA SINCRONIZAR GASTO CON LA NUBE ---
+const syncExpenseToCloud = async (type, amount) => {
+    const user = auth.currentUser;
+    if (!user) return; // Si es invitado, no hacemos nada
+
+    try {
+        const userRef = doc(db, "users", user.uid);
+        // Restamos las monedas específicas en la nube
+        // Usamos "increment(-amount)" que es como restar
+        await updateDoc(userRef, {
+            [`stats.${type}`]: increment(-amount), // Ej: stats.gold: -5
+            lastActivity: Date.now()
+        });
+        console.log(`☁️ Gasto sincronizado: -${amount} ${type}`);
+    } catch (e) {
+        console.error("Error sincronizando gasto:", e);
+    }
+};
+// --------------------------------------------------
+
+// PASO 2: Ejecutar Compra
 const executeBuy = () => {
     const product = productToConfirm.value;
     if (!product) return;
 
+    // 1. Restar localmente (instantáneo)
     const success = store.spendCoins(product.type, product.cost);
 
     if (success) {
+        // 2. Restar en la nube (silencioso)
+        syncExpenseToCloud(product.type, product.cost);
+
         const newTicket = {
             ...product,
             code: Math.random().toString(36).substr(2, 6).toUpperCase(),
             date: new Date().toLocaleDateString()
         };
         
-        store.saveTicket(newTicket); // Guardar en Mochila
+        store.saveTicket(newTicket);
         
         productToConfirm.value = null;
         selectedProduct.value = newTicket;
@@ -72,12 +205,10 @@ const executeBuy = () => {
     }
 };
 
-// --- LÓGICA DE ZONA PARENTAL ---
-
-// 1. Iniciar el reto
+// --- ZONA PARENTAL ---
 const triggerParentalAction = (action) => {
-    const num1 = Math.floor(Math.random() * 5) + 5; // 5 al 9
-    const num2 = Math.floor(Math.random() * 5) + 5; // 5 al 9
+    const num1 = Math.floor(Math.random() * 5) + 5; 
+    const num2 = Math.floor(Math.random() * 5) + 5; 
     mathChallenge.value = {
         text: `¿Cuánto es ${num1} x ${num2}?`,
         answer: num1 * num2
@@ -86,25 +217,26 @@ const triggerParentalAction = (action) => {
     pendingAction.value = action;
 };
 
-// 2. Verificar respuesta
 const verifyParentalAction = () => {
     if (parseInt(mathAnswer.value) === mathChallenge.value.answer) {
-        // Respuesta Correcta
         if (pendingAction.value === 'refund') {
             const refundedTicket = store.refundLastPurchase();
-            if (refundedTicket) speak(`Se ha devuelto el premio y recuperaste las monedas.`);
+            if (refundedTicket) {
+                speak(`Se ha devuelto el premio y recuperaste las monedas.`);
+                // Opcional: Podrías sincronizar el reembolso sumando en la nube, 
+                // pero por simplicidad lo dejamos local o manual por ahora.
+            }
             else speak("No hay compras para devolver.");
         } else if (pendingAction.value === 'reset') {
             store.hardReset();
             speak("El banco y la mochila han sido borrados por completo.");
-            activeTab.value = 'gold'; // Sacarlo de la vista mochila por si estaba ahí
+            activeTab.value = 'gold'; 
         }
         cancelParentalAction();
-        showSettings.value = false; // Cerrar el panel
+        showSettings.value = false; 
     } else {
-        // Respuesta Incorrecta
         speak("Respuesta incorrecta. Acceso denegado.");
-        mathAnswer.value = ''; // Limpiar para que intente de nuevo
+        mathAnswer.value = ''; 
     }
 };
 
@@ -114,7 +246,6 @@ const cancelParentalAction = () => {
     pendingAction.value = null;
 };
 
-// --- OTRAS UTILIDADES ---
 const viewTicket = (ticket) => {
     selectedProduct.value = ticket;
 };
@@ -210,12 +341,18 @@ const shareReward = () => {
             <button v-for="item in filteredProducts" :key="item.id" 
                 @click="confirmBuy(item)"
                 class="bg-white rounded-2xl shadow-sm border-2 border-transparent hover:border-indigo-300 p-4 flex flex-col items-center gap-3 active:scale-95 transition-all relative overflow-hidden group">
+                
+                <div v-if="(item.type === 'gold' && store.gold < item.cost) || (item.type === 'silver' && store.silver < item.cost) || (item.type === 'copper' && store.copper < item.cost)" 
+                     class="absolute inset-0 bg-white/60 backdrop-blur-[1px] flex items-center justify-center z-10">
+                     <Lock class="text-slate-400 w-8 h-8" />
+                </div>
+
                 <div class="text-5xl group-hover:scale-110 transition-transform filter drop-shadow-md">{{ item.icon }}</div>
                 <div class="text-center w-full">
                     <h3 class="font-black text-slate-700 text-sm leading-tight mb-1">{{ item.name }}</h3>
                     <p class="text-[10px] text-slate-400 font-bold leading-tight line-clamp-2 h-6 mb-2">{{ item.desc }}</p>
                     <div :class="`w-full py-1.5 rounded-lg font-black text-xs flex items-center justify-center gap-1 ${activeTab === 'gold' ? 'bg-yellow-100 text-yellow-700' : (activeTab === 'silver' ? 'bg-slate-100 text-slate-600' : 'bg-orange-100 text-orange-700')}`">
-                        💳 Pagar {{ item.cost }}
+                        💳 {{ item.cost }}
                     </div>
                 </div>
             </button>
@@ -261,6 +398,7 @@ const shareReward = () => {
     <RewardTicket 
         v-if="selectedProduct" 
         :product="selectedProduct" 
+        :parentPhone="parentPhone"
         @close="selectedProduct = null" 
         @share="shareReward" 
     />

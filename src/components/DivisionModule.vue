@@ -9,6 +9,11 @@ import VirtualKeypad from './VirtualKeypad.vue';
 import { useGamificationStore } from '../stores/useGamificationStore';
 import { speak } from '../utils/voice';
 
+// --- INICIO INTEGRACIÓN FIREBASE ---
+import { auth, db } from '../firebaseConfig';
+import { doc, setDoc, increment } from "firebase/firestore";
+// --- FIN INTEGRACIÓN FIREBASE ---
+
 const emit = defineEmits(['back']);
 const gamificationStore = useGamificationStore(); 
 
@@ -52,6 +57,27 @@ const currentHint = ref({
   activeKeys: [],
   theme: THEMES[0]
 });
+
+// --- FUNCIÓN SILENCIOSA PARA GUARDAR EN NUBE ---
+const saveProgressToCloud = async (puntosGanados) => {
+  const user = auth.currentUser;
+  if (!user) return; 
+
+  try {
+    const userRef = doc(db, "users", user.uid);
+    // Guardamos acumulando puntos y actualizando la fecha
+    await setDoc(userRef, {
+      stats: { 
+        puntos: increment(puntosGanados),
+        lastActivity: Date.now()
+      }
+    }, { merge: true });
+    console.log(`☁️ +${puntosGanados} ORO (División) guardados en la nube.`);
+  } catch (error) {
+    console.error("Error guardando en nube:", error);
+  }
+};
+// ------------------------------------------------
 
 // --- LÓGICA DE TABLA DE MULTIPLICAR ---
 const multiplicationTable = computed(() => {
@@ -199,7 +225,6 @@ watch(activeKey, (newKey) => {
             } 
         });
     } else if (isSelectionComplete.value && orderedKeys.value.length > 0 && !newKey) {
-        // El watcher intentaba llamar a checkFullSuccess, pero la guardia ahora evitará duplicados
         checkFullSuccess();
     }
     calculateHint();
@@ -214,7 +239,6 @@ watch(waitingForDropIndex, (newVal) => {
 
 // --- INTERACCIONES ---
 const handleDigitClick = (index) => {
-    // Bloqueo de seguridad
     if (isTransitioning.value) return;
 
     if (!isSelectionComplete.value) {
@@ -262,10 +286,8 @@ const handleInputChange = (key, value) => {
 };
 
 const handleKeypadPress = (num) => {
-    // Bloqueo de seguridad
     if (isTransitioning.value) return;
 
-    // Teclado para selección inicial
     if (!isSelectionComplete.value) {
         const expectedIndex = selectedIndices.value.length;
         const digitStr = dividend.value.toString()[expectedIndex];
@@ -275,7 +297,6 @@ const handleKeypadPress = (num) => {
         return;
     }
 
-    // Teclado para bajar cifra
     if (waitingForDropIndex.value !== null) {
         const digitStr = dividend.value.toString()[waitingForDropIndex.value];
         const digit = parseInt(digitStr);
@@ -291,7 +312,6 @@ const handleKeypadPress = (num) => {
 };
 
 const handleDelete = () => {
-    // Bloqueo de seguridad
     if (isTransitioning.value) return;
 
     if (!isSelectionComplete.value && selectedIndices.value.length > 0) {
@@ -321,38 +341,37 @@ const checkValueCorrectness = (key, val) => {
 };
 
 const checkFullSuccess = () => {
-    // CAMBIO CRÍTICO: GUARDIA DE SEGURIDAD
-    // Si ya estamos en transición o éxito, ignoramos llamadas duplicadas.
     if (isSuccess.value || isTransitioning.value) return;
 
     const allDone = orderedKeys.value.every(k => checkValueCorrectness(k, userInputs.value[k]));
     if (allDone && orderedKeys.value.length > 0) {
-        // EJERCICIO COMPLETADO
         isSuccess.value = true;
-        isTransitioning.value = true; // Activar bloqueo
+        isTransitioning.value = true; 
         
-        // 1. Pagar Monedas
-        gamificationStore.addCoins('gold', 3);
+        // --- 1. Pagar Monedas (2 de Oro) ---
+        const rewardAmount = 2;
+        gamificationStore.addCoins('gold', rewardAmount);
+        
+        // --- 2. FIREBASE: GUARDAMOS EL PROGRESO ---
+        saveProgressToCloud(rewardAmount);
+        // ------------------------------------------
 
-        // 2. Felicitar con VOZ
+        // --- 3. Felicitar con VOZ ---
         const frases = ["¡Excelente!", "¡Muy bien!", "¡Lo lograste!", "¡Eres genial!"];
         const frase = frases[Math.floor(Math.random() * frases.length)];
-        speak(`${frase} Ganaste 3 monedas de oro.`);
+        speak(`${frase} Ganaste ${rewardAmount} monedas de oro.`);
 
-        // 3. Scroll Automático arriba
         if (scrollContainer.value) {
             scrollContainer.value.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        // 4. Control de Racha con PAUSA
         if (activeExerciseIndex.value < MAX_EXERCISES - 1) {
             setTimeout(() => {
                 activeExerciseIndex.value++;
-                isTransitioning.value = false; // LIBERAR BLOQUEO
+                isTransitioning.value = false; 
                 generateNewProblem(); 
             }, 1500);
         } else {
-            // PAUSA DRAMÁTICA DE 5 SEGUNDOS
             setTimeout(() => {
                 showCoinRain.value = true;
                 speak("¡Misión cumplida! Completaste la serie.");
@@ -376,7 +395,6 @@ const generateNewProblem = () => {
     if (forcedDivisor.value !== 'random') newDivisor = parseInt(forcedDivisor.value); 
     else newDivisor = Math.floor(Math.random() * 8) + 2; 
     
-    // USAMOS EL BOTÓN DE DIFICULTAD SELECCIONADO
     if (difficulty.value === 1) newDividend = Math.floor(Math.random() * 800) + 100; 
     else newDividend = Math.floor(Math.random() * 9000) + 1000; 
     
@@ -393,7 +411,6 @@ const setProblem = (div, dvr) => {
     isSelectionComplete.value = false;
     showCoinRain.value = false;
     isSuccess.value = false;
-    // Asegurar desbloqueo al iniciar nuevo problema
     isTransitioning.value = false;
     inputsRef.value = {};
     solutionSteps.value = solveDivision(div, dvr);
@@ -658,11 +675,11 @@ const isFinalRemainder = (row, col) => {
                             <div class="flex gap-1 justify-start flex-wrap max-w-[150px] mt-2">
                                 <div v-for="(digit, idx) in dividend.toString()" :key="`q-${idx}`">
                                       <input v-if="solutionSteps.some(s => s.type === 'quotient' && s.index === idx)"
-                                          :ref="(el) => setRef(`q-${idx}`, el)"
-                                          type="tel" autocomplete="off" readonly inputmode="none"
-                                          :value="userInputs[`q-${idx}`]"
-                                          :disabled="activeKey !== `q-${idx}` && !isSuccess"
-                                          :class="getCellClass(`q-${idx}`)"
+                                        :ref="(el) => setRef(`q-${idx}`, el)"
+                                        type="tel" autocomplete="off" readonly inputmode="none"
+                                        :value="userInputs[`q-${idx}`]"
+                                        :disabled="activeKey !== `q-${idx}` && !isSuccess"
+                                        :class="getCellClass(`q-${idx}`)"
                                       />
                                 </div>
                             </div>

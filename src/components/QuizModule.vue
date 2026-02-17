@@ -4,6 +4,11 @@ import { X, Clock, Zap, Trophy, Medal, CheckCircle, XCircle } from 'lucide-vue-n
 import { useGamificationStore } from '../stores/useGamificationStore';
 import { speak } from '../utils/voice';
 
+// --- CONEXIÓN FIREBASE ---
+import { auth, db } from '../firebaseConfig';
+import { doc, updateDoc, increment } from "firebase/firestore";
+// -------------------------
+
 const emit = defineEmits(['close']);
 const store = useGamificationStore();
 
@@ -15,9 +20,9 @@ const currentQuestionIndex = ref(0);
 const timeLeft = ref(60);
 const score = ref(0);
 const history = ref([]); 
-const earned = ref({ copper: 0, silver: 0 });
+const earned = ref({ silver: 0 }); // Solo plata para este nivel
 
-const fallingCoins = ref([]); // Controla la lluvia de monedas proporcional
+const fallingCoins = ref([]); 
 
 const currentQuestion = ref({
     text: '',
@@ -34,21 +39,38 @@ const buttonColors = [
     'bg-green-500 hover:bg-green-600 shadow-[0_6px_0_rgb(21,128,61)] text-white'
 ];
 
-// --- SISTEMA DE SONIDOS (Requiere tener los .mp3 en public/audios/) ---
 const playSound = (type) => {
     try {
         const audio = new Audio(`/audios/${type}.mp3`);
-        audio.play().catch(e => console.log("Audio no encontrado o bloqueado:", type));
+        audio.play().catch(e => console.log("Audio no encontrado:", type));
     } catch (error) {}
 };
 
-// --- MENSAJE DINÁMICO DE RENDIMIENTO ---
 const performanceFeedback = computed(() => {
     if (score.value === totalQuestions) return { text: "¡Perfección Absoluta! Eres un genio 🧠", color: "text-yellow-600", bg: "bg-yellow-100" };
     if (score.value >= 7) return { text: "¡Excelente trabajo! Muy buena velocidad 🚀", color: "text-green-600", bg: "bg-green-100" };
     if (score.value >= 4) return { text: "¡Vas bien! Pero puedes ser más rápido 👍", color: "text-blue-600", bg: "bg-blue-100" };
     return { text: "¡No te rindas! Sigue practicando para mejorar 💪", color: "text-orange-600", bg: "bg-orange-100" };
 });
+
+// --- FUNCIÓN PARA GUARDAR PLATA EN LA NUBE ---
+const saveSilverToCloud = async (amount) => {
+  const user = auth.currentUser;
+  if (!user) return; 
+
+  try {
+    const userRef = doc(db, "users", user.uid);
+    // Guardamos específicamente en "silver"
+    await updateDoc(userRef, {
+      "stats.silver": increment(amount),
+      lastActivity: Date.now()
+    });
+    console.log(`☁️ +${amount} Plata guardada`);
+  } catch (error) {
+    console.error("Error guardando plata:", error);
+  }
+};
+// ---------------------------------------------
 
 const startGame = (operation) => {
     selectedOperation.value = operation;
@@ -140,10 +162,10 @@ const triggerCoinRain = (amount) => {
         setTimeout(() => {
             fallingCoins.value.push({
                 id: i,
-                left: Math.random() * 90 + 5, // Posición horizontal aleatoria
+                left: Math.random() * 90 + 5, 
                 delay: Math.random() * 0.2
             });
-        }, i * 150); // Caída en cascada
+        }, i * 150); 
     }
 };
 
@@ -152,17 +174,27 @@ const endGame = () => {
     gameState.value = 'finished';
     playSound('finish');
     
-    // Economía: Ingreso directo al Banco Global
-    const copperCoins = score.value * 2;
-    const silverCoins = (score.value === totalQuestions) ? 1 : 0;
+    // --- LÓGICA ECONÓMICA (PLATA) ---
+    let silverReward = 0;
     
-    if (copperCoins > 0) {
-        store.addCoins('copper', copperCoins);
-        triggerCoinRain(copperCoins); // Lluvia proporcional
+    if (score.value === totalQuestions) {
+        silverReward = 10; 
+    } else if (score.value >= 7) {
+        silverReward = 5;  
+    } else {
+        silverReward = 0; 
     }
-    if (silverCoins > 0) store.addCoins('silver', silverCoins);
     
-    earned.value = { copper: copperCoins, silver: silverCoins };
+    if (silverReward > 0) {
+        // 1. Pago Local
+        store.addCoins('silver', silverReward);
+        // 2. Pago Nube
+        saveSilverToCloud(silverReward);
+        
+        triggerCoinRain(silverReward * 2); 
+    }
+    
+    earned.value = { silver: silverReward };
     speak(performanceFeedback.value.text);
 };
 
@@ -177,14 +209,14 @@ onUnmounted(() => clearInterval(timerInterval));
 <template>
   <div class="absolute inset-0 z-50 bg-slate-50 flex flex-col font-sans text-slate-900 animate-fade-in overflow-hidden">
     
-    <div v-for="coin in fallingCoins" :key="coin.id" class="absolute z-[60] w-8 h-8 pointer-events-none animate-coin-fall" :style="{ left: coin.left + '%', top: '-50px', animationDelay: coin.delay + 's' }">
-        <img src="/images/coin-copper.png" class="w-full h-full drop-shadow-lg" />
+    <div v-for="coin in fallingCoins" :key="coin.id" class="absolute z-[60] w-10 h-10 pointer-events-none animate-coin-fall" :style="{ left: coin.left + '%', top: '-50px', animationDelay: coin.delay + 's' }">
+        <img src="/images/coin-silver.png" class="w-full h-full drop-shadow-lg" />
     </div>
 
     <div class="flex justify-between items-center p-4 bg-indigo-600 shadow-md text-white shrink-0 z-10">
         <div class="flex items-center gap-2">
             <Zap class="text-yellow-400" fill="currentColor" />
-            <h2 class="font-black text-lg tracking-wide uppercase">Desafío Rápido</h2>
+            <h2 class="font-black text-lg tracking-wide uppercase">Desafío Contrarreloj</h2>
         </div>
         <button @click="closeQuiz" class="bg-white/20 p-2 rounded-full hover:bg-red-500 transition-colors">
             <X size="20" />
@@ -194,7 +226,10 @@ onUnmounted(() => clearInterval(timerInterval));
     <div v-if="gameState === 'menu'" class="flex-1 flex flex-col items-center justify-center p-6 z-10">
         <div class="text-center mb-8">
             <h3 class="text-3xl font-black mb-2 text-indigo-900">10 Preguntas</h3>
-            <p class="text-slate-500 font-bold">Tienes 60 segundos por pregunta. <br/>¡Gana 2 Cobres por acierto!</p>
+            <p class="text-slate-500 font-bold text-lg">Tienes 60 segundos por pregunta.</p>
+            <div class="mt-4 bg-blue-50 border-2 border-blue-200 p-3 rounded-xl inline-block">
+                <p class="text-blue-700 font-bold">🎯 ¡Acierta 10/10 para ganar <span class="font-black text-xl">10 Platas</span>!</p>
+            </div>
         </div>
 
         <div class="grid grid-cols-2 gap-4 w-full max-w-md">
@@ -274,15 +309,12 @@ onUnmounted(() => clearInterval(timerInterval));
         </div>
 
         <div class="bg-indigo-50 rounded-2xl p-4 border-2 border-indigo-100 shrink-0 mb-3 flex justify-between items-center">
-            <p class="text-indigo-900 font-black uppercase text-sm">Ganancias (A Banco):</p>
+            <p class="text-indigo-900 font-black uppercase text-sm">Premio Final:</p>
             <div class="flex gap-4">
-                <div v-if="earned.copper > 0" class="flex items-center gap-1 font-black text-orange-700 text-xl">
-                    +{{ earned.copper }} <img src="/images/coin-copper.png" class="w-6 h-6" />
+                <div v-if="earned.silver > 0" class="flex items-center gap-2 font-black text-slate-700 text-2xl animate-bounce">
+                    +{{ earned.silver }} <img src="/images/coin-silver.png" class="w-8 h-8 drop-shadow-md" />
                 </div>
-                <div v-if="earned.silver > 0" class="flex items-center gap-1 font-black text-slate-600 text-xl animate-bounce">
-                    +{{ earned.silver }} <img src="/images/coin-silver.png" class="w-6 h-6" />
-                </div>
-                <div v-if="earned.copper === 0" class="font-black text-slate-400 text-sm">Sin ganancias</div>
+                <div v-else class="font-black text-slate-400 text-sm">¡Necesitas 7 aciertos para ganar plata!</div>
             </div>
         </div>
 
@@ -291,7 +323,7 @@ onUnmounted(() => clearInterval(timerInterval));
                 Volver
             </button>
             <button @click="startGame(selectedOperation)" class="flex-1 bg-green-500 hover:bg-green-600 text-white font-black py-3 rounded-xl shadow-[0_4px_0_rgb(21,128,61)] active:translate-y-1 active:shadow-none transition-all">
-                Jugar de nuevo
+                Reintentar
             </button>
         </div>
     </div>
@@ -303,7 +335,6 @@ onUnmounted(() => clearInterval(timerInterval));
 .animate-fade-in { animation: fadeIn 0.3s ease-out; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-/* Animación de Lluvia de Monedas Nativa */
 .animate-coin-fall {
     animation: coinFall 2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
 }

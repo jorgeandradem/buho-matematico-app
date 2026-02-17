@@ -3,7 +3,7 @@ import { ref, onMounted, computed } from 'vue';
 import { 
   Plus, Minus, X as MultiplyIcon, Divide, LogOut, 
   User, Pencil, Check, BookOpen, Play, X as CloseIcon,
-  ShoppingBag, Zap, Flame // <-- Importamos Flame (Fuego)
+  ShoppingBag, Zap, Flame 
 } from 'lucide-vue-next';
 import OwlImage from './OwlImage.vue';
 import { playOwlHoot } from '../utils/sound'; 
@@ -12,19 +12,24 @@ import StatusBoard from './StatusBoard.vue';
 import SessionSummary from './SessionSummary.vue';
 import RewardShop from './RewardShop.vue';
 import QuizModule from './QuizModule.vue'; 
-import DailyMissions from './DailyMissions.vue'; // <-- Importamos el modal de Misiones
+import DailyMissions from './DailyMissions.vue'; 
 import { useGamificationStore } from '../stores/useGamificationStore';
 import { speak } from '../utils/voice';
+
+// --- IMPORTAMOS FIREBASE ---
+import { auth, db } from '../firebaseConfig';
+import { onAuthStateChanged, signOut } from "firebase/auth";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
+// ---------------------------
 
 const emit = defineEmits(['select', 'exit']);
 const props = defineProps(['fromView']);
 
-// Conexión con el Banco
 const gamificationStore = useGamificationStore();
 
 const randomIncentive = ref("");
-const studentName = ref(localStorage.getItem('owlStudentName') || "");
-const isEditingName = ref(!localStorage.getItem('owlStudentName'));
+const studentName = ref(""); 
+const isEditingName = ref(false);
 const showOwl = ref(false); 
 const greeting = ref("");
 
@@ -32,7 +37,7 @@ const greeting = ref("");
 const showSummary = ref(false);
 const showShop = ref(false); 
 const showQuiz = ref(false); 
-const showMissions = ref(false); // <-- Controla la visibilidad de las misiones
+const showMissions = ref(false); 
 
 const pickRandomMessage = () => {
   const randomIndex = Math.floor(Math.random() * incentiveMessages.length);
@@ -70,19 +75,81 @@ const startGame = () => {
     });
 };
 
-const handleExit = () => {
-    // Al pulsar salir, mostramos el Resumen dentro del contenedor
+const handleExit = async () => {
     showSummary.value = true;
 };
 
-const finalExit = () => {
+const finalExit = async () => {
     showSummary.value = false;
+    try {
+        await signOut(auth);
+        localStorage.removeItem('buho_last_login'); 
+    } catch (e) {
+        console.error("Error al salir:", e);
+    }
     emit('exit');
+};
+
+// --- FUNCIÓN PARA SINCRONIZAR DATOS (ACTUALIZADA) ---
+const syncUserData = async (user) => {
+    if (!user) return;
+    
+    try {
+        const userRef = doc(db, "users", user.uid);
+        const userSnap = await getDoc(userRef);
+        
+        if (userSnap.exists()) {
+            const data = userSnap.data();
+            
+            // 1. Recuperamos el nombre y saludamos
+            if (data.username) {
+                studentName.value = data.username;
+                greeting.value = `¡Hola de nuevo, ${data.username}!`;
+                speak(greeting.value);
+            }
+            
+            // 2. ¡CONEXIÓN REALIZADA! Recuperamos las monedas de la nube
+            if (data.stats) {
+                gamificationStore.setCoinsFromCloud(data.stats);
+            }
+        }
+    } catch (e) {
+        console.error("Error sincronizando:", e);
+    }
+};
+
+const saveName = async () => { 
+  if (studentName.value.trim()) { 
+    isEditingName.value = false; 
+    const thanksText = `¡Gracias ${studentName.value}!`;
+    greeting.value = thanksText; 
+    speak(thanksText); 
+    
+    const user = auth.currentUser;
+    if (user) {
+        try {
+            const userRef = doc(db, "users", user.uid);
+            await updateDoc(userRef, { username: studentName.value });
+        } catch (e) {
+            console.error("Error guardando nombre:", e);
+        }
+    }
+  } 
 };
 
 onMounted(() => {
   gamificationStore.loadFromStorage();
   pickRandomMessage();
+
+  // --- DETECTAR USUARIO Y CARGAR DATOS ---
+  onAuthStateChanged(auth, (user) => {
+      if (user) {
+          syncUserData(user); // Sincroniza Nombre y Monedas
+      } else {
+          const localName = localStorage.getItem('owlStudentName');
+          if (localName) studentName.value = localName;
+      }
+  });
 
   if (props.fromView && ['add', 'sub', 'mult', 'div'].includes(props.fromView)) {
       setTimeout(() => { openConfig(props.fromView); }, 50);
@@ -93,25 +160,17 @@ onMounted(() => {
   setTimeout(() => {
     showOwl.value = true;
     if (isComingFromCover) {
-        const helloText = studentName.value ? `¡Hola ${studentName.value}!` : "¡Hola! ¿Cómo te llamas?";
-        greeting.value = helloText;
-        speak(helloText); 
+        if (!studentName.value) {
+             const helloText = "¡Hola! ¿Cómo te llamas?";
+             greeting.value = helloText;
+             speak(helloText);
+        }
         setTimeout(() => { showOwl.value = false; }, 4000);
     } else {
         greeting.value = "¡Sigamos practicando!";
     }
   }, 300);
 });
-
-const saveName = () => { 
-  if (studentName.value.trim()) { 
-    localStorage.setItem('owlStudentName', studentName.value); 
-    isEditingName.value = false; 
-    const thanksText = `¡Gracias ${studentName.value}!`;
-    greeting.value = thanksText; 
-    speak(thanksText); 
-  } 
-};
 
 const currentSubjectLabel = computed(() => {
     const opt = options.find(o => o.id === selectedSubject.value);
@@ -158,7 +217,9 @@ const currentSubjectLabel = computed(() => {
                 <button @click="startGame" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-black text-lg shadow-lg active:scale-95 flex items-center justify-center gap-2 mt-2">
                     <div class="flex items-center gap-2">
                         <div class="flex items-center gap-2">
-                            <Play :size="20" fill="currentColor" /> ¡JUGAR!
+                            <div class="flex items-center gap-2">
+                                <Play :size="20" fill="currentColor" /> ¡JUGAR!
+                            </div>
                         </div>
                     </div>
                 </button>

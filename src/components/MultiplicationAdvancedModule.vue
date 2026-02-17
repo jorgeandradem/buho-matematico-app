@@ -8,15 +8,19 @@ import SmartGuide from './SmartGuide.vue';
 import CoinRain from './CoinRain.vue';
 import VirtualKeypad from './VirtualKeypad.vue';
 import { useGamificationStore } from '../stores/useGamificationStore';
-// Importamos la voz
 import { speak } from '../utils/voice';
+
+// --- INICIO INTEGRACIÓN FIREBASE ---
+import { auth, db } from '../firebaseConfig';
+import { doc, setDoc, increment } from "firebase/firestore";
+// --- FIN INTEGRACIÓN FIREBASE ---
 
 const emit = defineEmits(['back']);
 const gamificationStore = useGamificationStore(); 
 
 // --- ESTADOS ---
 const showCoinRain = ref(false); 
-const showSolution = ref(false); // Modal de Tablas
+const showSolution = ref(false); 
 const activeExerciseIndex = ref(0);
 const isFinished = ref(false);
 
@@ -31,10 +35,30 @@ const steps = ref([]);
 const currentStepIdx = ref(0); 
 const userInputs = ref({});   
 
-// NUEVO: Variable para bloquear acciones mientras cambia de ejercicio y evitar saltos
 const isTransitioning = ref(false);
 
-// --- GENERADOR DE TABLA DE AYUDA (Solo Multiplicación) ---
+// --- FUNCIÓN SILENCIOSA PARA GUARDAR EN NUBE ---
+const saveProgressToCloud = async (puntosGanados) => {
+  const user = auth.currentUser;
+  if (!user) return; 
+
+  try {
+    const userRef = doc(db, "users", user.uid);
+    // Guardamos acumulando puntos y actualizando la fecha
+    await setDoc(userRef, {
+      stats: { 
+        puntos: increment(puntosGanados),
+        lastActivity: Date.now()
+      }
+    }, { merge: true });
+    console.log(`☁️ +${puntosGanados} ORO guardados en la nube.`);
+  } catch (error) {
+    console.error("Error guardando en nube:", error);
+  }
+};
+// ------------------------------------------------
+
+// --- GENERADOR DE TABLA DE AYUDA ---
 const helpTableData = computed(() => {
     const tableNum = selectedHelpTable.value;
     const list = [];
@@ -49,7 +73,6 @@ const generateNumbers = () => {
     isFinished.value = false;
     userInputs.value = {};
     currentStepIdx.value = 0;
-    // NUEVO: Aseguramos que el bloqueo esté desactivado al iniciar
     isTransitioning.value = false;
     topNum.value = Math.floor(Math.random() * (9999 - 10 + 1)) + 10;
     botNum.value = Math.floor(Math.random() * (99 - 10 + 1)) + 10;
@@ -195,7 +218,6 @@ const currentStep = computed(() => {
 });
 
 const handleKeypadPress = (num) => {
-    // NUEVO: Si estamos en transición, ignoramos el teclado
     if (isTransitioning.value) return;
 
     if (!currentStep.value || isFinished.value) return;
@@ -221,30 +243,28 @@ const handleKeypadPress = (num) => {
         if (currentStepIdx.value >= steps.value.length) {
             // EJERCICIO COMPLETADO
             isFinished.value = true;
-            // NUEVO: Activamos el bloqueo para evitar saltos
             isTransitioning.value = true;
             
-            // LÓGICA DE PREMIO Y VOZ INICIAL
-            const rewardAmount = 5;
+            // --- LÓGICA DE PREMIO Y VOZ ---
+            const rewardAmount = 5; // 5 Monedas de Oro
             gamificationStore.addCoins('gold', rewardAmount);
+            
+            // --- FIREBASE: GUARDAMOS EL ORO ---
+            saveProgressToCloud(rewardAmount); 
+            // ----------------------------------
 
             const frases = ["¡Excelente!", "¡Muy bien!", "¡Lo lograste!", "¡Eres genial!"];
             const frase = frases[Math.floor(Math.random() * frases.length)];
-            // El búho habla inmediatamente
             speak(`${frase} Ganaste ${rewardAmount} monedas de oro.`);
 
             if (activeExerciseIndex.value === 4) {
-                // ÚLTIMO EJERCICIO: Pausa dramática de 5 segundos
                 setTimeout(() => {
                     showCoinRain.value = true; 
-                    speak("¡Increíble! Has completado todo.");
-                    // El bloqueo se mantiene activo porque es el final
+                    speak("¡Increíble! Has completado todo el módulo avanzado.");
                 }, 5000);
             } else {
-                // EJERCICIOS INTERMEDIOS: Pausa corta y avance
                 setTimeout(() => {
                     activeExerciseIndex.value++;
-                    // NUEVO: Liberamos el bloqueo antes de generar el siguiente
                     isTransitioning.value = false;
                     generateNumbers(); 
                 }, 1500);
@@ -257,7 +277,6 @@ const handleKeypadPress = (num) => {
 };
 
 const handleDelete = () => {
-    // NUEVO: Bloqueo durante transición
     if (isTransitioning.value) return;
 
     if (!currentStep.value) return;
@@ -411,7 +430,7 @@ onMounted(() => {
                 <div class="overflow-y-auto p-4 bg-slate-50 scrollbar-thin flex-1">
                    <div class="flex flex-col gap-2">
                        <div v-for="(item, idx) in helpTableData" :key="idx" 
-                            class="flex justify-between items-center p-3 rounded-xl bg-white border border-slate-200 shadow-sm">
+                           class="flex justify-between items-center p-3 rounded-xl bg-white border border-slate-200 shadow-sm">
                            <span class="text-lg font-bold text-slate-600 font-mono">
                                {{ item.n1 }} <span class="text-indigo-400 mx-1">{{ item.op }}</span> {{ item.n2 }}
                            </span>
@@ -472,11 +491,11 @@ onMounted(() => {
                                 <div class="h-4 md:h-6 flex items-end justify-center w-full relative z-20">
                                     <div v-if="shouldShowTopCheck(7-cIndex)" 
                                          :class="[
-                                             'flex items-center justify-center transition-all duration-300',
-                                             isTopCheckActive(7-cIndex) 
-                                                 ? 'bg-white rounded-full w-6 h-6 md:w-8 md:h-8 shadow-sm border border-green-200 animate-heartbeat' 
-                                                 : 'w-4 h-4 md:w-6 md:h-6'
-                                          ]">
+                                            'flex items-center justify-center transition-all duration-300',
+                                            isTopCheckActive(7-cIndex) 
+                                                ? 'bg-white rounded-full w-6 h-6 md:w-8 md:h-8 shadow-sm border border-green-200 animate-heartbeat' 
+                                                : 'w-4 h-4 md:w-6 md:h-6'
+                                         ]">
                                         <Check :class="isTopCheckActive(7-cIndex) ? 'w-4 h-4 md:w-5 md:h-5 text-green-600' : 'w-4 h-4 md:w-6 md:h-6 text-green-600/70'" stroke-width="4" />
                                     </div>
                                 </div>
@@ -496,7 +515,7 @@ onMounted(() => {
                                                  isBotCheckActive(7-cIndex) 
                                                      ? 'bg-white rounded-full p-0.5 shadow-sm border border-green-200 animate-heartbeat' 
                                                      : ''
-                                              ]">
+                                             ]">
                                             <Check :class="isBotCheckActive(7-cIndex) ? 'w-3 h-3 md:w-4 md:h-4 text-green-600' : 'w-3 h-3 md:w-4 md:h-4 text-green-600/70'" stroke-width="4" />
                                         </div>
                                     </template>

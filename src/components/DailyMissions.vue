@@ -1,10 +1,48 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { X, Flame, CheckCircle, Gift } from 'lucide-vue-next';
 import { useGamificationStore } from '../stores/useGamificationStore';
 
+// --- CONEXIÓN FIREBASE ---
+import { auth, db } from '../firebaseConfig';
+import { doc, updateDoc } from "firebase/firestore";
+// -------------------------
+
 const emit = defineEmits(['close']);
 const store = useGamificationStore();
+
+// --- FUNCIÓN PARA GUARDAR MISIONES Y RACHA EN LA NUBE ---
+const syncMissionsToCloud = async () => {
+  const user = auth.currentUser;
+  if (!user) return;
+
+  try {
+    const userRef = doc(db, "users", user.uid);
+    // Guardamos la Racha actual y las Misiones activas
+    await updateDoc(userRef, {
+      "stats.racha": store.currentStreak,
+      activeMissions: store.activeMissions, // Guardamos qué misiones tiene hoy
+      lastActivity: Date.now()
+    });
+    console.log("☁️ Misiones y Racha sincronizadas");
+  } catch (e) {
+    console.error("Error guardando misiones:", e);
+  }
+};
+
+const handleGenerateMissions = async () => {
+    // 1. Generar localmente
+    store.generateNewMissions();
+    store.saveToStorage();
+    
+    // 2. Guardar en la nube para que sean las mismas en todos lados
+    await syncMissionsToCloud();
+};
+
+// Al abrir el modal, aprovechamos para asegurar que la racha en la nube esté al día
+onMounted(() => {
+    syncMissionsToCloud();
+});
 </script>
 
 <template>
@@ -74,7 +112,7 @@ const store = useGamificationStore();
                 <div v-if="!store.activeMissions || store.activeMissions.length === 0" class="text-center p-6 bg-white rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-4">
                     <p class="text-slate-500 font-bold text-sm">El Búho está preparando tus misiones de hoy... 🦉</p>
                     
-                    <button @click="store.generateNewMissions(); store.saveToStorage();" class="bg-indigo-100 hover:bg-indigo-200 text-indigo-700 font-black py-2.5 px-5 rounded-xl text-xs transition-colors shadow-sm active:scale-95 flex items-center gap-2 uppercase tracking-wider">
+                    <button @click="handleGenerateMissions" class="bg-indigo-100 hover:bg-indigo-200 text-indigo-700 font-black py-2.5 px-5 rounded-xl text-xs transition-colors shadow-sm active:scale-95 flex items-center gap-2 uppercase tracking-wider">
                         🔄 Generar Misiones Ahora
                     </button>
                 </div>
