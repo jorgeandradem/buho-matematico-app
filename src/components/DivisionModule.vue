@@ -58,23 +58,23 @@ const currentHint = ref({
   theme: THEMES[0]
 });
 
-// --- FUNCIÓN SILENCIOSA PARA GUARDAR EN NUBE ---
-const saveProgressToCloud = async (puntosGanados) => {
+// --- FUNCIÓN CORREGIDA PARA GUARDAR ORO ---
+const saveProgressToCloud = async (oroGanado) => {
   const user = auth.currentUser;
   if (!user) return; 
 
   try {
     const userRef = doc(db, "users", user.uid);
-    // Guardamos acumulando puntos y actualizando la fecha
+    // CAMBIO CLAVE: Usamos 'gold' para que no se convierta en cobre al recargar
     await setDoc(userRef, {
       stats: { 
-        puntos: increment(puntosGanados),
+        gold: increment(oroGanado),
         lastActivity: Date.now()
       }
     }, { merge: true });
-    console.log(`☁️ +${puntosGanados} ORO (División) guardados en la nube.`);
+    console.log(`☁️ +${oroGanado} ORO (División) guardados con éxito en la nube.`);
   } catch (error) {
-    console.error("Error guardando en nube:", error);
+    console.error("Error guardando oro en nube:", error);
   }
 };
 // ------------------------------------------------
@@ -348,11 +348,11 @@ const checkFullSuccess = () => {
         isSuccess.value = true;
         isTransitioning.value = true; 
         
-        // --- 1. Pagar Monedas (2 de Oro) ---
+        // --- 1. Pagar Monedas locales (2 de Oro) ---
         const rewardAmount = 2;
         gamificationStore.addCoins('gold', rewardAmount);
         
-        // --- 2. FIREBASE: GUARDAMOS EL PROGRESO ---
+        // --- 2. FIREBASE: GUARDAMOS EL ORO REAL ---
         saveProgressToCloud(rewardAmount);
         // ------------------------------------------
 

@@ -1,9 +1,9 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, onUnmounted, computed } from 'vue'; 
 import { 
   Plus, Minus, X as MultiplyIcon, Divide, LogOut, 
   User, Pencil, Check, BookOpen, Play, X as CloseIcon,
-  ShoppingBag, Zap, Flame 
+  ShoppingBag, Zap, Flame, Coffee, DoorOpen
 } from 'lucide-vue-next';
 import OwlImage from './OwlImage.vue';
 import { playOwlHoot } from '../utils/sound'; 
@@ -19,7 +19,7 @@ import { speak } from '../utils/voice';
 // --- IMPORTAMOS FIREBASE ---
 import { auth, db } from '../firebaseConfig';
 import { onAuthStateChanged, signOut } from "firebase/auth";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, onSnapshot, updateDoc } from "firebase/firestore";
 // ---------------------------
 
 const emit = defineEmits(['select', 'exit']);
@@ -33,11 +33,18 @@ const isEditingName = ref(false);
 const showOwl = ref(false); 
 const greeting = ref("");
 
+// Variable para detener el escuchador cuando salgamos
+let unsubscribeUser = null;
+
 // Variables para modales
 const showSummary = ref(false);
 const showShop = ref(false); 
 const showQuiz = ref(false); 
 const showMissions = ref(false); 
+const showExitConfirm = ref(false); // NUEVO: Modal de confirmación de salida
+
+// Estado para decidir si desconectamos de Firebase o no
+const fullSignOutRequested = ref(false);
 
 const pickRandomMessage = () => {
   const randomIndex = Math.floor(Math.random() * incentiveMessages.length);
@@ -75,47 +82,65 @@ const startGame = () => {
     });
 };
 
-const handleExit = async () => {
-    showSummary.value = true;
+// --- NUEVA LÓGICA DE SALIDA ---
+
+const handleExitClick = () => {
+    showExitConfirm.value = true; // Abrimos el cuadro de decisión
+};
+
+const confirmTakeBreak = () => {
+    fullSignOutRequested.value = false; // Solo cerramos vista, NO desconectamos
+    showExitConfirm.value = false;
+    showSummary.value = true; // Pasamos por el resumen de puntos
+};
+
+const confirmFullLogout = () => {
+    fullSignOutRequested.value = true; // SÍ desconectamos de Firebase
+    showExitConfirm.value = false;
+    showSummary.value = true; // Pasamos por el resumen de puntos
 };
 
 const finalExit = async () => {
     showSummary.value = false;
-    try {
-        await signOut(auth);
-        localStorage.removeItem('buho_last_login'); 
-    } catch (e) {
-        console.error("Error al salir:", e);
+    
+    // Apagamos el escuchador en tiempo real
+    if (unsubscribeUser) unsubscribeUser(); 
+
+    if (fullSignOutRequested.value) {
+        console.log("🔒 Realizando Cierre de Sesión Completo...");
+        try {
+            await signOut(auth);
+            localStorage.removeItem('buho_last_login'); 
+        } catch (e) {
+            console.error("Error al cerrar sesión:", e);
+        }
+    } else {
+        console.log("☕ Tomando un descanso (Sesión mantenida)");
     }
+    
     emit('exit');
 };
 
-// --- FUNCIÓN PARA SINCRONIZAR DATOS (ACTUALIZADA) ---
-const syncUserData = async (user) => {
+// --- FIN LÓGICA DE SALIDA ---
+
+const startRealTimeSync = (user) => {
     if (!user) return;
-    
-    try {
-        const userRef = doc(db, "users", user.uid);
-        const userSnap = await getDoc(userRef);
-        
-        if (userSnap.exists()) {
-            const data = userSnap.data();
-            
-            // 1. Recuperamos el nombre y saludamos
-            if (data.username) {
+    const userRef = doc(db, "users", user.uid);
+    unsubscribeUser = onSnapshot(userRef, (docSnap) => {
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            if (data.username && data.username !== studentName.value) {
                 studentName.value = data.username;
-                greeting.value = `¡Hola de nuevo, ${data.username}!`;
-                speak(greeting.value);
+                if (!greeting.value) {
+                    greeting.value = `¡Hola de nuevo, ${data.username}!`;
+                    speak(greeting.value);
+                }
             }
-            
-            // 2. ¡CONEXIÓN REALIZADA! Recuperamos las monedas de la nube
             if (data.stats) {
                 gamificationStore.setCoinsFromCloud(data.stats);
             }
         }
-    } catch (e) {
-        console.error("Error sincronizando:", e);
-    }
+    });
 };
 
 const saveName = async () => { 
@@ -124,7 +149,6 @@ const saveName = async () => {
     const thanksText = `¡Gracias ${studentName.value}!`;
     greeting.value = thanksText; 
     speak(thanksText); 
-    
     const user = auth.currentUser;
     if (user) {
         try {
@@ -141,10 +165,9 @@ onMounted(() => {
   gamificationStore.loadFromStorage();
   pickRandomMessage();
 
-  // --- DETECTAR USUARIO Y CARGAR DATOS ---
   onAuthStateChanged(auth, (user) => {
       if (user) {
-          syncUserData(user); // Sincroniza Nombre y Monedas
+          startRealTimeSync(user); 
       } else {
           const localName = localStorage.getItem('owlStudentName');
           if (localName) studentName.value = localName;
@@ -172,6 +195,10 @@ onMounted(() => {
   }, 300);
 });
 
+onUnmounted(() => {
+    if (unsubscribeUser) unsubscribeUser();
+});
+
 const currentSubjectLabel = computed(() => {
     const opt = options.find(o => o.id === selectedSubject.value);
     return opt ? opt.label : '';
@@ -188,10 +215,37 @@ const currentSubjectLabel = computed(() => {
         </div>
 
         <RewardShop v-if="showShop" @close="showShop = false" />
-        
         <QuizModule v-if="showQuiz" @close="showQuiz = false" />
-        
         <DailyMissions v-if="showMissions" @close="showMissions = false" />
+
+        <div v-if="showExitConfirm" class="absolute inset-0 z-[110] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in">
+            <div class="bg-white rounded-[2.5rem] w-full max-w-sm p-8 shadow-2xl border-4 border-indigo-100 text-center flex flex-col gap-6">
+                <div class="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mx-auto border-2 border-indigo-100">
+                    <OwlImage customClass="w-14 h-14" />
+                </div>
+                
+                <div>
+                    <h3 class="text-2xl font-black text-slate-800 mb-2">¿Ya terminaste?</h3>
+                    <p class="text-slate-500 font-bold leading-tight">Elige cómo quieres salir:</p>
+                </div>
+
+                <div class="flex flex-col gap-3">
+                    <button @click="confirmTakeBreak" class="w-full py-4 bg-green-500 hover:bg-green-600 text-white rounded-2xl font-black text-lg shadow-[0_4px_0_rgb(21,128,61)] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-3">
+                        <Coffee :size="24" /> Tomar un descanso
+                    </button>
+                    <p class="text-[10px] text-slate-400 font-bold uppercase italic">Entrarás directo la próxima vez</p>
+
+                    <div class="h-px bg-slate-100 my-2"></div>
+
+                    <button @click="confirmFullLogout" class="w-full py-3 bg-slate-100 hover:bg-red-50 text-slate-500 rounded-2xl font-bold text-sm transition-all flex items-center justify-center gap-2 border-2 border-transparent hover:border-red-200 hover:text-red-600">
+                        <DoorOpen :size="18" /> Cerrar sesión de mi cuenta
+                    </button>
+                    <p class="text-[9px] text-slate-400">Usa esto solo si el PC es compartido</p>
+                </div>
+
+                <button @click="showExitConfirm = false" class="text-indigo-600 font-black uppercase tracking-widest text-xs mt-2 hover:underline">Continuar practicando</button>
+            </div>
+        </div>
 
         <div v-if="showConfigModal" class="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
             <div class="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl relative flex flex-col gap-4 border-4 border-indigo-100 max-h-[90vh] overflow-y-auto">
@@ -215,20 +269,14 @@ const currentSubjectLabel = computed(() => {
                 </div>
 
                 <button @click="startGame" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-black text-lg shadow-lg active:scale-95 flex items-center justify-center gap-2 mt-2">
-                    <div class="flex items-center gap-2">
-                        <div class="flex items-center gap-2">
-                            <div class="flex items-center gap-2">
-                                <Play :size="20" fill="currentColor" /> ¡JUGAR!
-                            </div>
-                        </div>
-                    </div>
+                    <Play :size="20" fill="currentColor" /> ¡JUGAR!
                 </button>
             </div>
         </div>
 
         <header class="flex justify-between items-center w-full z-30 mb-2">
             <div class="flex gap-2">
-                <button @click="handleExit" class="p-2 bg-white rounded-full text-indigo-600 shadow-md border-2 border-indigo-100"><LogOut :size="20" class="transform rotate-180" /></button>
+                <button @click="handleExitClick" class="p-2 bg-white rounded-full text-indigo-600 shadow-md border-2 border-indigo-100 active:scale-95 transition-transform"><LogOut :size="20" class="transform rotate-180" /></button>
                 
                 <button @click="showMissions = true" class="px-3 py-1 bg-gradient-to-b from-orange-400 to-red-500 rounded-full text-white shadow-md border-2 border-red-200 hover:scale-105 active:scale-95 transition-transform flex items-center gap-1 font-black">
                     <Flame :size="18" fill="currentColor" class="text-yellow-300" />
@@ -284,26 +332,22 @@ const currentSubjectLabel = computed(() => {
                     </div>
                     <div class="text-left text-white">
                         <h3 class="font-black text-lg leading-tight uppercase tracking-wide">Desafío Contrarreloj</h3>
-                        <p class="text-orange-100 text-[10px] font-bold mt-0.5">⏱️ 60 segundos para ganar Cobre</p>
+                        <p class="text-orange-100 text-[10px] font-bold mt-0.5">⏱️ 60 segundos para ganar Plata</p>
                     </div>
                 </div>
             </button>
         </div>
 
         <div class="mt-auto w-full flex flex-col gap-2 z-20 pb-4 px-2">
-            
             <div class="bg-indigo-50/90 rounded-2xl border-2 border-indigo-100 p-2 sm:p-3 flex items-center justify-center gap-3 shadow-sm w-full animate-fade-in">
                 <BookOpen class="text-indigo-600 shrink-0" :size="18" />
                 <p class="text-slate-800 text-[11px] sm:text-xs font-black italic text-center leading-tight">
                     {{ randomIncentive }}
                 </p>
             </div>
-
             <StatusBoard />
         </div>
-
     </div>
-    
   </div>
 </template>
 
@@ -311,7 +355,6 @@ const currentSubjectLabel = computed(() => {
 .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-/* Animación sutil para llamar la atención a la tienda */
 .animate-bounce-slow { animation: float 3s ease-in-out infinite; }
 @keyframes float {
   0% { transform: translateY(0px); }

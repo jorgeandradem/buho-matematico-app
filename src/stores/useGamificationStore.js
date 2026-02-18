@@ -29,29 +29,41 @@ export const useGamificationStore = defineStore('gamification', {
   },
 
   actions: {
-    // --- ESTA ES LA FUNCIÓN CORREGIDA (LA BUENA) ---
+    // --- FUNCIÓN DE SINCRONIZACIÓN MAESTRA (TIEMPO REAL) ---
+    // Recibe los datos desde el Snapshot de Firebase en IndexScreen
     setCoinsFromCloud(stats) {
       if (!stats) return;
       
-      console.log("📥 Datos recibidos de Nube:", stats);
+      console.log("📥 Sincronizando Banco y Racha con la Nube...", stats);
 
-      // 1. SUMA INTELIGENTE:
-      // Sumamos lo que ganaste en ejercicios ('puntos') MÁS lo que ganaste en juegos rápidos ('copper')
-      const totalCopper = (stats.copper || 0) + (stats.puntos || 0);
-      
-      this.copper = totalCopper;
-      this.silver = stats.silver || 0;
+      // 1. Sincronización de Monedas (Cajas Fuertes)
       this.gold = stats.gold || 0;
+      this.silver = stats.silver || 0;
+      this.copper = stats.copper || 0;
 
-      // 2. Cargar Racha
-      if (stats.racha) this.currentStreak = stats.racha;
+      // 2. Suma de puntos antiguos (si existen en la nube)
+      if (stats.puntos) {
+          this.copper += stats.puntos;
+      }
+
+      // 3. ACTUALIZACIÓN CRÍTICA: Racha y Fecha
+      // Sincronizamos la racha para que el PC y el móvil vean lo mismo
+      if (stats.racha !== undefined) {
+        this.currentStreak = stats.racha;
+      }
       
-      // 3. Recalcular conversiones (por si la suma da para más Plata/Oro)
+      // Sincronizamos la fecha para evitar reinicios accidentales de racha
+      if (stats.lastPlayedDate) {
+        this.lastPlayedDate = stats.lastPlayedDate;
+      }
+      
+      // 4. Recalcular conversiones y guardar localmente
       this.processConversions();
-      
       this.saveToStorage();
+      
+      console.log(`✅ Sincronización Exitosa -> Oro: ${this.gold} | Racha: ${this.currentStreak} 🔥`);
     },
-    // -----------------------------------------------
+    // -------------------------------------------------------
 
     addCoins(type, amount) {
       const safeAmount = Math.abs(parseInt(amount)) || 0;
@@ -156,7 +168,7 @@ export const useGamificationStore = defineStore('gamification', {
         };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
       } catch (e) {
-        console.error('Error al guardar:', e);
+        console.error('Error al guardar localmente:', e);
       }
     },
 
@@ -175,7 +187,7 @@ export const useGamificationStore = defineStore('gamification', {
         }
         this.checkDailyStreak();
       } catch (e) {
-        console.error('Error al cargar:', e);
+        console.error('Error al cargar localmente:', e);
       }
     },
 

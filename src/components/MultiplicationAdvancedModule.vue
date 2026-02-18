@@ -31,29 +31,29 @@ const selectedHelpTable = ref(1);
 const topNum = ref(0);
 const botNum = ref(0);
 
-const steps = ref([]);        
+const steps = ref([]);         
 const currentStepIdx = ref(0); 
 const userInputs = ref({});   
 
 const isTransitioning = ref(false);
 
-// --- FUNCIÓN SILENCIOSA PARA GUARDAR EN NUBE ---
-const saveProgressToCloud = async (puntosGanados) => {
+// --- FUNCIÓN CORREGIDA: GUARDA ORO DIRECTAMENTE ---
+const saveProgressToCloud = async (oroGanado) => {
   const user = auth.currentUser;
   if (!user) return; 
 
   try {
     const userRef = doc(db, "users", user.uid);
-    // Guardamos acumulando puntos y actualizando la fecha
+    // CAMBIO CRÍTICO: Usamos la propiedad 'gold' en lugar de 'puntos'
     await setDoc(userRef, {
       stats: { 
-        puntos: increment(puntosGanados),
+        gold: increment(oroGanado),
         lastActivity: Date.now()
       }
     }, { merge: true });
-    console.log(`☁️ +${puntosGanados} ORO guardados en la nube.`);
+    console.log(`☁️ +${oroGanado} ORO guardados correctamente en la nube.`);
   } catch (error) {
-    console.error("Error guardando en nube:", error);
+    console.error("Error guardando oro en nube:", error);
   }
 };
 // ------------------------------------------------

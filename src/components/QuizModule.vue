@@ -53,24 +53,26 @@ const performanceFeedback = computed(() => {
     return { text: "¡No te rindas! Sigue practicando para mejorar 💪", color: "text-orange-600", bg: "bg-orange-100" };
 });
 
-// --- FUNCIÓN PARA GUARDAR PLATA EN LA NUBE ---
+// --- FUNCIÓN MEJORADA: GUARDA PLATA Y RACHA EN LA NUBE ---
 const saveSilverToCloud = async (amount) => {
   const user = auth.currentUser;
   if (!user) return; 
 
   try {
     const userRef = doc(db, "users", user.uid);
-    // Guardamos específicamente en "silver"
+    // ACTUALIZACIÓN: Ahora también enviamos la racha y la fecha para sincronización total
     await updateDoc(userRef, {
       "stats.silver": increment(amount),
+      "stats.racha": store.currentStreak,      // Sincroniza la racha actual
+      "stats.lastPlayedDate": store.lastPlayedDate, // Sincroniza la fecha de juego
       lastActivity: Date.now()
     });
-    console.log(`☁️ +${amount} Plata guardada`);
+    console.log(`☁️ +${amount} Plata y racha (${store.currentStreak}) sincronizadas con la nube`);
   } catch (error) {
-    console.error("Error guardando plata:", error);
+    console.error("Error guardando progreso en el Quiz:", error);
   }
 };
-// ---------------------------------------------
+// --------------------------------------------------------
 
 const startGame = (operation) => {
     selectedOperation.value = operation;
@@ -188,7 +190,7 @@ const endGame = () => {
     if (silverReward > 0) {
         // 1. Pago Local
         store.addCoins('silver', silverReward);
-        // 2. Pago Nube
+        // 2. Pago Nube (Ahora incluye racha y fecha)
         saveSilverToCloud(silverReward);
         
         triggerCoinRain(silverReward * 2); 
