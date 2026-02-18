@@ -1,6 +1,11 @@
 import { defineStore } from 'pinia';
 import { missionsData } from '../data/missions'; 
 
+// --- IMPORTAMOS FIREBASE PARA EL RESET ---
+import { auth, db } from '../firebaseConfig';
+import { doc, updateDoc } from "firebase/firestore";
+// -----------------------------------------
+
 const STORAGE_KEY = 'buho-matematico-tesoro-v1';
 
 export const useGamificationStore = defineStore('gamification', {
@@ -30,40 +35,30 @@ export const useGamificationStore = defineStore('gamification', {
 
   actions: {
     // --- FUNCIÓN DE SINCRONIZACIÓN MAESTRA (TIEMPO REAL) ---
-    // Recibe los datos desde el Snapshot de Firebase en IndexScreen
     setCoinsFromCloud(stats) {
       if (!stats) return;
       
       console.log("📥 Sincronizando Banco y Racha con la Nube...", stats);
 
-      // 1. Sincronización de Monedas (Cajas Fuertes)
       this.gold = stats.gold || 0;
       this.silver = stats.silver || 0;
       this.copper = stats.copper || 0;
 
-      // 2. Suma de puntos antiguos (si existen en la nube)
       if (stats.puntos) {
           this.copper += stats.puntos;
       }
 
-      // 3. ACTUALIZACIÓN CRÍTICA: Racha y Fecha
-      // Sincronizamos la racha para que el PC y el móvil vean lo mismo
       if (stats.racha !== undefined) {
         this.currentStreak = stats.racha;
       }
       
-      // Sincronizamos la fecha para evitar reinicios accidentales de racha
       if (stats.lastPlayedDate) {
         this.lastPlayedDate = stats.lastPlayedDate;
       }
       
-      // 4. Recalcular conversiones y guardar localmente
       this.processConversions();
       this.saveToStorage();
-      
-      console.log(`✅ Sincronización Exitosa -> Oro: ${this.gold} | Racha: ${this.currentStreak} 🔥`);
     },
-    // -------------------------------------------------------
 
     addCoins(type, amount) {
       const safeAmount = Math.abs(parseInt(amount)) || 0;
@@ -129,7 +124,11 @@ export const useGamificationStore = defineStore('gamification', {
         return lastTicket; 
     },
 
-    hardReset() {
+    // --- FUNCIÓN HARD RESET ACTUALIZADA (HÍBRIDA) ---
+    async hardReset() {
+        console.log("🔥 Iniciando Reset Total (Local + Nube)...");
+
+        // 1. Limpieza de Estado Local
         this.copper = 0;
         this.silver = 0;
         this.gold = 0;
@@ -141,7 +140,28 @@ export const useGamificationStore = defineStore('gamification', {
         this.lastPlayedDate = null;
         this.activeMissions = [];
         
+        // 2. Limpieza de LocalStorage
         this.saveToStorage();
+
+        // 3. LIMPIEZA EN FIREBASE (Nube)
+        const user = auth.currentUser;
+        if (user) {
+          try {
+            const userRef = doc(db, "users", user.uid);
+            await updateDoc(userRef, {
+              "stats.gold": 0,
+              "stats.silver": 0,
+              "stats.copper": 0,
+              "stats.puntos": 0,
+              "stats.racha": 0,
+              "stats.lastPlayedDate": null,
+              lastActivity: Date.now()
+            });
+            console.log("☁️ Nube reseteada con éxito.");
+          } catch (error) {
+            console.error("❌ Error reseteando la nube:", error);
+          }
+        }
     },
 
     processConversions() {
@@ -185,7 +205,6 @@ export const useGamificationStore = defineStore('gamification', {
           this.lastPlayedDate = parsedData.lastPlayedDate || null;
           this.activeMissions = parsedData.activeMissions || [];
         }
-        this.checkDailyStreak();
       } catch (e) {
         console.error('Error al cargar localmente:', e);
       }

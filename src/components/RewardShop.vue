@@ -5,7 +5,7 @@ import { useGamificationStore } from '../stores/useGamificationStore';
 import { speak } from '../utils/voice';
 import RewardTicket from './RewardTicket.vue';
 
-// --- NUEVO: IMPORTAMOS FIREBASE ---
+// --- IMPORTACIONES FIREBASE ---
 import { auth, db } from '../firebaseConfig';
 import { doc, updateDoc, increment } from "firebase/firestore";
 // ----------------------------------
@@ -19,12 +19,11 @@ const productToConfirm = ref(null);
 const showSettings = ref(false);
 const parentPhone = ref('');
 
-// --- ZONA PARENTAL (RETO MATEMÁTICO) ---
 const mathChallenge = ref(null);
 const mathAnswer = ref('');
 const pendingAction = ref(null); 
 
-// --- INVENTARIO "VIVO" (90 PRODUCTOS) ---
+// --- INVENTARIO (90 PRODUCTOS) ---
 const rawInventory = [
     // --- 🟠 NIVEL COBRE ---
     { id: 'c1', name: 'Un Abrazo de Oso', cost: 50, type: 'copper', icon: '🐻', desc: 'Un abrazo fuerte y cariñoso' },
@@ -144,7 +143,6 @@ const filteredProducts = computed(() => {
     return shuffledProducts.value.filter(p => p.type === activeTab.value);
 });
 
-// PASO 1: Confirmar
 const confirmBuy = (product) => {
     let hasFunds = false;
     if (product.type === 'gold' && store.gold >= product.cost) hasFunds = true;
@@ -159,17 +157,14 @@ const confirmBuy = (product) => {
     }
 };
 
-// --- FUNCIÓN PARA SINCRONIZAR GASTO CON LA NUBE ---
 const syncExpenseToCloud = async (type, amount) => {
     const user = auth.currentUser;
-    if (!user) return; // Si es invitado, no hacemos nada
+    if (!user) return; 
 
     try {
         const userRef = doc(db, "users", user.uid);
-        // Restamos las monedas específicas en la nube
-        // Usamos "increment(-amount)" que es como restar
         await updateDoc(userRef, {
-            [`stats.${type}`]: increment(-amount), // Ej: stats.gold: -5
+            [`stats.${type}`]: increment(-amount), 
             lastActivity: Date.now()
         });
         console.log(`☁️ Gasto sincronizado: -${amount} ${type}`);
@@ -177,18 +172,14 @@ const syncExpenseToCloud = async (type, amount) => {
         console.error("Error sincronizando gasto:", e);
     }
 };
-// --------------------------------------------------
 
-// PASO 2: Ejecutar Compra
 const executeBuy = () => {
     const product = productToConfirm.value;
     if (!product) return;
 
-    // 1. Restar localmente (instantáneo)
     const success = store.spendCoins(product.type, product.cost);
 
     if (success) {
-        // 2. Restar en la nube (silencioso)
         syncExpenseToCloud(product.type, product.cost);
 
         const newTicket = {
@@ -205,7 +196,6 @@ const executeBuy = () => {
     }
 };
 
-// --- ZONA PARENTAL ---
 const triggerParentalAction = (action) => {
     const num1 = Math.floor(Math.random() * 5) + 5; 
     const num2 = Math.floor(Math.random() * 5) + 5; 
@@ -217,18 +207,18 @@ const triggerParentalAction = (action) => {
     pendingAction.value = action;
 };
 
-const verifyParentalAction = () => {
+// --- FUNCIÓN ASÍNCRONA ACTUALIZADA PARA EL RESET TOTAL ---
+const verifyParentalAction = async () => {
     if (parseInt(mathAnswer.value) === mathChallenge.value.answer) {
         if (pendingAction.value === 'refund') {
             const refundedTicket = store.refundLastPurchase();
             if (refundedTicket) {
                 speak(`Se ha devuelto el premio y recuperaste las monedas.`);
-                // Opcional: Podrías sincronizar el reembolso sumando en la nube, 
-                // pero por simplicidad lo dejamos local o manual por ahora.
             }
             else speak("No hay compras para devolver.");
         } else if (pendingAction.value === 'reset') {
-            store.hardReset();
+            // CAMBIO CRÍTICO: Ahora esperamos a que se complete el borrado en Firebase
+            await store.hardReset(); 
             speak("El banco y la mochila han sido borrados por completo.");
             activeTab.value = 'gold'; 
         }
@@ -336,7 +326,6 @@ const shareReward = () => {
     </div>
 
     <div class="flex-1 overflow-y-auto p-4 bg-slate-100">
-        
         <div v-if="activeTab !== 'vales'" class="grid grid-cols-2 gap-4 pb-20">
             <button v-for="item in filteredProducts" :key="item.id" 
                 @click="confirmBuy(item)"
@@ -402,13 +391,12 @@ const shareReward = () => {
         @close="selectedProduct = null" 
         @share="shareReward" 
     />
-
   </div>
 </template>
 
 <style scoped>
 .animate-slide-up { animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
-@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-.animate-fade-in { animation: fadeIn 0.2s ease-out; }
+@keyframes slideUp { from { transform: translateY(100%); } to { opacity: 1; transform: translateY(0); } }
+.animate-fade-in { animation: fadeIn 0.2s ease-out forwards; }
 @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
 </style>
