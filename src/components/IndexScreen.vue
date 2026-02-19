@@ -1,9 +1,9 @@
 <script setup>
-import { ref, onMounted, onUnmounted, computed } from 'vue'; 
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue'; 
 import { 
   Plus, Minus, X as MultiplyIcon, Divide, LogOut, 
   User, Pencil, Check, BookOpen, Play, X as CloseIcon,
-  ShoppingBag, Zap, Flame, Coffee, DoorOpen
+  ShoppingBag, Zap, Flame, Coffee, DoorOpen, BellRing
 } from 'lucide-vue-next';
 import OwlImage from './OwlImage.vue';
 import { playOwlHoot } from '../utils/sound'; 
@@ -16,11 +16,10 @@ import DailyMissions from './DailyMissions.vue';
 import { useGamificationStore } from '../stores/useGamificationStore';
 import { speak } from '../utils/voice';
 
-// --- IMPORTAMOS FIREBASE ---
+// --- IMPORTACIONES FIREBASE ---
 import { auth, db } from '../firebaseConfig';
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { doc, onSnapshot, updateDoc } from "firebase/firestore";
-// ---------------------------
 
 const emit = defineEmits(['select', 'exit']);
 const props = defineProps(['fromView']);
@@ -33,18 +32,32 @@ const isEditingName = ref(false);
 const showOwl = ref(false); 
 const greeting = ref("");
 
-// Variable para detener el escuchador cuando salgamos
 let unsubscribeUser = null;
 
-// Variables para modales
 const showSummary = ref(false);
 const showShop = ref(false); 
 const showQuiz = ref(false); 
 const showMissions = ref(false); 
-const showExitConfirm = ref(false); // NUEVO: Modal de confirmación de salida
+const showExitConfirm = ref(false); 
 
-// Estado para decidir si desconectamos de Firebase o no
 const fullSignOutRequested = ref(false);
+
+// --- 💬 LÓGICA DE LA BURBUJA DE NOTIFICACIÓN (v2.7/v2.8) ---
+const showBubble = ref(false);
+const bubbleText = computed(() => gamificationStore.bubbleMessage);
+
+// Vigila si el Store pone un mensaje nuevo en la burbuja
+watch(bubbleText, (newVal) => {
+    if (newVal) {
+        showBubble.value = true;
+        speak(newVal); // El Búho también lo dice por voz
+        // La burbuja desaparece sola tras 6 segundos
+        setTimeout(() => {
+            showBubble.value = false;
+            gamificationStore.bubbleMessage = ''; // Limpiamos para el próximo mensaje
+        }, 6000);
+    }
+});
 
 const pickRandomMessage = () => {
   const randomIndex = Math.floor(Math.random() * incentiveMessages.length);
@@ -82,28 +95,24 @@ const startGame = () => {
     });
 };
 
-// --- NUEVA LÓGICA DE SALIDA ---
-
 const handleExitClick = () => {
-    showExitConfirm.value = true; // Abrimos el cuadro de decisión
+    showExitConfirm.value = true; 
 };
 
 const confirmTakeBreak = () => {
-    fullSignOutRequested.value = false; // Solo cerramos vista, NO desconectamos
+    fullSignOutRequested.value = false; 
     showExitConfirm.value = false;
-    showSummary.value = true; // Pasamos por el resumen de puntos
+    showSummary.value = true; 
 };
 
 const confirmFullLogout = () => {
-    fullSignOutRequested.value = true; // SÍ desconectamos de Firebase
+    fullSignOutRequested.value = true; 
     showExitConfirm.value = false;
-    showSummary.value = true; // Pasamos por el resumen de puntos
+    showSummary.value = true; 
 };
 
 const finalExit = async () => {
     showSummary.value = false;
-    
-    // Apagamos el escuchador en tiempo real
     if (unsubscribeUser) unsubscribeUser(); 
 
     if (fullSignOutRequested.value) {
@@ -117,11 +126,8 @@ const finalExit = async () => {
     } else {
         console.log("☕ Tomando un descanso (Sesión mantenida)");
     }
-    
     emit('exit');
 };
-
-// --- FIN LÓGICA DE SALIDA ---
 
 const startRealTimeSync = (user) => {
     if (!user) return;
@@ -163,6 +169,17 @@ const saveName = async () => {
 
 onMounted(() => {
   gamificationStore.loadFromStorage();
+  
+  // --- 🚀 AUTO-VERIFICACIÓN DE RACHA Y MISIONES (v2.8) ---
+  // 1. Revisa si es un nuevo día para actualizar el fuego
+  gamificationStore.checkDailyStreak();
+
+  // 2. SEGURIDAD: Si no hay misiones cargadas (ej. tras reset), las generamos ahora
+  if (!gamificationStore.activeMissions || gamificationStore.activeMissions.length === 0) {
+      console.log("🔄 Inicializando misiones diarias...");
+      gamificationStore.generateNewMissions();
+  }
+
   pickRandomMessage();
 
   onAuthStateChanged(auth, (user) => {
@@ -207,9 +224,20 @@ const currentSubjectLabel = computed(() => {
 
 <template>
   <div class="h-[100dvh] w-full bg-slate-100 flex justify-center overflow-hidden font-sans select-none text-slate-900">
-    
     <div class="w-full max-w-xl h-full flex flex-col bg-gradient-to-br from-indigo-500 to-purple-600 shadow-2xl relative overflow-hidden p-4">
     
+        <Transition name="bubble-pop">
+            <div v-if="showBubble" class="absolute top-20 left-1/2 -translate-x-1/2 z-[200] w-[85%] max-w-xs">
+                <div class="bg-yellow-400 text-indigo-900 p-4 rounded-2xl shadow-2xl border-4 border-white flex items-center gap-3 relative">
+                    <div class="bg-indigo-900/10 p-2 rounded-full">
+                        <BellRing class="animate-ring" :size="24" />
+                    </div>
+                    <p class="font-black text-sm leading-tight">{{ bubbleText }}</p>
+                    <div class="absolute -bottom-3 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[12px] border-l-transparent border-r-[12px] border-r-transparent border-t-[12px] border-t-yellow-400"></div>
+                </div>
+            </div>
+        </Transition>
+
         <div v-if="showSummary" class="absolute inset-0 z-[100]">
             <SessionSummary @close="finalExit" />
         </div>
@@ -223,26 +251,20 @@ const currentSubjectLabel = computed(() => {
                 <div class="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mx-auto border-2 border-indigo-100">
                     <OwlImage customClass="w-14 h-14" />
                 </div>
-                
                 <div>
                     <h3 class="text-2xl font-black text-slate-800 mb-2">¿Ya terminaste?</h3>
                     <p class="text-slate-500 font-bold leading-tight">Elige cómo quieres salir:</p>
                 </div>
-
                 <div class="flex flex-col gap-3">
                     <button @click="confirmTakeBreak" class="w-full py-4 bg-green-500 hover:bg-green-600 text-white rounded-2xl font-black text-lg shadow-[0_4px_0_rgb(21,128,61)] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-3">
                         <Coffee :size="24" /> Tomar un descanso
                     </button>
                     <p class="text-[10px] text-slate-400 font-bold uppercase italic">Entrarás directo la próxima vez</p>
-
                     <div class="h-px bg-slate-100 my-2"></div>
-
                     <button @click="confirmFullLogout" class="w-full py-3 bg-slate-100 hover:bg-red-50 text-slate-500 rounded-2xl font-bold text-sm transition-all flex items-center justify-center gap-2 border-2 border-transparent hover:border-red-200 hover:text-red-600">
                         <DoorOpen :size="18" /> Cerrar sesión de mi cuenta
                     </button>
-                    <p class="text-[9px] text-slate-400">Usa esto solo si el PC es compartido</p>
                 </div>
-
                 <button @click="showExitConfirm = false" class="text-indigo-600 font-black uppercase tracking-widest text-xs mt-2 hover:underline">Continuar practicando</button>
             </div>
         </div>
@@ -254,12 +276,10 @@ const currentSubjectLabel = computed(() => {
                     <h3 class="text-2xl font-black text-slate-800">{{ currentSubjectLabel }}</h3>
                     <p class="text-slate-500 text-xs font-bold uppercase">Configuración</p>
                 </div>
-                
                 <div class="grid grid-cols-2 gap-3">
                     <button @click="configMode = 'quick'" :class="`p-3 rounded-xl border-2 font-bold text-sm transition-all ${configMode === 'quick' ? 'border-indigo-500 bg-indigo-50 text-indigo-700 shadow-sm' : 'border-slate-200 text-slate-400'}`">⚡ Rápida</button>
                     <button @click="configMode = 'notebook'" :class="`p-3 rounded-xl border-2 font-bold text-sm transition-all ${configMode === 'notebook' ? 'border-yellow-500 bg-yellow-50 text-yellow-700 shadow-sm' : 'border-slate-200 text-slate-400'}`">📔 Cuaderno</button>
                 </div>
-
                 <div v-if="configMode === 'quick'" class="flex flex-col gap-2 animate-fade-in mt-1 p-2 bg-slate-50 rounded-xl border border-slate-100">
                     <p class="text-slate-400 text-[10px] font-bold uppercase text-center">Selecciona la Tabla</p>
                     <button @click="configTable = 'random'" :class="`w-full py-2 rounded-lg font-bold text-xs border-2 transition-all flex items-center justify-center gap-2 ${configTable === 'random' ? 'bg-indigo-600 border-indigo-600 text-white shadow-md' : 'bg-white border-slate-200 text-slate-500 hover:border-indigo-300'}`">🎲 Tablas Aleatorias</button>
@@ -267,7 +287,6 @@ const currentSubjectLabel = computed(() => {
                         <button v-for="n in 10" :key="n" @click="configTable = n" :class="`aspect-square rounded-lg font-black text-sm border-2 transition-all flex items-center justify-center ${configTable === n ? 'bg-indigo-600 border-indigo-600 text-white shadow-md scale-105' : 'bg-white border-slate-200 text-slate-500 hover:border-indigo-300'}`">{{ n }}</button>
                     </div>
                 </div>
-
                 <button @click="startGame" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-black text-lg shadow-lg active:scale-95 flex items-center justify-center gap-2 mt-2">
                     <Play :size="20" fill="currentColor" /> ¡JUGAR!
                 </button>
@@ -277,15 +296,12 @@ const currentSubjectLabel = computed(() => {
         <header class="flex justify-between items-center w-full z-30 mb-2">
             <div class="flex gap-2">
                 <button @click="handleExitClick" class="p-2 bg-white rounded-full text-indigo-600 shadow-md border-2 border-indigo-100 active:scale-95 transition-transform"><LogOut :size="20" class="transform rotate-180" /></button>
-                
                 <button @click="showMissions = true" class="px-3 py-1 bg-gradient-to-b from-orange-400 to-red-500 rounded-full text-white shadow-md border-2 border-red-200 hover:scale-105 active:scale-95 transition-transform flex items-center gap-1 font-black">
                     <Flame :size="18" fill="currentColor" class="text-yellow-300" />
                     {{ gamificationStore.currentStreak || 0 }}
                 </button>
             </div>
-             
             <div class="bg-white px-4 py-1 rounded-full shadow-md hidden sm:block"><span class="text-lg font-black text-indigo-600 tracking-wider">MATERIAS</span></div>
-             
             <button @click="showShop = true" class="p-2 bg-gradient-to-b from-yellow-300 to-yellow-500 rounded-full text-yellow-900 shadow-lg border-2 border-yellow-200 hover:scale-110 active:scale-95 transition-transform flex items-center justify-center animate-bounce-slow relative">
                  <ShoppingBag :size="20" stroke-width="2.5" />
                  <span class="absolute top-0 right-0 w-3 h-3 bg-red-500 border-2 border-white rounded-full"></span>
@@ -300,7 +316,6 @@ const currentSubjectLabel = computed(() => {
            </div>
            <div class="flex flex-col items-center justify-end">
                <div v-if="showOwl" class="w-20 h-20 mb-1 transition-all duration-500"><OwlImage customClass="w-full h-full object-contain" /></div>
-               
                <div class="bg-white/20 backdrop-blur-sm px-2 py-1 rounded-full flex items-center gap-2 border border-white/30 shadow-sm w-full">
                   <User :size="14" class="text-white" />
                   <input v-if="isEditingName" type="text" v-model="studentName" @keyup.enter="saveName" class="bg-transparent text-white font-bold text-xs outline-none w-full" autoFocus />
@@ -360,5 +375,22 @@ const currentSubjectLabel = computed(() => {
   0% { transform: translateY(0px); }
   50% { transform: translateY(-4px); }
   100% { transform: translateY(0px); }
+}
+
+/* --- ANIMACIONES DE LA BURBUJA --- */
+.bubble-pop-enter-active { animation: bubblePop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+.bubble-pop-leave-active { animation: bubblePop 0.4s reverse cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+
+@keyframes bubblePop {
+  0% { opacity: 0; transform: translate(-50%, 20px) scale(0.5); }
+  100% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+}
+
+.animate-ring { animation: ringBell 2s infinite ease-in-out; }
+@keyframes ringBell {
+  0%, 100% { transform: rotate(0deg); }
+  10%, 30% { transform: rotate(15deg); }
+  20%, 40% { transform: rotate(-15deg); }
+  50% { transform: rotate(0deg); }
 }
 </style>

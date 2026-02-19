@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { X, ShoppingBag, Settings, Save, Backpack, Lock } from 'lucide-vue-next';
+import { X, ShoppingBag, Settings, Save, Backpack, Lock, Loader2 } from 'lucide-vue-next';
 import { useGamificationStore } from '../stores/useGamificationStore';
 import { speak } from '../utils/voice';
 import RewardTicket from './RewardTicket.vue';
@@ -18,6 +18,9 @@ const selectedProduct = ref(null);
 const productToConfirm = ref(null); 
 const showSettings = ref(false);
 const parentPhone = ref('');
+
+// --- NUEVO ESTADO DE PROCESAMIENTO (Loading) ---
+const isProcessing = ref(false);
 
 const mathChallenge = ref(null);
 const mathAnswer = ref('');
@@ -157,42 +160,36 @@ const confirmBuy = (product) => {
     }
 };
 
-const syncExpenseToCloud = async (type, amount) => {
-    const user = auth.currentUser;
-    if (!user) return; 
+const executeBuy = async () => {
+    const product = productToConfirm.value;
+    if (!product || isProcessing.value) return;
+
+    isProcessing.value = true; // Bloqueamos el botón
 
     try {
-        const userRef = doc(db, "users", user.uid);
-        await updateDoc(userRef, {
-            [`stats.${type}`]: increment(-amount), 
-            lastActivity: Date.now()
-        });
-        console.log(`☁️ Gasto sincronizado: -${amount} ${type}`);
+        // Ejecutamos el gasto en el Store asíncronamente
+        const success = await store.spendCoins(product.type, product.cost);
+
+        if (success) {
+            const newTicket = {
+                ...product,
+                code: Math.random().toString(36).substr(2, 6).toUpperCase(),
+                date: new Date().toLocaleDateString()
+            };
+            
+            // Guardamos el ticket y sincronizamos la mochila
+            await store.saveTicket(newTicket);
+            
+            productToConfirm.value = null;
+            selectedProduct.value = newTicket;
+            speak(`¡Genial! Has comprado ${product.name}.`);
+        } else {
+            speak("Hubo un problema con la compra. Inténtalo de nuevo.");
+        }
     } catch (e) {
-        console.error("Error sincronizando gasto:", e);
-    }
-};
-
-const executeBuy = () => {
-    const product = productToConfirm.value;
-    if (!product) return;
-
-    const success = store.spendCoins(product.type, product.cost);
-
-    if (success) {
-        syncExpenseToCloud(product.type, product.cost);
-
-        const newTicket = {
-            ...product,
-            code: Math.random().toString(36).substr(2, 6).toUpperCase(),
-            date: new Date().toLocaleDateString()
-        };
-        
-        store.saveTicket(newTicket);
-        
-        productToConfirm.value = null;
-        selectedProduct.value = newTicket;
-        speak(`¡Genial! Has comprado ${product.name}.`);
+        console.error("Error en la ejecución de compra:", e);
+    } finally {
+        isProcessing.value = false; // Liberamos el botón
     }
 };
 
@@ -207,17 +204,16 @@ const triggerParentalAction = (action) => {
     pendingAction.value = action;
 };
 
-// --- FUNCIÓN ASÍNCRONA ACTUALIZADA PARA EL RESET TOTAL ---
 const verifyParentalAction = async () => {
     if (parseInt(mathAnswer.value) === mathChallenge.value.answer) {
         if (pendingAction.value === 'refund') {
-            const refundedTicket = store.refundLastPurchase();
+            const refundedTicket = await store.refundLastPurchase(); 
             if (refundedTicket) {
-                speak(`Se ha devuelto el premio y recuperaste las monedas.`);
+                speak(`Se ha devuelto el premio ${refundedTicket.name} y recuperaste las monedas.`);
             }
             else speak("No hay compras para devolver.");
+
         } else if (pendingAction.value === 'reset') {
-            // CAMBIO CRÍTICO: Ahora esperamos a que se complete el borrado en Firebase
             await store.hardReset(); 
             speak("El banco y la mochila han sido borrados por completo.");
             activeTab.value = 'gold'; 
@@ -378,8 +374,14 @@ const shareReward = () => {
                 <p class="text-lg font-black text-slate-700">{{ productToConfirm.cost }} <span class="capitalize">{{ productToConfirm.type }}</span></p>
             </div>
             <div class="flex gap-3 w-full">
-                <button @click="productToConfirm = null" class="flex-1 py-3 bg-slate-200 text-slate-600 rounded-xl font-bold hover:bg-slate-300 active:scale-95 transition-all">Cancelar</button>
-                <button @click="executeBuy" class="flex-1 py-3 bg-green-500 text-white rounded-xl font-black shadow-[0_4px_0_rgb(22,163,74)] active:translate-y-1 active:shadow-none transition-all">¡Comprar!</button>
+                <button @click="productToConfirm = null" :disabled="isProcessing" class="flex-1 py-3 bg-slate-200 text-slate-600 rounded-xl font-bold hover:bg-slate-300 active:scale-95 transition-all disabled:opacity-50">Cancelar</button>
+                
+                <button @click="executeBuy" :disabled="isProcessing" class="flex-1 py-3 bg-green-500 text-white rounded-xl font-black shadow-[0_4px_0_rgb(22,163,74)] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center disabled:bg-green-700 disabled:shadow-none">
+                    <span v-if="isProcessing" class="flex items-center gap-2">
+                        <Loader2 class="animate-spin" size="20" /> Procesando...
+                    </span>
+                    <span v-else>¡Comprar!</span>
+                </button>
             </div>
         </div>
     </div>
@@ -391,6 +393,7 @@ const shareReward = () => {
         @close="selectedProduct = null" 
         @share="shareReward" 
     />
+
   </div>
 </template>
 

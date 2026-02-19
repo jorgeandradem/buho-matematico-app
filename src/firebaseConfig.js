@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
+import { getFirestore, enableIndexedDbPersistence } from "firebase/firestore";
 import { getAuth, setPersistence, browserLocalPersistence } from "firebase/auth";
 
 const firebaseConfig = {
@@ -17,6 +17,18 @@ const app = initializeApp(firebaseConfig);
 // 2. Inicializamos la Base de Datos
 export const db = getFirestore(app);
 
+// --- 🛡️ ACTIVACIÓN DEL MODO TANQUE (PERSISTENCIA OFFLINE) ---
+// Esto permite que el Búho guarde datos aunque no haya internet
+enableIndexedDbPersistence(db).catch((err) => {
+    if (err.code == 'failed-precondition') {
+        // Probablemente hay múltiples pestañas abiertas al mismo tiempo
+        console.warn("La persistencia falló: Múltiples pestañas de la App abiertas.");
+    } else if (err.code == 'unimplemented') {
+        // El navegador es muy antiguo y no soporta esta función
+        console.warn("El navegador no soporta persistencia offline (IndexedDB).");
+    }
+});
+
 // 3. Configuración Avanzada de Autenticación
 export const auth = getAuth(app);
 
@@ -26,7 +38,6 @@ export const auth = getAuth(app);
 auth.useDeviceLanguage(); 
 
 // B. Persistencia: Esto hace que la sesión sea "Eterna" (3 días o más)
-// El alumno no tendrá que poner clave a menos que haga "Cierre Completo"
 setPersistence(auth, browserLocalPersistence)
   .then(() => {
     console.log("🔒 Persistencia de sesión configurada: LOCAL");

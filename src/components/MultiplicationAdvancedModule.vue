@@ -31,32 +31,30 @@ const selectedHelpTable = ref(1);
 const topNum = ref(0);
 const botNum = ref(0);
 
-const steps = ref([]);         
+const steps = ref([]);          
 const currentStepIdx = ref(0); 
 const userInputs = ref({});   
 
 const isTransitioning = ref(false);
 
-// --- FUNCIÓN CORREGIDA: GUARDA ORO DIRECTAMENTE ---
+// --- FUNCIÓN PARA GUARDAR ORO EN LA NUBE ---
 const saveProgressToCloud = async (oroGanado) => {
   const user = auth.currentUser;
   if (!user) return; 
 
   try {
     const userRef = doc(db, "users", user.uid);
-    // CAMBIO CRÍTICO: Usamos la propiedad 'gold' en lugar de 'puntos'
     await setDoc(userRef, {
       stats: { 
         gold: increment(oroGanado),
         lastActivity: Date.now()
       }
     }, { merge: true });
-    console.log(`☁️ +${oroGanado} ORO guardados correctamente en la nube.`);
+    console.log(`☁️ +${oroGanado} ORO (Multiplicación Avanzada) guardado.`);
   } catch (error) {
     console.error("Error guardando oro en nube:", error);
   }
 };
-// ------------------------------------------------
 
 // --- GENERADOR DE TABLA DE AYUDA ---
 const helpTableData = computed(() => {
@@ -217,9 +215,9 @@ const currentStep = computed(() => {
     return steps.value[currentStepIdx.value];
 });
 
-const handleKeypadPress = (num) => {
+// ✅ CIRUGÍA ASÍNCRONA (v2.9.1): Aseguramos el premio de Oro
+const handleKeypadPress = async (num) => {
     if (isTransitioning.value) return;
-
     if (!currentStep.value || isFinished.value) return;
 
     const step = currentStep.value;
@@ -245,13 +243,17 @@ const handleKeypadPress = (num) => {
             isFinished.value = true;
             isTransitioning.value = true;
             
-            // --- LÓGICA DE PREMIO Y VOZ ---
-            const rewardAmount = 5; // 5 Monedas de Oro
-            gamificationStore.addCoins('gold', rewardAmount);
-            
-            // --- FIREBASE: GUARDAMOS EL ORO ---
-            saveProgressToCloud(rewardAmount); 
-            // ----------------------------------
+            const rewardAmount = 5; 
+
+            try {
+                // ✅ BLINDAJE: Esperamos al Store para que el Oro se grabe en la racha
+                await gamificationStore.addCoins('gold', rewardAmount); 
+                
+                // ✅ BLINDAJE: Sincronización directa de seguridad
+                await saveProgressToCloud(rewardAmount);
+            } catch (error) {
+                console.error("Error sincronizando oro avanzado:", error);
+            }
 
             const frases = ["¡Excelente!", "¡Muy bien!", "¡Lo lograste!", "¡Eres genial!"];
             const frase = frases[Math.floor(Math.random() * frases.length)];
@@ -278,7 +280,6 @@ const handleKeypadPress = (num) => {
 
 const handleDelete = () => {
     if (isTransitioning.value) return;
-
     if (!currentStep.value) return;
     const key = `${currentStep.value.row}-${currentStep.value.col}`;
     if (userInputs.value[key]?.status === 'error') {
@@ -496,7 +497,7 @@ onMounted(() => {
                                                 ? 'bg-white rounded-full w-6 h-6 md:w-8 md:h-8 shadow-sm border border-green-200 animate-heartbeat' 
                                                 : 'w-4 h-4 md:w-6 md:h-6'
                                          ]">
-                                        <Check :class="isTopCheckActive(7-cIndex) ? 'w-4 h-4 md:w-5 md:h-5 text-green-600' : 'w-4 h-4 md:w-6 md:h-6 text-green-600/70'" stroke-width="4" />
+                                         <Check :class="isTopCheckActive(7-cIndex) ? 'w-4 h-4 md:w-5 md:h-5 text-green-600' : 'w-4 h-4 md:w-6 md:h-6 text-green-600/70'" stroke-width="4" />
                                     </div>
                                 </div>
 
@@ -516,7 +517,7 @@ onMounted(() => {
                                                      ? 'bg-white rounded-full p-0.5 shadow-sm border border-green-200 animate-heartbeat' 
                                                      : ''
                                              ]">
-                                            <Check :class="isBotCheckActive(7-cIndex) ? 'w-3 h-3 md:w-4 md:h-4 text-green-600' : 'w-3 h-3 md:w-4 md:h-4 text-green-600/70'" stroke-width="4" />
+                                             <Check :class="isBotCheckActive(7-cIndex) ? 'w-3 h-3 md:w-4 md:h-4 text-green-600' : 'w-3 h-3 md:w-4 md:h-4 text-green-600/70'" stroke-width="4" />
                                         </div>
                                     </template>
                                 </div>

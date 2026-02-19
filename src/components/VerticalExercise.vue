@@ -10,7 +10,7 @@ import VirtualKeypad from './VirtualKeypad.vue';
 import { useGamificationStore } from '../stores/useGamificationStore';
 import { speak } from '../utils/voice';
 
-// --- INICIO INTEGRACIÓN FIREBASE (NUEVO) ---
+// --- INICIO INTEGRACIÓN FIREBASE ---
 import { auth, db } from '../firebaseConfig';
 import { doc, getDoc, setDoc, updateDoc, increment } from "firebase/firestore";
 // --- FIN INTEGRACIÓN FIREBASE ---
@@ -36,17 +36,20 @@ const currentStepIdx = ref(0);
 const userInputs = ref({}); 
 const isTransitioning = ref(false); 
 
-// MODIFICADO: Ahora 'mult' da plata. Solo 'div' da oro en este componente.
-const rewardCoinType = computed(() => props.operation === 'div' ? 'gold' : 'silver');
+// ✅ INTEGRACIÓN: Ahora 'add' devuelve cobre para activar los retos diarios
+const rewardCoinType = computed(() => {
+  if (props.operation === 'div') return 'gold';
+  if (props.operation === 'add') return 'copper';
+  return 'silver';
+});
 
-// --- FUNCIÓN SILENCIOSA PARA GUARDAR EN NUBE (NUEVO) ---
+// --- FUNCIÓN SILENCIOSA PARA GUARDAR EN NUBE ---
 const saveProgressToCloud = async (puntosGanados) => {
   const user = auth.currentUser;
-  if (!user) return; // Si no hay usuario (modo invitado), no hacemos nada.
+  if (!user) return;
 
   try {
     const userRef = doc(db, "users", user.uid);
-    // Usamos setDoc con { merge: true } para asegurar que crea o actualiza sin borrar datos
     await setDoc(userRef, {
       stats: { 
         puntos: increment(puntosGanados),
@@ -55,10 +58,9 @@ const saveProgressToCloud = async (puntosGanados) => {
     }, { merge: true });
     console.log(`☁️ +${puntosGanados} guardados en la nube.`);
   } catch (error) {
-    console.error("Error guardando en nube (no afecta al juego):", error);
+    console.error("Error guardando en nube:", error);
   }
 };
-// -------------------------------------------------------
 
 // --- TABLAS DE AYUDA ---
 const helpTableData = computed(() => {
@@ -179,7 +181,6 @@ const calculateStepsForExercise = (ex) => {
             carry = nextCarry;
         }
     }
-    // === RESTA (BLINDADA) ===
     else if (props.operation === 'sub') {
         const workTop = [...tDigits];
         const originalTop = [...tDigits]; 
@@ -233,8 +234,6 @@ const calculateStepsForExercise = (ex) => {
             });
         }
     }
-    
-    // === MULTIPLICACIÓN (DETALLADA) ===
     else if (props.operation === 'mult') {
         let carry = 0;
         const b = ex.bot;
@@ -279,7 +278,6 @@ const calculateStepsForExercise = (ex) => {
             carry = nextCarry;
         }
     }
-    // === DIVISIÓN ===
     else if (props.operation === 'div') {
         const res = ex.top / ex.bot;
         const resDigits = res.toString().split('').map(Number);
@@ -333,8 +331,6 @@ const currentExercise = computed(() => {
         const resultDisplay = userInputs.value[resultKey]?.status === 'correct' ? userInputs.value[resultKey].val :
                               (userInputs.value[resultKey]?.tempVal || "");
 
-        // --- CHECK INDICADOR PARA MULTIPLICACIÓN ---
-        // Se activa si es multiplicación y estamos operando sobre esta columna (el paso actual es de esta columna)
         const isTopActive = props.operation === 'mult' && isActive && i < tDigits.length;
 
         cols.push({
@@ -359,7 +355,6 @@ const currentExercise = computed(() => {
             isLenderActive: isActive && activeStep.type === 'lender',
             isResultActive: isActive && activeStep.type === 'result',
             
-            // Bandera para el Check Verde de Multiplicación
             isTopActive,
 
             isNewTopCorrect: !!userInputs.value[newTopKey],
@@ -405,27 +400,28 @@ const handleDelete = () => {
     }
 };
 
-const handleExerciseComplete = () => {
+// ✅ INTEGRACIÓN: Manejador asíncrono para asegurar racha y retos
+const handleExerciseComplete = async () => {
     const idx = activeExerciseIndex.value;
     exercises.value[idx].completed = true;
     isTransitioning.value = true; 
 
-    // --- MODIFICADO: Sistema de recompensas preciso ---
-    let amount = 2; // Base para Suma
+    // Sistema de recompensas preciso
+    let amount = (props.operation === 'add') ? 15 : 2; // 15 para Suma (Retos cobre)
     
     if (props.operation === 'sub') {
         amount = 5; // Resta: 5 Platas
     } else if (props.operation === 'mult') {
         amount = 8; // Multiplicación: 8 Platas
     } else if (props.operation === 'div') {
-        amount = 2; // División: 2 Oros (definido por rewardCoinType)
+        amount = 2; // División: 2 Oros
     }
 
-    gamificationStore.addCoins(rewardCoinType.value, amount);
+    // Esperamos a que el Store termine la sincronización
+    await gamificationStore.addCoins(rewardCoinType.value, amount);
     
-    // --- INTEGRACIÓN FIREBASE: GUARDADO SILENCIOSO ---
-    saveProgressToCloud(amount); // <--- AQUI OCURRE LA MAGIA SIN MOLESTAR
-    // ------------------------------------------------
+    // INTEGRACIÓN FIREBASE: GUARDADO SILENCIOSO
+    saveProgressToCloud(amount); 
 
     const frases = ["¡Excelente!", "¡Muy bien!", "¡Lo lograste!", "¡Eres genial!"];
     const frase = frases[Math.floor(Math.random() * frases.length)];

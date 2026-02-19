@@ -22,7 +22,7 @@ const dividend = ref(0);
 const divisor = ref(0);
 const userInputs = ref({});
 const solutionSteps = ref([]);
-const difficulty = ref(1); // 1 = Nivel Básico, 2 = Nivel Avanzado
+const difficulty = ref(1); 
 const forcedDivisor = ref('random');
 const selectedIndices = ref([]);
 const isSelectionComplete = ref(false); 
@@ -58,26 +58,24 @@ const currentHint = ref({
   theme: THEMES[0]
 });
 
-// --- FUNCIÓN CORREGIDA PARA GUARDAR ORO ---
+// --- FUNCIÓN PARA GUARDAR ORO EN LA NUBE ---
 const saveProgressToCloud = async (oroGanado) => {
   const user = auth.currentUser;
   if (!user) return; 
 
   try {
     const userRef = doc(db, "users", user.uid);
-    // CAMBIO CLAVE: Usamos 'gold' para que no se convierta en cobre al recargar
     await setDoc(userRef, {
       stats: { 
         gold: increment(oroGanado),
         lastActivity: Date.now()
       }
     }, { merge: true });
-    console.log(`☁️ +${oroGanado} ORO (División) guardados con éxito en la nube.`);
+    console.log(`☁️ +${oroGanado} ORO grabado exitosamente.`);
   } catch (error) {
     console.error("Error guardando oro en nube:", error);
   }
 };
-// ------------------------------------------------
 
 // --- LÓGICA DE TABLA DE MULTIPLICAR ---
 const multiplicationTable = computed(() => {
@@ -340,7 +338,8 @@ const checkValueCorrectness = (key, val) => {
     return intVal === parseInt(valStr[digitIndex]);
 };
 
-const checkFullSuccess = () => {
+// --- 🏁 MANEJADOR DE ÉXITO ASÍNCRONO (v2.9.1) ---
+const checkFullSuccess = async () => {
     if (isSuccess.value || isTransitioning.value) return;
 
     const allDone = orderedKeys.value.every(k => checkValueCorrectness(k, userInputs.value[k]));
@@ -348,15 +347,19 @@ const checkFullSuccess = () => {
         isSuccess.value = true;
         isTransitioning.value = true; 
         
-        // --- 1. Pagar Monedas locales (2 de Oro) ---
         const rewardAmount = 2;
-        gamificationStore.addCoins('gold', rewardAmount);
-        
-        // --- 2. FIREBASE: GUARDAMOS EL ORO REAL ---
-        saveProgressToCloud(rewardAmount);
-        // ------------------------------------------
 
-        // --- 3. Felicitar con VOZ ---
+        try {
+            // ✅ BLINDAJE: Esperamos al Store para que no se borre el oro al salir
+            await gamificationStore.addCoins('gold', rewardAmount); 
+            
+            // ✅ BLINDAJE: Sincronización directa de seguridad en Firebase
+            await saveProgressToCloud(rewardAmount);
+            console.log("🏆 Oro de División blindado en la racha.");
+        } catch (error) {
+            console.error("Fallo de sincronización en División:", error);
+        }
+
         const frases = ["¡Excelente!", "¡Muy bien!", "¡Lo lograste!", "¡Eres genial!"];
         const frase = frases[Math.floor(Math.random() * frases.length)];
         speak(`${frase} Ganaste ${rewardAmount} monedas de oro.`);

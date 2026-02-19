@@ -23,7 +23,6 @@ const gamificationStore = useGamificationStore(); // Conexión al banco
 
 const isNotebookMode = ref(props.initialMode === 'notebook'); 
 const selectedNumber = ref(props.initialTable || 'random');
-// CAMBIO 3: Variable para la lluvia de monedas
 const showCoinRain = ref(false);
 const isSuccess = ref(false);
 const refreshKey = ref(0);
@@ -49,7 +48,6 @@ const initModule = async () => {
       }
   } else {
       generateExercises();
-      // Voz de bienvenida al modo rápido
       speak("¡Modo rápido! Responde lo más veloz que puedas.");
   }
 };
@@ -66,7 +64,7 @@ const activeInputId = ref(null);
 
 const generateExercises = async () => {
   isSuccess.value = false;
-  showCoinRain.value = false; // Reset lluvia
+  showCoinRain.value = false; 
   userInputs.value = {};
   activeInputId.value = null;
   exercises.value = [];
@@ -105,39 +103,42 @@ onMounted(() => { setTimeout(initModule, 100); });
 
 const focusInput = (id) => { activeInputId.value = id; };
 
-const handleKeypadPress = (num) => {
+// ✅ CIRUGÍA ASÍNCRONA: Aseguramos el Cobre en el Modo Rápido
+const handleKeypadPress = async (num) => {
     if (!activeInputId.value) return;
     const id = activeInputId.value;
     const ex = exercises.value.find(e => e.id === id);
     if (userInputs.value[id] === 'correct') return; 
+    
     let currentVal = (userInputs.value[id] || '').toString();
     if (currentVal === 'error') currentVal = '';
     const newVal = currentVal + num.toString();
     if (newVal.length > ex.result.toString().length + 1) return;
     
     if (parseInt(newVal) === ex.result) {
-        // --- RESPUESTA CORRECTA ---
         userInputs.value[id] = 'correct'; 
         
-        // CAMBIO 4: Pago inmediato de 1 moneda de Cobre
-        gamificationStore.addCoins('copper', 1);
+        // ✅ BLINDAJE: Esperamos al Store antes de mover el foco
+        await gamificationStore.addCoins('copper', 1);
 
         const idx = exercises.value.findIndex(e => e.id === id);
         if (idx < exercises.value.length - 1) { 
             focusInput(exercises.value[idx + 1].id); 
         } else { 
-            // --- JUEGO TERMINADO ---
             activeInputId.value = null; 
             isSuccess.value = true; 
-            showCoinRain.value = true; // Activa la lluvia de cobre
+            showCoinRain.value = true; 
             
-            // Bono final de 5 cobres
-            gamificationStore.addCoins('copper', 5);
+            // ✅ BLINDAJE: Bono final grabado en nube
+            await gamificationStore.addCoins('copper', 5);
             speak("¡Fantástico! Has completado la tabla rápida y ganado muchas monedas de cobre.");
         }
     } else {
         const strResult = ex.result.toString();
-        if (newVal.length >= strResult.length && newVal !== strResult) { userInputs.value[id] = 'error'; if (navigator.vibrate) navigator.vibrate(200); } 
+        if (newVal.length >= strResult.length && newVal !== strResult) { 
+            userInputs.value[id] = 'error'; 
+            if (navigator.vibrate) navigator.vibrate(200); 
+        } 
         else { userInputs.value[id] = newVal; }
     }
 };

@@ -5,10 +5,8 @@ import CoinRain from './CoinRain.vue';
 import { useGamificationStore } from '../stores/useGamificationStore';
 import { speak } from '../utils/voice';
 
-// --- CONEXIÓN FIREBASE ---
-import { auth, db } from '../firebaseConfig';
-import { doc, updateDoc, increment } from "firebase/firestore";
-// -------------------------
+// ✅ CENTRALIZACIÓN: Eliminamos importaciones de Firebase aquí para que el Store 
+// maneje el "Escudo de Riqueza" de forma única.
 
 const props = defineProps({
   operation: { type: String, default: 'add' }, 
@@ -28,25 +26,6 @@ const currentQuestion = ref(null);
 const options = ref([]);
 const feedbackMessage = ref('');
 const feedbackColor = ref('');
-
-// --- FUNCIÓN PARA GUARDAR COBRES EN LA NUBE ---
-const saveCopperToCloud = async (amount) => {
-  const user = auth.currentUser;
-  if (!user) return; 
-
-  try {
-    const userRef = doc(db, "users", user.uid);
-    // Guardamos específicamente en "copper"
-    await updateDoc(userRef, {
-      "stats.copper": increment(amount),
-      lastActivity: Date.now()
-    });
-    console.log(`☁️ +${amount} Cobre guardado`);
-  } catch (error) {
-    console.error("Error guardando cobre:", error);
-  }
-};
-// ----------------------------------------------
 
 const generateQuestion = () => {
     let num1, num2, answer, symbol;
@@ -71,7 +50,8 @@ const generateQuestion = () => {
     currentQuestion.value = { num1, num2, symbol, answer };
 };
 
-const selectOption = (selected) => {
+// ✅ CIRUGÍA: Convertimos a función asíncrona para asegurar la racha.
+const selectOption = async (selected) => {
     if (isFinished.value) return;
 
     if (selected === currentQuestion.value.answer) {
@@ -79,16 +59,16 @@ const selectOption = (selected) => {
         feedbackMessage.value = "¡Bien!";
         feedbackColor.value = "text-green-500";
         
-        // --- PAGO LOCAL ---
-        gamificationStore.addCoins('copper', 1);
-        // --- PAGO EN NUBE ---
-        saveCopperToCloud(1); 
+        // --- 🪙 PAGO BLINDADO (v2.9.1) ---
+        // Usamos await para que el "fueguito" y los retos se graben antes de seguir.
+        await gamificationStore.addCoins('copper', 1);
         
         if (currentQuestionIndex.value < QUESTIONS_COUNT - 1) {
             currentQuestionIndex.value++;
             setTimeout(() => { feedbackMessage.value = ""; generateQuestion(); }, 500);
         } else {
-            finishGame();
+            // Esperamos al proceso de finalización
+            await finishGame();
         }
     } else {
         feedbackMessage.value = "¡Ups!";
@@ -98,14 +78,14 @@ const selectOption = (selected) => {
     }
 };
 
-const finishGame = () => {
+// ✅ CIRUGÍA: Finalización asíncrona para el bono de victoria.
+const finishGame = async () => {
     isFinished.value = true;
     showCoinRain.value = true;
     
-    // --- BONO LOCAL ---
-    gamificationStore.addCoins('copper', 5);
-    // --- BONO EN NUBE ---
-    saveCopperToCloud(5);
+    // --- 🪙 BONO DE VICTORIA BLINDADO ---
+    // El Store se encarga automáticamente de subirlo a la nube.
+    await gamificationStore.addCoins('copper', 5);
     
     const totalSessionCoins = score.value + 5; 
     speak(`¡Excelente velocidad! Ganaste ${totalSessionCoins} monedas de cobre.`);
@@ -198,7 +178,7 @@ onMounted(() => {
                 </div>
                 
                 <p class="text-sm text-slate-400 px-4">
-                    ¡Necesitas 100 cobres para conseguir 1 moneda de Plata! Sigue así o prueba los Cuadernos.
+                    ¡Buen trabajo! Cada moneda cuenta para tus retos diarios y para subir tu racha.
                 </p>
 
                 <div class="grid grid-cols-2 gap-3 w-full mt-4">

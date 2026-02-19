@@ -282,7 +282,7 @@ onMounted(() => {
       <div class="p-4 text-center relative z-10 flex flex-col items-center mb-2">
           <div class="flex flex-col items-center gap-1">
               <p class="text-white text-sm font-bold drop-shadow-sm">@Copyright 2026</p>
-              <p class="text-white text-xs font-medium drop-shadow-sm opacity-100">v2.6 Secure Edition</p>
+              <p class="text-white text-xs font-medium drop-shadow-sm opacity-100">v2.7 Secure Edition</p>
           </div>
       </div>
     </div>

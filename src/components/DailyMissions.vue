@@ -1,47 +1,52 @@
 <script setup>
 import { ref, onMounted } from 'vue';
-import { X, Flame, CheckCircle, Gift } from 'lucide-vue-next';
+import { X, Flame, CheckCircle, Gift, RefreshCw } from 'lucide-vue-next';
 import { useGamificationStore } from '../stores/useGamificationStore';
 
 // --- CONEXIÓN FIREBASE ---
 import { auth, db } from '../firebaseConfig';
 import { doc, updateDoc } from "firebase/firestore";
-// -------------------------
 
 const emit = defineEmits(['close']);
 const store = useGamificationStore();
 
-// --- FUNCIÓN PARA GUARDAR MISIONES Y RACHA EN LA NUBE ---
+// --- ☁️ SINCRONIZACIÓN CORREGIDA (v2.8.1) ---
 const syncMissionsToCloud = async () => {
   const user = auth.currentUser;
   if (!user) return;
 
   try {
     const userRef = doc(db, "users", user.uid);
-    // Guardamos la Racha actual y las Misiones activas
+    // IMPORTANTE: Guardamos dentro de "stats" para consistencia con el Store
     await updateDoc(userRef, {
       "stats.racha": store.currentStreak,
-      activeMissions: store.activeMissions, // Guardamos qué misiones tiene hoy
+      "stats.activeMissions": store.activeMissions, 
       lastActivity: Date.now()
     });
-    console.log("☁️ Misiones y Racha sincronizadas");
+    console.log("☁️ Racha y Retos sincronizados en la nube.");
   } catch (e) {
-    console.error("Error guardando misiones:", e);
+    console.error("Error sincronizando misiones:", e);
   }
 };
 
 const handleGenerateMissions = async () => {
-    // 1. Generar localmente
+    // 1. Generar localmente usando la lógica inteligente (1 de cada tipo)
     store.generateNewMissions();
     store.saveToStorage();
     
-    // 2. Guardar en la nube para que sean las mismas en todos lados
+    // 2. Subir inmediatamente a Firebase
     await syncMissionsToCloud();
 };
 
-// Al abrir el modal, aprovechamos para asegurar que la racha en la nube esté al día
 onMounted(() => {
-    syncMissionsToCloud();
+    // SEGURIDAD: Si el modal abre y no hay misiones, las creamos al vuelo
+    if (!store.activeMissions || store.activeMissions.length === 0) {
+        console.log("🔄 Inicializando misiones desde el modal...");
+        handleGenerateMissions();
+    } else {
+        // Si ya existen, solo nos aseguramos que la nube esté al día
+        syncMissionsToCloud();
+    }
 });
 </script>
 
@@ -58,17 +63,22 @@ onMounted(() => {
                 <h2 class="text-5xl font-black drop-shadow-md">{{ store.currentStreak || 0 }}</h2>
             </div>
             <h3 class="text-xl font-black tracking-widest uppercase mb-1">Días de Racha</h3>
-            <p class="text-orange-100 text-xs font-bold">¡Vuelve a estudiar mañana para no perderla!</p>
+            <p class="text-orange-100 text-xs font-bold italic">¡Ciclo de 7 días para premios épicos!</p>
         </div>
 
         <div class="p-4 sm:p-6 bg-slate-50 flex-1 overflow-y-auto">
-            <h4 class="text-lg font-black text-slate-800 mb-4 uppercase tracking-wider flex items-center gap-2">
-                <Gift class="text-indigo-500" size="24" /> Retos de Hoy
-            </h4>
+            <div class="flex justify-between items-center mb-4">
+                <h4 class="text-lg font-black text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                    <Gift class="text-indigo-500" size="24" /> Retos de Hoy
+                </h4>
+                <button @click="handleGenerateMissions" class="text-slate-300 hover:text-indigo-500 transition-colors">
+                    <RefreshCw size="16" />
+                </button>
+            </div>
 
             <div class="flex flex-col gap-3">
                 <div v-for="mission in store.activeMissions" :key="mission.id"
-                    :class="`p-4 rounded-2xl border-2 transition-all ${mission.completed ? 'bg-green-50 border-green-200' : 'bg-white border-slate-200 shadow-sm'}`">
+                    :class="`p-4 rounded-2xl border-2 transition-all duration-300 ${mission.completed ? 'bg-green-50 border-green-200 scale-[0.98]' : 'bg-white border-slate-200 shadow-sm'}`">
 
                     <div class="flex justify-between items-start mb-2">
                         <div class="flex items-center gap-3">
@@ -79,7 +89,7 @@ onMounted(() => {
                             </div>
                         </div>
                         
-                        <div v-if="mission.completed" class="shrink-0 ml-2">
+                        <div v-if="mission.completed" class="shrink-0 ml-2 animate-bounce">
                             <CheckCircle class="text-green-500" size="28" fill="currentColor" stroke="white" />
                         </div>
                         <div v-else class="flex flex-col items-end gap-1 shrink-0 ml-2">
@@ -97,31 +107,26 @@ onMounted(() => {
                             <span>{{ mission.progress || 0 }} / {{ mission.target }}</span>
                         </div>
                         <div class="w-full h-3 bg-slate-100 rounded-full overflow-hidden shadow-inner">
-                            <div class="h-full bg-gradient-to-r from-orange-400 to-yellow-400 transition-all duration-500 rounded-full"
-                                 :style="{ width: `${((mission.progress || 0) / mission.target) * 100}%` }">
+                            <div class="h-full bg-gradient-to-r from-orange-400 to-yellow-400 transition-all duration-700 rounded-full"
+                                 :style="{ width: `${Math.min(((mission.progress || 0) / mission.target) * 100, 100)}%` }">
                             </div>
                         </div>
                     </div>
 
-                    <div v-else class="mt-2 text-[10px] sm:text-xs font-black text-green-700 bg-green-100 border border-green-200 py-1.5 px-3 rounded-lg inline-block w-full text-center uppercase tracking-widest">
-                        ¡Recompensa en tu Banco!
+                    <div v-else class="mt-2 text-[10px] sm:text-xs font-black text-green-700 bg-green-200/50 border border-green-200 py-1.5 px-3 rounded-lg inline-block w-full text-center uppercase tracking-widest animate-fade-in">
+                        ¡Misión Cumplida! 🏆
                     </div>
-
                 </div>
 
-                <div v-if="!store.activeMissions || store.activeMissions.length === 0" class="text-center p-6 bg-white rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-4">
-                    <p class="text-slate-500 font-bold text-sm">El Búho está preparando tus misiones de hoy... 🦉</p>
-                    
-                    <button @click="handleGenerateMissions" class="bg-indigo-100 hover:bg-indigo-200 text-indigo-700 font-black py-2.5 px-5 rounded-xl text-xs transition-colors shadow-sm active:scale-95 flex items-center gap-2 uppercase tracking-wider">
-                        🔄 Generar Misiones Ahora
-                    </button>
+                <div v-if="!store.activeMissions || store.activeMissions.length === 0" class="text-center p-8 bg-white rounded-3xl border-2 border-dashed border-slate-200">
+                    <p class="text-slate-400 font-bold text-sm">Cocinando nuevos retos...</p>
                 </div>
             </div>
         </div>
 
         <div class="p-4 bg-white border-t border-slate-100 shrink-0">
-            <button @click="emit('close')" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-black py-3 sm:py-4 rounded-xl shadow-[0_4px_0_rgb(30,41,59)] active:translate-y-1 active:shadow-none transition-all uppercase tracking-widest text-sm">
-                ¡A Jugar!
+            <button @click="emit('close')" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-black py-4 rounded-2xl shadow-[0_4px_0_rgb(30,41,59)] active:translate-y-1 active:shadow-none transition-all uppercase tracking-widest text-sm">
+                ¡Entendido!
             </button>
         </div>
     </div>
@@ -129,7 +134,7 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.animate-fade-in { animation: fadeIn 0.3s ease-out; }
+.animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
 @keyframes fadeIn { 
     from { opacity: 0; transform: scale(0.95) translateY(10px); } 
     to { opacity: 1; transform: scale(1) translateY(0); } 
