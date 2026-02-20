@@ -6,14 +6,15 @@ import CoverScreen from './components/CoverScreen.vue';
 import IndexScreen from './components/IndexScreen.vue';
 import GenericTableModule from './components/GenericTableModule.vue';
 import DivisionModule from './components/DivisionModule.vue';
+// 🦉 IMPORTAMOS EL AVISO DE ACTUALIZACIÓN
+import ReloadPrompt from './components/ReloadPrompt.vue';
 
 const currentView = ref('cover'); 
 const previousView = ref(null); 
 const currentConfig = ref({}); 
 
-// Corrección: Eliminamos el parámetro por defecto en la firma para evitar error de parser
 const navigateTo = (viewName, config) => {
-  const safeConfig = config || {}; // Manejo manual del default
+  const safeConfig = config || {}; 
   
   previousView.value = currentView.value; 
   
@@ -29,6 +30,8 @@ const navigateTo = (viewName, config) => {
 <template>
   <div class="antialiased text-slate-900 font-sans">
     
+    <ReloadPrompt />
+
     <CoverScreen 
       v-if="currentView === 'cover'" 
       @start="navigateTo('index')" 
@@ -41,7 +44,6 @@ const navigateTo = (viewName, config) => {
       @exit="navigateTo('cover')"
     />
 
-    <!-- Módulo Genérico (Sumar, Restar, Multiplicar + Div Rápida) -->
     <GenericTableModule 
       v-if="['add', 'sub', 'mult'].includes(currentView) || (currentView === 'div' && currentConfig.mode === 'quick')"
       :key="currentView + currentConfig.mode + currentConfig.difficulty + currentConfig.table"
@@ -55,7 +57,6 @@ const navigateTo = (viewName, config) => {
       @back="navigateTo('index')"
     />
 
-    <!-- Módulo División Cuaderno (Exclusivo) -->
     <DivisionModule 
       v-if="currentView === 'div' && currentConfig.mode === 'notebook'"
       key="module-div-notebook"
