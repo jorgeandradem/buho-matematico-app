@@ -8,7 +8,7 @@ import {
   sendPasswordResetEmail 
 } from "firebase/auth";
 import { doc, setDoc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
-import { X, ChevronLeft, Info, ShieldCheck, Eye, EyeOff, AlertCircle } from 'lucide-vue-next';
+import { X, ChevronLeft, Info, ShieldCheck, Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-vue-next';
 import OwlImage from './OwlImage.vue';
 import SimpleConfetti from './SimpleConfetti.vue';
 import userIcon from '@/assets/icono.png'; 
@@ -31,8 +31,8 @@ const isLoading = ref(false);
 const emailClue = ref(""); 
 const usernameClue = ref("");
 
-// --- NUEVA VARIABLE PARA ALERTAS PERSONALIZADAS ---
 const customError = ref("");
+const showSuccessCheck = ref(false); 
 
 const acceptedTerms = ref(false);
 const isExistingUser = ref(false);
@@ -40,15 +40,37 @@ const hasReadLegal = ref(false);
 
 const form = reactive({ username: '', email: '', password: '' });
 
-// Limpiar error al escribir
 watch(form, () => { customError.value = ""; });
 
+/**
+ * REGLA DE RESET AUTOMÁTICO
+ * Al cerrar el modal, se limpian errores y casillas para evitar persistencia.
+ */
+const closeAndReset = () => {
+  showModal.value = false;
+  activeSubView.value = 'auth';
+  showRecovery.value = false;
+  customError.value = "";
+  form.username = '';
+  form.email = '';
+  form.password = '';
+  emailClue.value = "";
+  usernameClue.value = "";
+  recoveryMode.value = 'email';
+};
+
 const handleLegalCheckboxClick = (e) => {
-  if (isExistingUser.value) return; 
-  if (!hasReadLegal.value) {
-    e.preventDefault();
-    activeSubView.value = 'legal';
-  }
+  if (isExistingUser.value || hasReadLegal.value) return; 
+  e.preventDefault();
+  activeSubView.value = 'legal';
+};
+
+const handleLegalAcceptedFromInside = () => {
+  acceptedTerms.value = true;
+  hasReadLegal.value = true; 
+  activeSubView.value = 'auth';
+  showSuccessCheck.value = true;
+  setTimeout(() => { showSuccessCheck.value = false; }, 3000);
 };
 
 const SESSION_LIMIT = 3 * 24 * 60 * 60 * 1000;
@@ -128,7 +150,8 @@ const handleForgotPassword = async () => {
 const handleAuth = async () => {
   customError.value = "";
   if (authMode.value === 'register' && !acceptedTerms.value) {
-    customError.value = "⚠️ Debes aceptar la Política de Privacidad.";
+    customError.value = "⚠️ Debes leer y aceptar el Marco Legal primero.";
+    activeSubView.value = 'legal';
     return;
   }
   if (!form.email.includes('@')) { customError.value = "⚠️ El correo ingresado no es válido."; return; }
@@ -153,7 +176,6 @@ const handleAuth = async () => {
     showModal.value = false;
     emit('start');
   } catch (error) {
-    // --- MANEJO DE ADVERTENCIAS PERSONALIZADAS ---
     if (error.code === 'auth/invalid-credential') {
         customError.value = "⛔ Los datos son incorrectos. Revisa tu correo o contraseña.";
     } else if (error.code === 'auth/user-not-found') {
@@ -167,21 +189,38 @@ const handleAuth = async () => {
 };
 
 onMounted(() => {
+  // --- INYECCIÓN DETONANTE v2.8.2 (ACTUALIZACIÓN FORZADA) ---
+  const APP_VERSION = "2.8.2";
+  const savedVersion = localStorage.getItem('buho_app_version');
+
+  if (savedVersion !== APP_VERSION) {
+    localStorage.clear(); // Limpiamos caché para evitar errores de llenado persistentes
+    localStorage.setItem('buho_app_version', APP_VERSION);
+    
+    // Si el alumno ya tenía una versión previa, forzamos recarga total
+    if (savedVersion) {
+      window.location.reload(true); 
+    }
+  }
+  // ---------------------------------------------------------
+
   setTimeout(() => { showOwl.value = true; }, 100);
   setTimeout(() => { showButton.value = true; }, 800);
 });
 </script>
 
 <template>
-  <div class="h-[100dvh] w-full bg-slate-100 flex justify-center overflow-hidden font-sans select-none text-indigo-900">
-    <div class="w-full max-w-xl h-full flex flex-col bg-gradient-to-br from-indigo-500 to-purple-600 shadow-2xl relative overflow-hidden">
+  <div class="h-[100dvh] w-full bg-white flex justify-center overflow-hidden font-sans select-none text-indigo-900">
+    
+    <div class="w-full max-w-[500px] h-full flex flex-col bg-gradient-to-br from-indigo-500 to-purple-600 shadow-[0_0_80px_rgba(0,0,0,0.2)] border-x border-slate-100 relative overflow-hidden">
+      
       <SimpleConfetti :isActive="true" />
       
       <div class="absolute top-4 left-4 flex items-center gap-3 z-50">
           <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center border-2 border-indigo-200 overflow-hidden shadow-lg">
               <img :src="userIcon" alt="Usuario" class="w-full h-full object-cover" />
           </div>
-          <div class="block text-white">
+          <div class="block text-white text-left">
               <h3 class="font-bold text-sm leading-tight drop-shadow-md">Jorge Andrade</h3>
               <p class="text-[10px] font-medium tracking-wide opacity-90">Mentor Digital & IA</p>
           </div>
@@ -200,7 +239,7 @@ onMounted(() => {
         </button>
       </div>
 
-      <div v-if="showModal" class="fixed inset-0 bg-indigo-900/90 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
+      <div v-if="showModal" class="absolute inset-0 bg-indigo-900/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
         <div class="bg-white w-full max-w-md rounded-[2.5rem] overflow-hidden shadow-2xl border-4 border-yellow-400 relative flex flex-col max-h-[85vh] animate-pop-in">
           
           <div class="p-4 border-b flex justify-between items-center bg-slate-50 shrink-0">
@@ -211,7 +250,10 @@ onMounted(() => {
               <h2 class="text-sm font-black text-indigo-900 uppercase tracking-widest text-center flex-1 px-2">
                   {{ activeSubView === 'auth' ? (authMode === 'register' ? 'Nuevo Alumno' : 'Entrar al Nido') : (activeSubView === 'guide' ? 'Guía de Uso' : 'Marco Legal') }}
               </h2>
-              <button @click="showModal = false; activeSubView = 'auth'" class="text-slate-300 hover:text-red-500 transition-colors"><X :size="24" /></button>
+              
+              <button @click="closeAndReset" class="bg-indigo-50 text-indigo-900 hover:bg-red-50 hover:text-red-600 p-2 rounded-full transition-all shadow-md active:scale-90">
+                <X :size="26" stroke-width="3.5" />
+              </button>
           </div>
 
           <div class="flex-1 overflow-y-auto p-6 scrollbar-thin">
@@ -231,9 +273,24 @@ onMounted(() => {
                         <input :type="showPassword ? 'text' : 'password'" v-model="form.password" placeholder="Mínimo 6 letras" class="w-full p-3 bg-slate-50 border-2 border-slate-100 rounded-xl focus:border-indigo-500 outline-none pr-12 transition-all" />
                         <button @click="showPassword = !showPassword" class="absolute right-3 bottom-3 text-slate-400"><component :is="showPassword ? EyeOff : Eye" :size="20"/></button>
                       </div>
-                      <div v-if="authMode === 'register' || acceptedTerms" class="flex items-start gap-3 p-3 bg-indigo-50 rounded-2xl border border-indigo-100">
-                          <input type="checkbox" v-model="acceptedTerms" :disabled="isExistingUser" @click="handleLegalCheckboxClick" class="mt-1 w-5 h-5 accent-indigo-600 cursor-pointer" />
-                          <p class="text-[11px] leading-tight text-slate-600 font-medium">He leído y acepto el <span @click="activeSubView = 'legal'" class="text-indigo-600 font-bold underline cursor-pointer">Marco Legal y Privacidad</span> para el uso de la aplicación.</p>
+
+                      <div v-if="authMode === 'register' || acceptedTerms" 
+                           class="relative flex items-start gap-3 p-3 rounded-2xl border transition-all duration-300"
+                           :class="hasReadLegal ? 'bg-green-50 border-green-200' : 'bg-indigo-50 border-indigo-100'">
+                          
+                          <CheckCircle v-if="showSuccessCheck" class="absolute -top-3 -right-3 text-green-500 animate-bounce fill-white" :size="30" />
+
+                          <input 
+                            type="checkbox" 
+                            v-model="acceptedTerms" 
+                            :disabled="hasReadLegal" 
+                            @click="handleLegalCheckboxClick"
+                            class="mt-1 w-5 h-5 accent-indigo-600 cursor-pointer disabled:cursor-default" 
+                          />
+                          <p class="text-[11px] leading-tight font-medium" :class="hasReadLegal ? 'text-green-800' : 'text-slate-600'">
+                            <span v-if="hasReadLegal" class="block font-black uppercase text-[9px] mb-1">¡Marco Legal Aceptado! 🦉</span>
+                            He leído y acepto el <span @click="activeSubView = 'legal'" class="text-indigo-600 font-bold underline cursor-pointer">Marco Legal y Privacidad</span>.
+                          </p>
                       </div>
                     </div>
 
@@ -255,7 +312,7 @@ onMounted(() => {
                       <div class="w-full p-4 bg-green-50 border-2 border-green-500 rounded-2xl shadow-sm mt-2 text-center">
                         <p class="text-sm sm:text-base text-green-800 font-black uppercase tracking-tight">
                           {{ authMode === 'register' ? '¿Ya tienes cuenta?' : '¿Eres nuevo?' }}
-                          <button @click="authMode = authMode === 'register' ? 'login' : 'register'" class="text-indigo-700 font-black underline decoration-2 underline-offset-4 hover:text-indigo-900 ml-1 uppercase">ENTRA</button>
+                          <button @click="authMode = authMode === 'register' ? 'login' : 'register'; customError = ''" class="text-indigo-700 font-black underline ml-1 uppercase">ENTRA</button>
                         </p>
                       </div>
                     </div>
@@ -263,27 +320,36 @@ onMounted(() => {
 
                   <template v-else>
                     <div class="animate-fade-in text-center">
-                        <div class="flex bg-slate-100 p-1 rounded-xl mb-4 text-[10px] font-bold uppercase">
-                          <button @click="recoveryMode = 'email'; emailClue = ''; usernameClue = ''; customError = ''" :class="`flex-1 py-2 rounded-lg transition-all ${recoveryMode === 'email' ? 'bg-white shadow text-indigo-600' : 'text-slate-400'}`">Correo</button>
-                          <button @click="recoveryMode = 'username'; emailClue = ''; usernameClue = ''; customError = ''" :class="`flex-1 py-2 rounded-lg transition-all ${recoveryMode === 'username' ? 'bg-white shadow text-indigo-600' : 'text-slate-400'}`">Nombre</button>
+                        <div class="flex bg-slate-100 p-1.5 rounded-2xl mb-6 text-sm font-black uppercase tracking-widest">
+                          <button @click="recoveryMode = 'email'; emailClue = ''; usernameClue = ''; customError = ''" 
+                                  :class="`flex-1 py-3 rounded-xl transition-all ${recoveryMode === 'email' ? 'bg-white shadow-md text-indigo-600' : 'text-slate-400'}`">
+                            Correo
+                          </button>
+                          <button @click="recoveryMode = 'username'; emailClue = ''; usernameClue = ''; customError = ''" 
+                                  :class="`flex-1 py-3 rounded-xl transition-all ${recoveryMode === 'username' ? 'bg-white shadow-md text-indigo-600' : 'text-slate-400'}`">
+                            Nombre
+                          </button>
                         </div>
-                        <input v-if="recoveryMode === 'email'" v-model="form.username" placeholder="Nombre del Alumno" class="w-full p-3 border-2 border-orange-200 rounded-xl outline-none mb-3" />
-                        <input v-else v-model="form.email" placeholder="Tu Correo" class="w-full p-3 border-2 border-orange-200 rounded-xl outline-none mb-3" />
-                        <div v-if="emailClue || usernameClue" class="bg-indigo-50 p-4 rounded-xl mb-4 border-2 border-indigo-100">
-                            <p class="text-[10px] text-indigo-400 font-black uppercase mb-1">{{ emailClue ? 'Pista de Correo:' : 'Tu Nombre:' }}</p>
-                            <p class="text-lg font-black text-indigo-900 tracking-tight">{{ emailClue || usernameClue }}</p>
+
+                        <input v-if="recoveryMode === 'email'" v-model="form.username" placeholder="Nombre del Alumno" class="w-full p-4 border-2 border-orange-200 rounded-2xl outline-none mb-4 text-center font-bold text-indigo-900 placeholder:text-slate-300 focus:border-orange-400 transition-all" />
+                        <input v-else v-model="form.email" placeholder="Tu Correo Electrónico" class="w-full p-4 border-2 border-orange-200 rounded-2xl outline-none mb-4 text-center font-bold text-indigo-900 placeholder:text-slate-300 focus:border-orange-400 transition-all" />
+                        
+                        <div v-if="emailClue || usernameClue" class="bg-indigo-50 p-5 rounded-[2rem] mb-4 border-2 border-indigo-100 animate-pop-in">
+                            <p class="text-[10px] text-indigo-400 font-black uppercase mb-1 tracking-widest">{{ emailClue ? 'Pista de Correo:' : 'Tu Nombre:' }}</p>
+                            <p class="text-xl font-black text-indigo-900 tracking-tight">{{ emailClue || usernameClue }}</p>
                         </div>
                         
-                        <p v-if="customError" class="text-[10px] font-bold text-red-600 mb-3 animate-pulse">{{ customError }}</p>
+                        <p v-if="customError" class="text-xs font-bold text-red-600 mb-4 animate-pulse">{{ customError }}</p>
 
-                        <button @click="recoveryMode === 'email' ? findEmailClue() : findUsernameClue()" class="w-full bg-orange-500 text-white font-black py-3 rounded-xl shadow-md uppercase text-xs tracking-widest active:scale-95">Mostrar Ayuda</button>
-                        <button @click="handleForgotPassword" v-if="recoveryMode === 'username'" class="w-full mt-3 text-indigo-500 underline text-[11px] font-bold">Enviar Enlace de Contraseña</button>
-                        <button @click="showRecovery = false; customError = ''" class="w-full text-orange-700 font-black text-[10px] mt-6 uppercase tracking-widest underline">Volver Atrás</button>
+                        <button @click="recoveryMode === 'email' ? findEmailClue() : findUsernameClue()" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-black py-4 rounded-2xl shadow-lg uppercase text-sm tracking-widest active:scale-95 transition-all">Mostrar Ayuda 🦉</button>
+                        <button @click="handleForgotPassword" v-if="recoveryMode === 'username'" class="w-full mt-4 text-indigo-600 underline text-xs font-black uppercase tracking-tighter">Enviar Enlace de Contraseña</button>
+                        <button @click="showRecovery = false; customError = ''" class="w-full text-orange-700 font-black text-xs mt-8 uppercase tracking-[0.2em] underline decoration-2">Volver Atrás</button>
                     </div>
                   </template>
               </div>
+
               <div v-if="activeSubView === 'guide'" class="animate-fade-in"><GuideView /><button @click="activeSubView = 'auth'" class="w-full sticky bottom-0 bg-yellow-400 text-indigo-900 font-black py-4 rounded-2xl shadow-lg uppercase text-xs tracking-widest active:scale-95">¡Entendido! Vamos a jugar</button></div>
-              <div v-if="activeSubView === 'legal'" class="animate-fade-in h-full"><LegalView :currentStatus="acceptedTerms" @accepted="(val) => { acceptedTerms = val; hasReadLegal = true; activeSubView = 'auth'; }" /></div>
+              <div v-if="activeSubView === 'legal'" class="animate-fade-in h-full"><LegalView :currentStatus="acceptedTerms" @accepted="handleLegalAcceptedFromInside" /></div>
           </div>
         </div>
       </div>
@@ -291,7 +357,7 @@ onMounted(() => {
       <div class="p-4 text-center relative z-10 flex flex-col items-center mb-2">
           <div class="flex flex-col items-center gap-1 text-white">
               <p class="text-sm sm:text-base font-bold drop-shadow-sm">@Copyright 2026</p>
-              <p class="text-xs sm:text-sm font-medium opacity-100 drop-shadow-sm">Búho Mate v2.8.1</p>
+              <p class="text-xs sm:text-sm font-medium opacity-100 drop-shadow-sm">Búho Mate v2.8.2</p>
           </div>
       </div>
     </div>
@@ -300,7 +366,7 @@ onMounted(() => {
 
 <style scoped>
 .animate-pop-in { animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
-@keyframes popIn { from { opacity: 0; transform: scale(0.8) translateY(20px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+@keyframes popIn { from { opacity: 0; transform: scale(0.9) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
 .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 .animate-pulse-slow { animation: pulseSlow 4s infinite ease-in-out; }
