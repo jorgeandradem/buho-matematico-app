@@ -44,7 +44,6 @@ watch(form, () => { customError.value = ""; });
 
 /**
  * REGLA DE RESET AUTOMÁTICO
- * Limpia errores y campos al cerrar el modal o pulsar la X.
  */
 const closeAndReset = () => {
   showModal.value = false;
@@ -189,27 +188,35 @@ const handleAuth = async () => {
 };
 
 onMounted(async () => {
-  // --- INYECCIÓN DETONANTE MAESTRO v2.8.2 (LIMPIEZA DE CACHÉ MÓVIL) ---
+  /**
+   * --- ANTI-BUCLE DE ACTUALIZACIÓN v2.8.2 ---
+   * Esta lógica fuerza la limpieza de caché una sola vez para que el 
+   * aviso de "Nueva Versión" desaparezca definitivamente.
+   */
   const APP_VERSION = "2.8.2";
   const savedVersion = localStorage.getItem('buho_app_version');
 
-  if (savedVersion && savedVersion !== APP_VERSION) {
-    localStorage.clear(); // Limpia errores persistentes
+  // Si la versión guardada es distinta a la actual, ejecutamos limpieza profunda
+  if (savedVersion !== APP_VERSION) {
+    // Marcamos la nueva versión ANTES de recargar para evitar el bucle
+    localStorage.setItem('buho_app_version', APP_VERSION);
+    localStorage.removeItem('buho_last_login'); // Forzamos nuevo login por seguridad
     
-    // Limpia la caché de Service Workers y Cache API (VITAL para smartphones)
+    // Limpiamos cachés de Service Workers (Culpables del "virus" visual)
     if ('caches' in window) {
-      const cacheNames = await caches.keys();
-      await Promise.all(cacheNames.map(name => caches.delete(name)));
+      try {
+        const cacheNames = await caches.keys();
+        await Promise.all(cacheNames.map(name => caches.delete(name)));
+      } catch (e) {
+        console.log("Caché ya limpia");
+      }
     }
     
-    localStorage.setItem('buho_app_version', APP_VERSION);
-    // Recarga con bypass para obligar a descargar el archivo nuevo de Vercel
-    window.location.href = window.location.pathname + '?v=' + APP_VERSION;
-    return;
+    // Recarga dura ignorando caché del servidor
+    window.location.reload(true);
+    return; // Detenemos la ejecución actual
   }
-  
-  localStorage.setItem('buho_app_version', APP_VERSION);
-  // ------------------------------------------------------------------
+  // ------------------------------------------
 
   setTimeout(() => { showOwl.value = true; }, 100);
   setTimeout(() => { showButton.value = true; }, 800);
@@ -218,7 +225,6 @@ onMounted(async () => {
 
 <template>
   <div class="h-[100dvh] w-full bg-white flex justify-center overflow-hidden font-sans select-none text-indigo-900">
-    
     <div class="w-full max-w-[500px] h-full flex flex-col bg-gradient-to-br from-indigo-500 to-purple-600 shadow-[0_0_80px_rgba(0,0,0,0.2)] border-x border-slate-100 relative overflow-hidden">
       
       <SimpleConfetti :isActive="true" />
@@ -370,7 +376,6 @@ onMounted(async () => {
     </div>
   </div>
 </template>
-
 <style scoped>
 .animate-pop-in { animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
 @keyframes popIn { from { opacity: 0; transform: scale(0.9) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
