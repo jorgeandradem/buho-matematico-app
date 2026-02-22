@@ -44,7 +44,7 @@ watch(form, () => { customError.value = ""; });
 
 /**
  * REGLA DE RESET AUTOMÁTICO
- * Al cerrar el modal, se limpian errores y casillas para evitar persistencia.
+ * Limpia errores y campos al cerrar el modal o pulsar la X.
  */
 const closeAndReset = () => {
   showModal.value = false;
@@ -188,21 +188,28 @@ const handleAuth = async () => {
   } finally { isLoading.value = false; }
 };
 
-onMounted(() => {
-  // --- INYECCIÓN DETONANTE v2.8.2 (ACTUALIZACIÓN FORZADA) ---
+onMounted(async () => {
+  // --- INYECCIÓN DETONANTE MAESTRO v2.8.2 (LIMPIEZA DE CACHÉ MÓVIL) ---
   const APP_VERSION = "2.8.2";
   const savedVersion = localStorage.getItem('buho_app_version');
 
-  if (savedVersion !== APP_VERSION) {
-    localStorage.clear(); // Limpiamos caché para evitar errores de llenado persistentes
-    localStorage.setItem('buho_app_version', APP_VERSION);
+  if (savedVersion && savedVersion !== APP_VERSION) {
+    localStorage.clear(); // Limpia errores persistentes
     
-    // Si el alumno ya tenía una versión previa, forzamos recarga total
-    if (savedVersion) {
-      window.location.reload(true); 
+    // Limpia la caché de Service Workers y Cache API (VITAL para smartphones)
+    if ('caches' in window) {
+      const cacheNames = await caches.keys();
+      await Promise.all(cacheNames.map(name => caches.delete(name)));
     }
+    
+    localStorage.setItem('buho_app_version', APP_VERSION);
+    // Recarga con bypass para obligar a descargar el archivo nuevo de Vercel
+    window.location.href = window.location.pathname + '?v=' + APP_VERSION;
+    return;
   }
-  // ---------------------------------------------------------
+  
+  localStorage.setItem('buho_app_version', APP_VERSION);
+  // ------------------------------------------------------------------
 
   setTimeout(() => { showOwl.value = true; }, 100);
   setTimeout(() => { showButton.value = true; }, 800);
