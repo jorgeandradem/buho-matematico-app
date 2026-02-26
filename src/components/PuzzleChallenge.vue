@@ -4,7 +4,7 @@ import { puzzleImages } from '../data/puzzleImages';
 import { Lock, Trophy, ArrowLeft, X, Sparkles, Coins } from 'lucide-vue-next';
 import SimpleConfetti from './SimpleConfetti.vue';
 import CoinRain from './CoinRain.vue';
-import VirtualKeyPad from './VirtualKeyPad.vue';
+import VirtualKeyPad from './VirtualKeypad.vue';
 import OwlImage from './OwlImage.vue'; // Inyectado para consistencia visual
 import { useGamificationStore } from '../stores/useGamificationStore';
 import { speak } from '../utils/voice';
