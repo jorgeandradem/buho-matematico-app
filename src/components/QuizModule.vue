@@ -26,7 +26,7 @@ const currentQuestion = ref({
 
 let timerInterval = null;
 
-// ✅ MEJORA: Sacamos los botones del HTML para evitar errores de sintaxis
+// Botones de categorías
 const quizButtons = [
     { s: '+', l: 'Sumar', c: 'bg-blue-500 shadow-[0_6px_0_rgb(29,78,216)]' },
     { s: '-', l: 'Restar', c: 'bg-red-500 shadow-[0_6px_0_rgb(185,28,28)]' },
@@ -133,7 +133,6 @@ const triggerCoinRain = (amount) => {
     }
 };
 
-// --- 🏁 FINAL DEL JUEGO: BLINDAJE v2.9.2 ---
 const endGame = async () => {
     clearInterval(timerInterval);
     gameState.value = 'finished';
@@ -142,9 +141,7 @@ const endGame = async () => {
     let silverReward = score.value >= 7 ? 10 : 5;
     
     try {
-        // 1. Guardamos monedas
         await store.addCoins('silver', silverReward); 
-        // 2. ✅ ACTIVAMOS EL RETO DE EN MEDIO (Velocidad Mental)
         await store.updateMissionProgress('play_quiz', 1); 
         console.log("☁️ Plata y Reto sincronizados.");
     } catch (e) {
@@ -156,7 +153,18 @@ const endGame = async () => {
     speak(performanceFeedback.value.text);
 };
 
-const closeQuiz = () => { clearInterval(timerInterval); emit('close'); };
+// ✅ CORRECCIÓN: Retorno lógico de pantallas
+const closeQuiz = () => { 
+    clearInterval(timerInterval); 
+    if (gameState.value === 'playing' || gameState.value === 'finished') {
+        // Si está en juego o resultados, vuelve al menú interno de Quiz
+        gameState.value = 'menu';
+    } else {
+        // Si ya está en el menú, cierra el módulo y vuelve al Hub
+        emit('close'); 
+    }
+};
+
 onUnmounted(() => clearInterval(timerInterval));
 </script>
 
@@ -167,17 +175,17 @@ onUnmounted(() => clearInterval(timerInterval));
         <img src="/images/coin-silver.png" class="w-full h-full drop-shadow-lg" />
     </div>
 
-    <div class="flex justify-between items-center p-4 bg-indigo-600 shadow-md text-white shrink-0 z-10">
+    <div class="flex justify-between items-center p-4 bg-indigo-600 shadow-md text-white shrink-0 z-10 uppercase">
         <div class="flex items-center gap-2">
             <Zap class="text-yellow-400" fill="currentColor" />
-            <h2 class="font-black text-lg tracking-wide uppercase">Desafío Contrarreloj</h2>
+            <h2 class="font-black text-lg tracking-wide">Desafío Contra Reloj</h2>
         </div>
         <button @click="closeQuiz" class="bg-white/20 p-2 rounded-full hover:bg-red-500 transition-colors">
             <X size="20" />
         </button>
     </div>
 
-    <div v-if="gameState === 'menu'" class="flex-1 flex flex-col items-center justify-center p-6 z-10">
+    <div v-if="gameState === 'menu'" class="flex-1 flex flex-col items-center justify-center p-6 z-10 animate-fade-in">
         <div class="text-center mb-8">
             <h3 class="text-3xl font-black mb-2 text-indigo-900">10 Preguntas</h3>
             <p class="text-slate-500 font-bold text-lg">Resuelve rápido para ganar plata.</p>
@@ -200,15 +208,15 @@ onUnmounted(() => clearInterval(timerInterval));
         </div>
     </div>
 
-    <div v-else-if="gameState === 'playing'" class="flex-1 flex flex-col p-4 z-10">
-        <div class="flex justify-between items-center mb-4 shrink-0">
+    <div v-else-if="gameState === 'playing'" class="flex-1 flex flex-col p-4 z-10 animate-fade-in">
+        <div class="flex justify-between items-center mb-4 shrink-0 px-2 uppercase font-black">
             <div class="bg-white px-5 py-2 rounded-full flex items-center gap-2 border-2 border-slate-200 shadow-sm text-slate-700">
                 <Trophy class="text-yellow-500" size="20" />
-                <span class="text-xl font-black">{{ currentQuestionIndex + 1 }} / 10</span>
+                <span class="text-xl">{{ currentQuestionIndex + 1 }} / 10</span>
             </div>
             <div :class="`px-5 py-2 rounded-full flex items-center gap-2 border-2 shadow-sm transition-all ${timeLeft <= 10 ? 'bg-red-100 border-red-500 text-red-600 animate-pulse' : 'bg-white border-slate-200 text-slate-600'}`">
                 <Clock size="20" />
-                <span class="text-xl font-black tracking-wider">00:{{ timeLeft.toString().padStart(2, '0') }}</span>
+                <span class="text-xl tracking-wider">00:{{ timeLeft.toString().padStart(2, '0') }}</span>
             </div>
         </div>
         <div class="flex-1 flex items-center justify-center bg-white rounded-3xl border-4 border-indigo-100 mb-4 shadow-lg text-indigo-900">
@@ -222,15 +230,15 @@ onUnmounted(() => clearInterval(timerInterval));
         </div>
     </div>
 
-    <div v-else-if="gameState === 'finished'" class="flex-1 flex flex-col p-4 bg-slate-100 overflow-hidden z-10">
-        <div class="text-center mb-2 shrink-0">
+    <div v-else-if="gameState === 'finished'" class="flex-1 flex flex-col p-4 bg-slate-100 overflow-hidden z-10 animate-fade-in">
+        <div class="text-center mb-2 shrink-0 uppercase">
             <Medal size="50" class="text-yellow-500 mx-auto mb-1" />
-            <h2 class="text-2xl font-black uppercase text-indigo-900">¡Resultados!</h2>
+            <h2 class="text-2xl font-black text-indigo-900">¡Resultados!</h2>
             <div :class="`mt-2 px-4 py-2 rounded-xl inline-block ${performanceFeedback.bg}`">
                 <p :class="`font-black text-sm ${performanceFeedback.color}`">{{ performanceFeedback.text }}</p>
             </div>
         </div>
-        <div class="flex-1 overflow-y-auto bg-white rounded-2xl border-2 border-slate-200 shadow-inner p-2 my-2">
+        <div class="flex-1 overflow-y-auto bg-white rounded-2xl border-2 border-slate-200 shadow-inner p-2 my-2 scrollbar-hide">
             <div v-for="(item, idx) in history" :key="idx" class="flex items-center justify-between p-3 border-b border-slate-100 last:border-0">
                 <div class="flex items-center gap-3">
                     <span class="font-black text-slate-400 text-sm">{{ idx + 1 }}.</span>
@@ -238,10 +246,10 @@ onUnmounted(() => clearInterval(timerInterval));
                         <span :class="item.isCorrect ? 'text-green-600' : 'text-red-500'">{{ item.chosen }}</span>
                     </span>
                 </div>
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2 font-black">
                     <CheckCircle v-if="item.isCorrect" class="text-green-500" size="28" />
                     <template v-else>
-                        <span class="text-lg font-black text-slate-500 bg-slate-100 px-3 py-1 rounded-lg border border-slate-200">{{ item.correct }}</span>
+                        <span class="text-lg text-slate-500 bg-slate-100 px-3 py-1 rounded-lg border border-slate-200">{{ item.correct }}</span>
                         <XCircle class="text-red-500" size="28" />
                     </template>
                 </div>
@@ -254,16 +262,17 @@ onUnmounted(() => clearInterval(timerInterval));
             </div>
         </div>
         <div class="flex gap-3 shrink-0">
-            <button @click="gameState = 'menu'" class="flex-1 bg-slate-200 text-slate-700 font-bold py-3 rounded-xl shadow-[0_4px_0_rgb(203,213,225)]">Menú</button>
-            <button @click="startGame(selectedOperation)" class="flex-1 bg-green-500 text-white font-black py-3 rounded-xl shadow-[0_4px_0_rgb(21,128,61)]">¡Otra vez!</button>
+            <button @click="gameState = 'menu'" class="flex-1 bg-slate-200 text-slate-700 font-bold py-3 rounded-xl shadow-[0_4px_0_rgb(203,213,225)] uppercase text-xs">Menú</button>
+            <button @click="startGame(selectedOperation)" class="flex-1 bg-green-500 text-white font-black py-3 rounded-xl shadow-[0_4px_0_rgb(21,128,61)] uppercase text-xs">¡Otra vez!</button>
         </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.animate-fade-in { animation: fadeIn 0.3s ease-out; }
+.animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 .animate-coin-fall { animation: coinFall 2s cubic-bezier(0.25, 1, 0.5, 1) forwards; }
-@keyframes coinFall { 0% { transform: translateY(-50px) rotate(0deg); opacity: 1; } 100% { transform: translateY(100vh) rotate(360deg); opacity: 0; } }
+@keyframes coinFall { 0% { transform: translateY(-50px) rotate(0deg); opacity: 1; } 100% { transform: translateY(110dvh) rotate(360deg); opacity: 0; } }
+.scrollbar-hide::-webkit-scrollbar { display: none; }
 </style>

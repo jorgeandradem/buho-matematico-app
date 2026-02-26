@@ -26,7 +26,10 @@ const activeSubView = ref('auth');
 const showRecovery = ref(false); 
 const recoveryMode = ref('email'); 
 const showPassword = ref(false); 
-const authMode = ref('register'); 
+
+// --- CORRECCIÓN DE ORDEN: Login por defecto ---
+const authMode = ref('login'); 
+
 const isLoading = ref(false); 
 const emailClue = ref(""); 
 const usernameClue = ref("");
@@ -93,7 +96,8 @@ const checkAccess = () => {
         showModal.value = true;
       }
     } else {
-      authMode.value = 'register';
+      // --- CORRECCIÓN DE ORDEN: Mostrar Login si no hay usuario ---
+      authMode.value = 'login';
       showModal.value = true;
     }
   });
@@ -188,21 +192,13 @@ const handleAuth = async () => {
 };
 
 onMounted(async () => {
-  /**
-   * --- ANTI-BUCLE DE ACTUALIZACIÓN v2.8.2 ---
-   * Esta lógica fuerza la limpieza de caché una sola vez para que el 
-   * aviso de "Nueva Versión" desaparezca definitivamente.
-   */
   const APP_VERSION = "2.8.2";
   const savedVersion = localStorage.getItem('buho_app_version');
 
-  // Si la versión guardada es distinta a la actual, ejecutamos limpieza profunda
   if (savedVersion !== APP_VERSION) {
-    // Marcamos la nueva versión ANTES de recargar para evitar el bucle
     localStorage.setItem('buho_app_version', APP_VERSION);
-    localStorage.removeItem('buho_last_login'); // Forzamos nuevo login por seguridad
+    localStorage.removeItem('buho_last_login'); 
     
-    // Limpiamos cachés de Service Workers (Culpables del "virus" visual)
     if ('caches' in window) {
       try {
         const cacheNames = await caches.keys();
@@ -212,11 +208,9 @@ onMounted(async () => {
       }
     }
     
-    // Recarga dura ignorando caché del servidor
     window.location.reload(true);
-    return; // Detenemos la ejecución actual
+    return; 
   }
-  // ------------------------------------------
 
   setTimeout(() => { showOwl.value = true; }, 100);
   setTimeout(() => { showButton.value = true; }, 800);
@@ -244,7 +238,7 @@ onMounted(async () => {
           Búho <span class="block text-yellow-300 text-6xl sm:text-7xl mt-1">Matemático</span>
         </h1>
         <div v-if="showOwl" class="w-48 h-48 sm:w-60 sm:h-60 mb-8 relative animate-pop-in">
-           <OwlImage customClass="w-full h-full object-contain drop-shadow-2xl relative z-10" />
+            <OwlImage customClass="w-full h-full object-contain drop-shadow-2xl relative z-10" />
         </div>
         <button v-if="showButton" @click="handleStartButton" class="group relative bg-yellow-400 hover:bg-yellow-300 text-indigo-900 font-black text-2xl py-4 px-12 rounded-full shadow-[0_8px_0_rgb(180,83,9)] active:translate-y-2 transition-all">
           <span class="relative z-10 uppercase">¡Empezar!</span>
@@ -325,7 +319,7 @@ onMounted(async () => {
                       <div class="w-full p-4 bg-green-50 border-2 border-green-500 rounded-2xl shadow-sm mt-2 text-center">
                         <p class="text-sm sm:text-base text-green-800 font-black uppercase tracking-tight">
                           {{ authMode === 'register' ? '¿Ya tienes cuenta?' : '¿Eres nuevo?' }}
-                          <button @click="authMode = authMode === 'register' ? 'login' : 'register'; customError = ''" class="text-indigo-700 font-black underline ml-1 uppercase">ENTRA</button>
+                          <button @click="authMode = authMode === 'register' ? 'login' : 'register'; customError = ''" class="text-indigo-700 font-black underline ml-1 uppercase">{{ authMode === 'register' ? 'ENTRA' : 'SUSCRÍBETE' }}</button>
                         </p>
                       </div>
                     </div>
@@ -370,7 +364,7 @@ onMounted(async () => {
       <div class="p-4 text-center relative z-10 flex flex-col items-center mb-2">
           <div class="flex flex-col items-center gap-1 text-white">
               <p class="text-sm sm:text-base font-bold drop-shadow-sm">@Copyright 2026</p>
-              <p class="text-xs sm:text-sm font-medium opacity-100 drop-shadow-sm">Búho Mate v2.8.2</p>
+              <p class="text-xs sm:text-sm font-medium opacity-100 drop-shadow-sm">Búho Mate v2.8.3</p>
           </div>
       </div>
     </div>

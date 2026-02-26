@@ -128,13 +128,14 @@ watch(gold, (newVal, oldVal) => animateValue(oldVal, newVal, 500, displayGold));
 <style scoped>
 .status-board {
   display: flex;
-  justify-content: space-evenly; /* Distribución elegante */
+  justify-content: space-evenly;
   align-items: center;
-  background: rgba(255, 255, 255, 0.9);
-  padding: 12px 10px;
-  border-radius: 20px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-  border: 2px solid #e0e0e0;
+  background: rgba(255, 255, 255, 0.95);
+  /* AJUSTE: Usamos el espacio de arriba (14px) y mantenemos el recorte abajo (4px) */
+  padding: 14px 10px 4px 10px; 
+  border-radius: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  border: 2px solid #f0f0f0;
   width: 100%;
 }
 
@@ -147,37 +148,37 @@ watch(gold, (newVal, oldVal) => animateValue(oldVal, newVal, 500, displayGold));
 }
 
 .coin-icon {
-  width: 60px; /* Un poco más grandes para lucir el 3D */
-  height: 60px;
-  filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3)); /* Sombra más pronunciada */
+  width: 58px; 
+  height: 58px;
+  filter: drop-shadow(0 4px 6px rgba(0,0,0,0.25));
   transition: transform 0.2s;
+  z-index: 1;
 }
 
 .coin-stat:hover .coin-icon {
-  transform: scale(1.1) rotate(5deg); /* Efecto juguetón al tocar */
+  transform: scale(1.1) rotate(5deg);
 }
 
 .count {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   font-weight: 800;
-  font-size: 1.2rem;
+  font-size: 1.15rem;
   color: #444;
   
-  /* CAMBIO: Separación positiva en lugar de negativa */
-  margin-top: 4px; 
+  /* AJUSTE: Separación positiva para despegar el número de la moneda */
+  margin-top: 8px; 
   
   background: white;
-  padding: 2px 12px;
+  padding: 1px 12px;
   border-radius: 12px;
   border: 2px solid #eee;
   z-index: 2;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  min-width: 40px; 
+  min-width: 42px; 
   text-align: center;
 }
 
-/* Colores específicos */
 .gold .count { color: #d4af37; border-color: #d4af37; }
-.silver .count { color: #a8a9ad; border-color: #a8a9ad; }
+.silver .count { color: #8e8e93; border-color: #a8a9ad; }
 .copper .count { color: #b87333; border-color: #b87333; }
 </style>

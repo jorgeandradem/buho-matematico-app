@@ -9,10 +9,9 @@ import VirtualKeypad from './VirtualKeypad.vue';
 import { useGamificationStore } from '../stores/useGamificationStore';
 import { speak } from '../utils/voice';
 
-// --- INICIO INTEGRACIÓN FIREBASE ---
+// --- INTEGRACIÓN FIREBASE ---
 import { auth, db } from '../firebaseConfig';
 import { doc, setDoc, increment } from "firebase/firestore";
-// --- FIN INTEGRACIÓN FIREBASE ---
 
 const emit = defineEmits(['back']);
 const gamificationStore = useGamificationStore(); 
@@ -30,21 +29,16 @@ const showCoinRain = ref(false);
 const isSuccess = ref(false);
 const showTableModal = ref(false); 
 
-// ESTADO DE RACHA
 const activeExerciseIndex = ref(0);
 const MAX_EXERCISES = 5;
-
-// Variable de seguridad para evitar saltos dobles
 const isTransitioning = ref(false);
 
-// REFERENCIAS
 const scrollContainer = ref(null);
 const inputsRef = ref({});
 const uid = Math.random().toString(36).substring(7);
 
 const setRef = (key, el) => { if(el) inputsRef.value[key] = el; };
 
-// Temas para el Búho
 const THEMES = [
   { name: 'yellow', border: 'border-yellow-400', bg: 'bg-yellow-50', ring: 'ring-yellow-400', text: 'text-yellow-900', icon: 'text-yellow-600' },
   { name: 'violet', border: 'border-violet-400', bg: 'bg-violet-50', ring: 'ring-violet-400', text: 'text-violet-900', icon: 'text-violet-600' },
@@ -58,7 +52,6 @@ const currentHint = ref({
   theme: THEMES[0]
 });
 
-// --- FUNCIÓN PARA GUARDAR ORO EN LA NUBE ---
 const saveProgressToCloud = async (oroGanado) => {
   const user = auth.currentUser;
   if (!user) return; 
@@ -71,13 +64,11 @@ const saveProgressToCloud = async (oroGanado) => {
         lastActivity: Date.now()
       }
     }, { merge: true });
-    console.log(`☁️ +${oroGanado} ORO grabado exitosamente.`);
   } catch (error) {
     console.error("Error guardando oro en nube:", error);
   }
 };
 
-// --- LÓGICA DE TABLA DE MULTIPLICAR ---
 const multiplicationTable = computed(() => {
     const d = divisor.value;
     const list = [];
@@ -87,7 +78,6 @@ const multiplicationTable = computed(() => {
     return list;
 });
 
-// --- LÓGICA MATEMÁTICA ---
 const solveDivision = (div, dvr) => {
   const divStr = div.toString();
   const steps = [];
@@ -152,7 +142,6 @@ const solveDivision = (div, dvr) => {
   return steps;
 };
 
-// --- NAVEGACIÓN ---
 const orderedKeys = computed(() => {
     const keys = [];
     if (!solutionSteps.value.length) return keys;
@@ -212,7 +201,6 @@ const getStepInfoByKey = (key) => {
     return null;
 };
 
-// --- WATCHERS ---
 watch(activeKey, (newKey) => {
     if (newKey && !waitingForDropIndex.value) {
         nextTick(() => { 
@@ -235,7 +223,6 @@ watch(waitingForDropIndex, (newVal) => {
     calculateHint();
 });
 
-// --- INTERACCIONES ---
 const handleDigitClick = (index) => {
     if (isTransitioning.value) return;
 
@@ -338,7 +325,6 @@ const checkValueCorrectness = (key, val) => {
     return intVal === parseInt(valStr[digitIndex]);
 };
 
-// --- 🏁 MANEJADOR DE ÉXITO ASÍNCRONO (v2.9.1) ---
 const checkFullSuccess = async () => {
     if (isSuccess.value || isTransitioning.value) return;
 
@@ -346,23 +332,17 @@ const checkFullSuccess = async () => {
     if (allDone && orderedKeys.value.length > 0) {
         isSuccess.value = true;
         isTransitioning.value = true; 
-        
         const rewardAmount = 2;
 
         try {
-            // ✅ BLINDAJE: Esperamos al Store para que no se borre el oro al salir
             await gamificationStore.addCoins('gold', rewardAmount); 
-            
-            // ✅ BLINDAJE: Sincronización directa de seguridad en Firebase
             await saveProgressToCloud(rewardAmount);
-            console.log("🏆 Oro de División blindado en la racha.");
         } catch (error) {
             console.error("Fallo de sincronización en División:", error);
         }
 
         const frases = ["¡Excelente!", "¡Muy bien!", "¡Lo lograste!", "¡Eres genial!"];
-        const frase = frases[Math.floor(Math.random() * frases.length)];
-        speak(`${frase} Ganaste ${rewardAmount} monedas de oro.`);
+        speak(`${frases[Math.floor(Math.random() * frases.length)]} Ganaste ${rewardAmount} monedas de oro.`);
 
         if (scrollContainer.value) {
             scrollContainer.value.scrollTo({ top: 0, behavior: 'smooth' });
@@ -402,7 +382,6 @@ const generateNewProblem = () => {
     else newDividend = Math.floor(Math.random() * 9000) + 1000; 
     
     if (newDividend < newDivisor * 2) newDividend = newDivisor * 12;
-    
     setProblem(newDividend, newDivisor);
 };
 
@@ -417,25 +396,19 @@ const setProblem = (div, dvr) => {
     isTransitioning.value = false;
     inputsRef.value = {};
     solutionSteps.value = solveDivision(div, dvr);
-    
-    if (scrollContainer.value) {
-        scrollContainer.value.scrollTop = 0;
-    }
-    
+    if (scrollContainer.value) scrollContainer.value.scrollTop = 0;
     calculateHint();
 };
 
 onMounted(resetSequence);
-
 watch([difficulty, forcedDivisor], resetSequence);
 
 const calculateHint = () => {
     if (isSuccess.value) {
-        if (activeExerciseIndex.value === MAX_EXERCISES - 1) {
-             currentHint.value = { message: "¡SERIE COMPLETADA! ¡Eres un genio!", activeKeys: [], theme: THEMES[0] };
-        } else {
-             currentHint.value = { message: "¡Muy bien! ¡Vamos por el siguiente!", activeKeys: [], theme: THEMES[0] };
-        }
+        currentHint.value = { 
+          message: activeExerciseIndex.value === MAX_EXERCISES - 1 ? "¡SERIE COMPLETADA! ¡Eres un genio!" : "¡Muy bien! ¡Vamos por el siguiente!", 
+          activeKeys: [], theme: THEMES[0] 
+        };
         return;
     }
 
@@ -457,8 +430,7 @@ const calculateHint = () => {
         const digit = dividend.value.toString()[waitingForDropIndex.value];
         currentHint.value = {
             message: `¡Muy bien! Ahora toca el ${digit} que salta para bajarlo.`,
-            activeKeys: [activeKey.value], 
-            theme: THEMES[3] 
+            activeKeys: [activeKey.value], theme: THEMES[3] 
         };
         return;
     }
@@ -470,22 +442,11 @@ const calculateHint = () => {
         let msg = "";
 
         if (step.type === 'quotient') {
-            const product = step.value * divisor.value;
-            msg = `¿Qué número multiplicado por ${divisor.value} se acerca a ${step.hintPart}? Piensa: ${divisor.value} x ${step.value} = ${product}.`;
-        
+            msg = `¿Qué número multiplicado por ${divisor.value} se acerca a ${step.hintPart}? Piensa: ${divisor.value} x ${step.value} = ${step.value * divisor.value}.`;
         } else if (step.type === 'product') {
             msg = `Exacto. Ahora escribe el resultado de multiplicar ${step.quotientDigit} x ${divisor.value} = ${step.value}.`;
-        
         } else if (step.type === 'remainder' || step.type === 'finalRemainder') {
-            const minuendo = step.minuend;
-            const sustraendo = step.subtrahend;
-            const resultadoResta = minuendo - sustraendo;
-            
-            if (step.type === 'remainder' && !step.dividendIndexToDrop) {
-                 msg = `Resta: ${minuendo} - ${sustraendo} = ${resultadoResta}.`;
-            } else {
-                 msg = `Ahora restamos: ${minuendo} - ${sustraendo} = ${resultadoResta}. Escribe el ${resultadoResta}.`;
-            }
+            msg = `Ahora restamos: ${step.minuend} - ${step.subtrahend} = ${step.minuend - step.subtrahend}.`;
         }
         currentHint.value = { message: msg, activeKeys: [activeKey.value], theme };
     }
@@ -497,155 +458,95 @@ const getCellClass = (key) => {
     const isCorrect = checkValueCorrectness(key, val);
     let base = "w-8 h-9 text-center text-xl font-mono border-b-2 outline-none transition-all font-bold rounded-sm ";
     if (isSuccess.value) return base + "bg-green-100 text-green-800 border-green-500 shadow-inner";
-    if (val && isCorrect) return base + "bg-green-100 border-transparent text-green-700 font-black scale-100";
+    if (val && isCorrect) return base + "bg-green-100 border-transparent text-green-700 font-black";
     if (!isSelectionComplete.value) return base + "bg-transparent border-transparent"; 
     if (isTarget) {
-        if (waitingForDropIndex.value !== null && !val) return base + "bg-orange-50 border-orange-300 border-2 border-dashed opacity-70 cursor-not-allowed";
-        if (val && !isCorrect) return base + "bg-red-50 border-red-500 text-red-600 ring-2 ring-red-300 z-20 scale-105 animate-shake";
-        return base + "bg-yellow-50 border-yellow-500 ring-4 ring-yellow-200 z-20 scale-110 shadow-lg text-slate-900";
+        if (waitingForDropIndex.value !== null && !val) return base + "bg-orange-50 border-orange-300 border-2 border-dashed opacity-70";
+        if (val && !isCorrect) return base + "bg-red-50 border-red-500 text-red-600 ring-2 ring-red-300 animate-shake";
+        return base + "bg-yellow-50 border-yellow-500 ring-4 ring-yellow-200 scale-110 shadow-lg text-slate-900";
     }
     return base + "bg-white/50 border-slate-200/50";
 };
 
 const isFinalRemainder = (row, col) => {
     const lastStep = solutionSteps.value[solutionSteps.value.length - 1];
-    if (lastStep && lastStep.type === 'finalRemainder') {
-        if (row === lastStep.row && col === lastStep.colEnd) return true;
-    }
-    return false;
+    return lastStep?.type === 'finalRemainder' && row === lastStep.row && col === lastStep.colEnd;
 };
 </script>
 
 <template>
-  <div class="h-[100dvh] w-full bg-slate-100 font-sans flex justify-center overflow-hidden select-none">
+  <div class="h-[100dvh] w-full bg-white flex justify-center overflow-hidden font-sans select-none text-slate-900">
+    <div class="w-full max-w-[500px] h-full flex flex-col bg-blue-600 shadow-2xl relative overflow-hidden mx-auto animate-fade-in border-x border-slate-100">
     
-    <div v-if="showCoinRain">
-        <CoinRain type="gold" :count="50" />
-    </div>
-    
-    <div class="w-full max-w-xl h-full flex flex-col bg-blue-600 shadow-2xl relative">
+        <div v-if="showCoinRain" class="z-[200]">
+            <CoinRain type="gold" :count="50" />
+        </div>
         
-        <div v-if="showTableModal" 
-             class="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in"
-             @click.self="showTableModal = false">
+        <header class="flex-none pt-2 px-4 pb-2 z-10 text-white">
+            <div class="flex items-center justify-between w-full">
+                <button @click="emit('back')" class="text-blue-100 hover:text-white flex items-center gap-2 font-bold">
+                    <ArrowLeft :size="24" /> Volver
+                </button>
+                <h1 class="text-xl font-extrabold flex items-center gap-2 uppercase tracking-tighter">División</h1>
+                <button @click="resetSequence" class="p-1.5 rounded-lg bg-yellow-500 shadow-md">
+                    <RefreshCw :size="18" />
+                </button>
+            </div>
             
-            <div class="bg-white rounded-2xl shadow-2xl w-[90%] max-w-xs border-4 border-blue-200 overflow-hidden flex flex-col max-h-[80vh]">
-                <div class="bg-blue-50 p-3 border-b border-blue-100 flex justify-between items-center text-slate-700 font-black shrink-0">
-                    <div class="flex items-center gap-2">
-                        <HelpCircle :size="20" class="text-blue-500"/> Tabla del {{ divisor }}
-                    </div>
-                    <button @click="showTableModal = false" class="p-1 bg-white rounded-full text-slate-400 hover:text-red-500 transition shadow-sm">
-                        <CloseIcon :size="20" />
-                    </button>
-                </div>
-
-                <div class="overflow-y-auto p-3 bg-white scrollbar-thin">
-                    <div class="grid grid-cols-1 gap-2">
-                        <div v-for="item in multiplicationTable" :key="item.n2" 
-                             class="flex justify-between items-center p-2 rounded-xl border border-blue-100 bg-blue-50/50 shadow-sm">
-                            <span class="text-lg font-bold text-slate-600 font-mono">
-                                {{ item.n1 }} <span class="text-blue-400 mx-1">×</span> {{ item.n2 }}
-                            </span>
-                            <span class="text-xl font-black text-blue-600">= {{ item.res }}</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="p-3 bg-slate-50 border-t border-slate-100 text-center shrink-0">
-                    <button @click="showTableModal = false" class="w-full py-3 bg-blue-600 text-white font-bold rounded-xl shadow-md active:scale-95 transition hover:bg-blue-500">
-                        ¡Entendido!
-                    </button>
-                </div>
+            <div class="flex flex-row gap-2 items-center w-full justify-center mt-2">
+                  <div class="flex bg-blue-700/50 p-1 rounded-lg border border-blue-500/50">
+                    <button @click="difficulty = 1" :class="`px-3 py-1 rounded font-bold text-sm ${difficulty===1 ? 'bg-white text-blue-700' : 'text-blue-100'}`">N1</button>
+                    <button @click="difficulty = 2" :class="`px-3 py-1 rounded font-bold text-sm ${difficulty===2 ? 'bg-white text-blue-700' : 'text-blue-100'}`">N2</button>
+                  </div>
+                  <div class="flex bg-blue-700/50 p-1.5 rounded-lg border border-blue-500/50">
+                    <select v-model="forcedDivisor" @change="resetSequence" class="font-black text-sm text-white bg-transparent outline-none appearance-none">
+                        <option value="random" class="text-slate-900">ALEATORIA</option>
+                        <option v-for="n in 10" :key="n" :value="n" class="text-slate-900">TABLA DEL {{ n }}</option>
+                    </select>
+                  </div>
+                  <button @click="showTableModal = true" class="p-2 bg-blue-700/50 rounded-lg text-blue-100 border border-blue-500/50">
+                      <HelpCircle :size="18" />
+                  </button>
             </div>
-        </div>
-        <div class="flex-none pt-2 px-4 pb-2 z-10">
-            <div class="w-full flex flex-col md:flex-row justify-between items-center gap-2 text-white">
-                <div class="flex items-center justify-between w-full">
-                    <button @click="emit('back')" class="text-blue-100 hover:text-white transition-colors flex items-center gap-2 font-bold">
-                        <ArrowLeft :size="24" /> Volver
-                    </button>
-                    <h1 class="text-xl font-extrabold flex items-center gap-2">
-                        <span class="bg-blue-500 text-white p-1 rounded-lg border border-blue-400">
-                            <Divide :size="20" />
-                        </span>
-                        División
-                    </h1>
-                      <button @click="resetSequence" class="p-1.5 rounded-lg text-white font-bold shadow-md active:scale-95 transition-all bg-yellow-500 hover:bg-yellow-400">
-                        <RefreshCw :size="18" />
-                    </button>
-                </div>
-                
-                <div class="flex flex-row gap-2 items-center w-full justify-center">
-                      <div class="flex bg-blue-700/50 p-1 rounded-lg backdrop-blur-sm border border-blue-500/50">
-                        <button @click="difficulty = 1" :class="`px-3 py-1 rounded font-bold text-sm transition-colors ${difficulty===1 ? 'bg-white text-blue-700 shadow-sm' : 'text-blue-100 hover:bg-white/10'}`">Nivel 1</button>
-                        <button @click="difficulty = 2" :class="`px-3 py-1 rounded font-bold text-sm transition-colors ${difficulty===2 ? 'bg-white text-blue-700 shadow-sm' : 'text-blue-100 hover:bg-white/10'}`">Nivel 2</button>
-                      </div>
-                      
-                      <div class="flex flex-row gap-2 items-center bg-blue-700/50 p-1.5 rounded-xl shadow-sm border border-blue-500/50">
-                        <div class="flex items-center gap-1 px-2">
-                            <span class="text-xs text-blue-200 font-bold hidden sm:inline">Tabla:</span>
-                            <select v-model="forcedDivisor" @change="resetSequence" class="font-black text-base text-white bg-transparent outline-none cursor-pointer w-auto text-right md:text-center appearance-none">
-                                <option value="random" class="text-slate-900">Aleatoria</option>
-                                <option v-for="n in 10" :key="n" :value="n" class="text-slate-900">{{ n }}</option>
-                            </select>
-                        </div>
-                      </div>
-                      
-                      <button @click="showTableModal = true" class="p-2 bg-blue-700/50 rounded-lg text-blue-100 border border-blue-500/50 hover:bg-white/10 active:scale-95 transition" title="Ver Tabla de Ayuda">
-                          <HelpCircle :size="20" />
-                      </button>
-                </div>
-            </div>
-        </div>
+        </header>
 
         <div class="flex-none px-4 z-10">
-            <div :class="`w-full p-2 sm:p-3 rounded-xl shadow-lg border-l-8 transition-all duration-500 flex gap-4 items-center bg-white ${currentHint.theme.border}`">
-                <div :class="`p-1 rounded-full bg-slate-50 border-2 ${currentHint.theme.border} w-12 h-12 flex items-center justify-center shrink-0`">
-                    <OwlImage :customClass="`w-full h-full object-contain ${isSuccess ? 'animate-bounce' : ''}`" />
+            <div :class="`w-full p-2 sm:p-3 rounded-xl shadow-lg border-l-8 flex gap-4 items-center bg-white ${currentHint.theme.border}`">
+                <div class="w-10 h-10 flex items-center justify-center shrink-0">
+                    <OwlImage customClass="w-full h-full object-contain" />
                 </div>
                 <div>
                     <h3 :class="`font-black text-[10px] uppercase tracking-widest mb-0.5 ${currentHint.theme.text}`">
-                        {{ isSuccess ? (activeExerciseIndex === MAX_EXERCISES - 1 ? '¡SERIE COMPLETADA!' : '¡Excelente!') : (!isSelectionComplete ? 'Paso 1: Selección' : 'Profesor Búho Dice:') }}
+                        {{ isSuccess ? '¡Excelente!' : (!isSelectionComplete ? 'Paso 1: Selección' : 'Profesor Búho Dice:') }}
                     </h3>
-                    <p class="text-sm sm:text-base font-bold text-slate-700 leading-tight">
-                        {{ currentHint.message }}
-                    </p>
+                    <p class="text-sm font-bold text-slate-700 leading-tight">{{ currentHint.message }}</p>
                 </div>
             </div>
         </div>
 
-        <div class="flex-1 w-full overflow-hidden relative bg-blue-600 rounded-t-[2rem] mt-2 shadow-inner">
-            <div ref="scrollContainer" class="w-full h-full overflow-y-auto p-4 flex flex-col items-center">
-                
-                <div class="bg-[#fff9c4] border-4 border-[#fbc02d] rounded-2xl shadow-2xl p-2 w-[98%] max-w-lg relative transition-all duration-300 my-auto"
+        <main class="flex-1 w-full overflow-hidden relative bg-blue-600 rounded-t-[2rem] mt-2 shadow-inner">
+            <div ref="scrollContainer" class="w-full h-full overflow-y-auto p-4 flex flex-col items-center scrollbar-hide">
+                <div class="bg-[#fff9c4] border-4 border-[#fbc02d] rounded-2xl shadow-2xl p-2 w-full max-w-lg relative my-auto min-h-[350px]"
                      :class="isSuccess ? 'bg-green-100 border-green-400' : ''"
                      style="background-image: linear-gradient(#e1f5fe 1px, transparent 1px); background-size: 100% 2em; padding-top: 2rem; padding-bottom: 2rem;">
                     
                     <div v-if="isSuccess" class="absolute inset-0 flex items-start justify-center z-50 pointer-events-none animate-fade-in pt-24">
-                         <Check class="w-64 h-64 text-green-500/50 drop-shadow-sm" stroke-width="5" />
+                         <Check class="w-64 h-64 text-green-500/50" stroke-width="5" />
                     </div>
 
-                    <div class="absolute -top-4 -left-2 bg-white text-slate-700 font-black text-lg md:text-xl w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center shadow-md border-2 border-slate-200 z-20">
+                    <div class="absolute -top-4 -left-2 bg-white text-slate-700 font-black text-lg w-10 h-10 rounded-full flex items-center justify-center shadow-md border-2 border-slate-200 z-20">
                         {{ activeExerciseIndex + 1 }}
                     </div>
 
-                    <div class="absolute top-0 bottom-0 left-6 w-1 bg-red-300 opacity-50"></div>
-                    
                     <div class="flex items-start gap-4 pl-2 relative z-10 justify-center">
                         <div class="flex flex-col relative">
-                              <div class="absolute -top-6 w-full text-center pl-1 text-[10px] font-bold text-slate-400 tracking-widest uppercase">Dividendo</div>
                               <div class="flex relative justify-center">
                                   <div v-for="(digit, idx) in dividend.toString()" :key="`d-${idx}`" 
                                     @click="handleDigitClick(idx)"
-                                    :class="`w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center text-2xl font-black font-mono border-b-2 transition-all cursor-pointer select-none rounded-md mx-0.5
+                                    :class="`w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center text-2xl font-black font-mono border-b-2 transition-all cursor-pointer rounded-md mx-0.5
                                         ${selectedIndices.includes(idx) ? 'bg-green-200 text-green-900 border-green-500 shadow-sm' : 'border-transparent text-slate-700 hover:bg-white/50'}
-                                        ${((!isSelectionComplete && idx === selectedIndices.length) || (waitingForDropIndex === idx)) ? 'animate-bounce bg-green-100 ring-2 ring-green-400 z-50' : ''}
-                                    `">
+                                        ${((!isSelectionComplete && idx === selectedIndices.length) || (waitingForDropIndex === idx)) ? 'animate-bounce bg-green-100 ring-2 ring-green-400 z-50' : ''}`">
                                       {{ digit }}
-                                      <div v-if="waitingForDropIndex === idx || (!isSelectionComplete && idx === selectedIndices.length)" 
-                                            class="absolute -top-8 text-green-600 animate-bounce left-1/2 -translate-x-1/2 bg-white/80 rounded-full p-1 shadow-sm">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>
-                                      </div>
                                   </div>
                               </div>
 
@@ -654,24 +555,19 @@ const isFinalRemainder = (row, col) => {
                                       <div v-for="(d, c) in dividend.toString()" :key="`cell-${r}-${c}`" class="w-8 h-8 sm:w-10 sm:h-10 p-0.5 relative flex items-center justify-center mx-0.5">
                                           <input v-if="orderedKeys.includes(`grid-${r}-${c}`)"
                                               :ref="(el) => setRef(`grid-${r}-${c}`, el)"
-                                              type="tel" autocomplete="off" :name="`div_g_${uid}_${r}_${c}`" data-lpignore="true" readonly inputmode="none"
+                                              type="tel" autocomplete="off" readonly inputmode="none"
                                               :value="userInputs[`grid-${r}-${c}`]"
                                               :disabled="activeKey !== `grid-${r}-${c}` && !isSuccess" 
                                               :class="getCellClass(`grid-${r}-${c}`)"
-                                              @click="activeKey.value = `grid-${r}-${c}`"
-                                          />
+                                              @click="activeKey.value = `grid-${r}-${c}`" />
                                           <div v-if="solutionSteps.some(s => s.type === 'product' && s.row === r && c >= s.colEnd - s.value.toString().length + 1 && c <= s.colEnd)" 
-                                                  class="absolute bottom-0 left-0 right-0 border-b-2 border-slate-800 pointer-events-none"></div>
-                                          <span v-if="solutionSteps.some(s => s.type === 'product' && s.row === r && s.colEnd - s.value.toString().length === c - 1)"
-                                                  class="absolute -left-3 top-1 text-slate-500 font-bold pointer-events-none text-sm">-</span>
-                                          <span v-if="isFinalRemainder(r, c)" class="absolute left-full ml-2 top-1/2 -translate-y-1/2 text-[9px] font-bold text-slate-400 tracking-widest px-1 whitespace-nowrap uppercase">Residuo</span>
+                                              class="absolute bottom-0 left-0 right-0 border-b-2 border-slate-800 pointer-events-none"></div>
                                       </div>
                                   </template>
                               </div>
                         </div>
 
                         <div class="flex flex-col relative">
-                            <div class="absolute -top-6 w-full text-center text-[10px] sm:text-xs font-bold text-slate-400 tracking-widest uppercase">Divisor</div>
                             <div class="border-b-2 border-l-2 border-slate-800 px-3 py-1 h-10 flex items-center justify-center min-w-[60px] bg-white/50">
                                 <span class="text-2xl font-black text-slate-800">{{ divisor }}</span>
                             </div>
@@ -679,22 +575,37 @@ const isFinalRemainder = (row, col) => {
                                 <div v-for="(digit, idx) in dividend.toString()" :key="`q-${idx}`">
                                       <input v-if="solutionSteps.some(s => s.type === 'quotient' && s.index === idx)"
                                         :ref="(el) => setRef(`q-${idx}`, el)"
-                                        type="tel" autocomplete="off" readonly inputmode="none"
+                                        type="tel" readonly inputmode="none"
                                         :value="userInputs[`q-${idx}`]"
                                         :disabled="activeKey !== `q-${idx}` && !isSuccess"
-                                        :class="getCellClass(`q-${idx}`)"
-                                      />
+                                        :class="getCellClass(`q-${idx}`)" />
                                 </div>
                             </div>
-                            <div class="text-center w-full mt-1 text-[10px] font-bold text-slate-400 tracking-widest uppercase">Cociente</div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
+        </main>
 
-        <div class="flex-none bg-white z-20 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+        <footer class="flex-none bg-white z-20 shadow-[0_-4px_20px_rgba(0,0,0,0.1)]">
             <VirtualKeypad @press="handleKeypadPress" @delete="handleDelete" />
+        </footer>
+
+        <div v-if="showTableModal" class="absolute inset-0 z-[210] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in" @click.self="showTableModal = false">
+            <div class="bg-white rounded-2xl shadow-2xl w-[90%] max-w-[400px] border-4 border-blue-200 overflow-hidden flex flex-col max-h-[80vh]">
+                <div class="bg-blue-50 p-3 border-b flex justify-between items-center text-slate-700 font-black">
+                    <span class="uppercase tracking-widest text-xs">Tabla del {{ divisor }}</span>
+                    <button @click="showTableModal = false" class="p-1 rounded-full hover:bg-red-50 hover:text-red-600 transition"><CloseIcon :size="20" /></button>
+                </div>
+                <div class="overflow-y-auto p-3 bg-white scrollbar-hide">
+                    <div class="grid grid-cols-1 gap-2">
+                        <div v-for="item in multiplicationTable" :key="item.n2" class="flex justify-between items-center p-2 rounded-xl border border-blue-100 bg-blue-50/50 shadow-sm">
+                            <span class="text-lg font-bold text-slate-600 font-mono">{{ item.n1 }} × {{ item.n2 }}</span>
+                            <span class="text-xl font-black text-blue-600">= {{ item.res }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
   </div>
@@ -705,7 +616,6 @@ const isFinalRemainder = (row, col) => {
 @keyframes shake { 0%,100%{transform:translateX(0);} 25%{transform:translateX(-5px);} 75%{transform:translateX(5px);} }
 .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
 @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 </style>

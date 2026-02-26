@@ -73,7 +73,7 @@ const rawInventory = [
     { id: 's10', name: 'Bolsa Gusanitos', cost: 20, type: 'silver', icon: '🥨', desc: 'Saladitos' },
     { id: 's11', name: 'Juego de Mesa', cost: 15, type: 'silver', icon: '🎲', desc: 'Una partida juntos' },
     { id: 's12', name: 'Pintar Témperas', cost: 25, type: 'silver', icon: '🎨', desc: 'Arte con pinceles' },
-    { id: 's13', name: 'Elegir Merienda', cost: 20, type: 'silver', icon: '🥪', desc: 'Lo que tú quieras' },
+    { id: 's13', name: 'Elegir Merienda', cost: 20, type: 'silver', icon: ' Sandwich🥪', desc: 'Lo que tú quieras' },
     { id: 's14', name: 'Un Comic Corto', cost: 40, type: 'silver', icon: '📚', desc: 'Lectura divertida' },
     { id: 's15', name: 'Pompero', cost: 35, type: 'silver', icon: '🫧', desc: 'Hacer burbujas' },
     { id: 's16', name: 'Hacer Slime', cost: 45, type: 'silver', icon: '🧪', desc: 'Experimento casero' },
@@ -297,7 +297,11 @@ const shareReward = () => {
             <p class="text-[10px] font-bold text-orange-300 mb-2">Para confirmar la acción, resuelve:</p>
             <div class="flex items-center gap-2">
                 <span class="font-black text-lg text-white">{{ mathChallenge.text }}</span>
-                <input v-model="mathAnswer" type="number" class="w-16 px-2 py-1 rounded-md text-slate-900 font-black text-center outline-none focus:ring-2 ring-orange-400" placeholder="?" />
+                
+                <input v-model="mathAnswer" type="number" 
+                    class="w-16 px-2 py-1 rounded-md text-slate-900 font-black text-center outline-none bg-yellow-100 border-2 border-amber-400 focus:border-amber-600 focus:ring-0 no-spinners" 
+                    placeholder="?" />
+                
                 <button @click="verifyParentalAction" class="bg-green-500 px-3 py-1.5 rounded-md font-black hover:bg-green-600 flex-1">OK</button>
                 <button @click="cancelParentalAction" class="bg-slate-500 px-3 py-1.5 rounded-md font-black hover:bg-slate-600">X</button>
             </div>
@@ -402,4 +406,15 @@ const shareReward = () => {
 @keyframes slideUp { from { transform: translateY(100%); } to { opacity: 1; transform: translateY(0); } }
 .animate-fade-in { animation: fadeIn 0.2s ease-out forwards; }
 @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+
+/* ELIMINA FLECHAS DEL INPUT DE NÚMERO */
+.no-spinners::-webkit-outer-spin-button,
+.no-spinners::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.no-spinners {
+  -moz-appearance: textfield; /* Firefox */
+}
 </style>

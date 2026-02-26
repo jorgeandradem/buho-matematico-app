@@ -1,19 +1,16 @@
 <script setup>
 import { ref, onMounted } from 'vue';
-import { ArrowLeft, RefreshCw, Trophy, Coins } from 'lucide-vue-next';
+import { ArrowLeft, RefreshCw, Trophy, Coins, Sparkles } from 'lucide-vue-next';
 import CoinRain from './CoinRain.vue';
 import { useGamificationStore } from '../stores/useGamificationStore';
 import { speak } from '../utils/voice';
-
-// ✅ CENTRALIZACIÓN: Eliminamos importaciones de Firebase aquí para que el Store 
-// maneje el "Escudo de Riqueza" de forma única.
 
 const props = defineProps({
   operation: { type: String, default: 'add' }, 
   tableNumber: { type: [Number, String], default: 'random' }
 });
 
-const emit = defineEmits(['back']);
+const emit = defineEmits(['back', 'close']); 
 const gamificationStore = useGamificationStore();
 
 const QUESTIONS_COUNT = 10; 
@@ -27,17 +24,32 @@ const options = ref([]);
 const feedbackMessage = ref('');
 const feedbackColor = ref('');
 
+// Nuevo estado para rastrear la operación actual del reto mixto
+const activeOp = ref('add');
+
+// Determina qué moneda entregar según la operación
+const getCurrencyType = (op) => {
+  if (op === 'add') return 'copper'; // Sumar = Cobre
+  if (op === 'sub') return 'silver'; // Restar = Plata
+  return 'gold'; // Multiplicar/Dividir = Oro
+};
+
 const generateQuestion = () => {
     let num1, num2, answer, symbol;
+    
+    // Lógica de Reto Mixto: Selecciona operación al azar (Todas las tablas)
+    const ops = ['add', 'sub', 'mult', 'div'];
+    activeOp.value = ops[Math.floor(Math.random() * ops.length)];
+    
     const table = props.tableNumber === 'random' ? Math.floor(Math.random() * 9) + 2 : parseInt(props.tableNumber);
     
-    if (props.operation === 'add') {
+    if (activeOp.value === 'add') {
         num1 = table; num2 = Math.floor(Math.random() * 10) + 1; answer = num1 + num2; symbol = '+';
-    } else if (props.operation === 'sub') {
+    } else if (activeOp.value === 'sub') {
         num2 = Math.floor(Math.random() * 10) + 1; answer = table; num1 = num2 + answer; symbol = '-';
-    } else if (props.operation === 'mult') {
+    } else if (activeOp.value === 'mult') {
         num1 = table; num2 = Math.floor(Math.random() * 10) + 1; answer = num1 * num2; symbol = '×';
-    } else if (props.operation === 'div') {
+    } else if (activeOp.value === 'div') {
         answer = table; num2 = Math.floor(Math.random() * 9) + 2; num1 = answer * num2; symbol = '÷';
     }
 
@@ -50,7 +62,6 @@ const generateQuestion = () => {
     currentQuestion.value = { num1, num2, symbol, answer };
 };
 
-// ✅ CIRUGÍA: Convertimos a función asíncrona para asegurar la racha.
 const selectOption = async (selected) => {
     if (isFinished.value) return;
 
@@ -59,15 +70,13 @@ const selectOption = async (selected) => {
         feedbackMessage.value = "¡Bien!";
         feedbackColor.value = "text-green-500";
         
-        // --- 🪙 PAGO BLINDADO (v2.9.1) ---
-        // Usamos await para que el "fueguito" y los retos se graben antes de seguir.
-        await gamificationStore.addCoins('copper', 1);
+        // Asignación de moneda dinámica por operación
+        await gamificationStore.addCoins(getCurrencyType(activeOp.value), 1);
         
         if (currentQuestionIndex.value < QUESTIONS_COUNT - 1) {
             currentQuestionIndex.value++;
             setTimeout(() => { feedbackMessage.value = ""; generateQuestion(); }, 500);
         } else {
-            // Esperamos al proceso de finalización
             await finishGame();
         }
     } else {
@@ -78,17 +87,13 @@ const selectOption = async (selected) => {
     }
 };
 
-// ✅ CIRUGÍA: Finalización asíncrona para el bono de victoria.
 const finishGame = async () => {
     isFinished.value = true;
     showCoinRain.value = true;
-    
-    // --- 🪙 BONO DE VICTORIA BLINDADO ---
-    // El Store se encarga automáticamente de subirlo a la nube.
-    await gamificationStore.addCoins('copper', 5);
-    
+    // Bono final en la moneda de la última operación resuelta
+    await gamificationStore.addCoins(getCurrencyType(activeOp.value), 5);
     const totalSessionCoins = score.value + 5; 
-    speak(`¡Excelente velocidad! Ganaste ${totalSessionCoins} monedas de cobre.`);
+    speak(`¡Excelente velocidad! Desafío terminado.`);
 };
 
 const resetGame = () => {
@@ -100,105 +105,102 @@ const resetGame = () => {
 };
 
 const getThemeColor = () => {
-    if (props.operation === 'add') return 'bg-green-500';
-    if (props.operation === 'sub') return 'bg-orange-500';
-    if (props.operation === 'mult') return 'bg-purple-500';
-    return 'bg-blue-500';
+    if (activeOp.value === 'add') return 'bg-blue-500';
+    if (activeOp.value === 'sub') return 'bg-red-500';
+    if (activeOp.value === 'mult') return 'bg-green-500';
+    return 'bg-yellow-400';
+};
+
+const handleBack = () => {
+  emit('back');
+  emit('close');
 };
 
 onMounted(() => {
     generateQuestion();
-    speak("¡Modo Rápido! Toca la respuesta correcta para ganar cobre.");
+    speak("¡Iniciando Reto Mixto!");
 });
 </script>
 
 <template>
-  <div class="h-[100dvh] w-full bg-slate-100 flex justify-center overflow-hidden font-sans select-none">
+  <div class="h-[100dvh] w-full bg-white flex justify-center overflow-hidden font-sans select-none text-slate-900">
+    <div class="w-full max-w-[500px] h-full flex flex-col bg-slate-50 relative shadow-2xl border-x border-slate-100 overflow-hidden mx-auto animate-fade-in">
     
-    <div v-if="showCoinRain">
-        <CoinRain type="copper" :count="40" />
-    </div>
+        <div v-if="showCoinRain" class="z-[400]">
+            <CoinRain :type="getCurrencyType(activeOp)" :count="40" />
+        </div>
 
-    <div class="w-full max-w-xl h-full flex flex-col bg-white shadow-2xl relative">
-        <div :class="`flex-none p-4 ${getThemeColor()} text-white flex justify-between items-center shadow-md z-10 transition-colors duration-300`">
-            <button @click="$emit('back')" class="p-2 bg-white/20 rounded-full hover:bg-white/30 transition active:scale-95">
-                <ArrowLeft class="w-6 h-6" />
+        <header :class="`flex-none p-4 ${getThemeColor()} text-white flex justify-between items-center shadow-md z-10 transition-colors duration-300 text-center`">
+            <button @click="handleBack" 
+                    class="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-xl shadow-[0_4px_0_rgb(21,128,61)] active:translate-y-1 transition-all font-black text-xs border-2 border-green-700 uppercase tracking-widest">
+                <ArrowLeft size="18" stroke-width="3" /> REGRESAR
             </button>
             <div class="flex flex-col items-center">
-                <span class="text-xs font-bold opacity-80 uppercase tracking-widest">Tablas Rápidas</span>
-                <span class="text-2xl font-black">{{ currentQuestionIndex + 1 }} / {{ QUESTIONS_COUNT }}</span>
+                <span class="text-[10px] font-bold opacity-80 uppercase tracking-widest">Reto Mixto</span>
+                <span class="text-xl font-black">{{ currentQuestionIndex + 1 }} / {{ QUESTIONS_COUNT }}</span>
             </div>
-            <div class="flex items-center gap-2 bg-black/20 px-3 py-1.5 rounded-full">
+            <div class="flex items-center gap-2 bg-black/20 px-3 py-1.5 rounded-full border border-white/20">
                 <Trophy class="w-4 h-4 text-yellow-300" />
                 <span class="font-mono font-bold text-lg">{{ score }}</span>
             </div>
-        </div>
+        </header>
 
-        <div class="flex-1 flex flex-col items-center justify-center p-6 relative bg-slate-50">
-            <div v-if="!isFinished" class="w-full flex flex-col items-center gap-8 animate-fade-in">
+        <main class="flex-1 flex flex-col items-center justify-start p-6 relative bg-white pt-6">
+            
+            <div v-if="!isFinished" class="w-full flex flex-col items-center gap-2 animate-fade-in">
                 
-                <div class="flex items-center justify-center gap-4 text-7xl font-black text-slate-700 drop-shadow-sm py-8 animate-bounce-short select-none">
+                <div class="flex items-center justify-center gap-4 text-5xl font-black text-slate-700 drop-shadow-sm py-2 animate-bounce-short">
                     <span>{{ currentQuestion?.num1 }}</span>
-                    <span :class="`text-6xl ${props.operation === 'add' ? 'text-green-500' : props.operation === 'sub' ? 'text-orange-500' : props.operation === 'mult' ? 'text-purple-500' : 'text-blue-500'}`">
+                    <span :class="`${activeOp === 'add' ? 'text-blue-500' : activeOp === 'sub' ? 'text-red-500' : activeOp === 'mult' ? 'text-green-500' : 'text-yellow-500'}`">
                         {{ currentQuestion?.symbol }}
                     </span>
                     <span>{{ currentQuestion?.num2 }}</span>
                 </div>
 
                 <div class="h-8 flex items-center justify-center">
-                    <span v-if="feedbackMessage" :class="`text-3xl font-black ${feedbackColor} animate-ping-once`">
+                    <span v-if="feedbackMessage" :class="`text-xl font-black ${feedbackColor} animate-ping-once uppercase italic`">
                         {{ feedbackMessage }}
                     </span>
                 </div>
 
-                <div class="grid grid-cols-1 gap-4 w-full max-w-sm">
-                    <button v-for="opt in options" :key="opt" 
-                        @click="selectOption(opt)"
-                        class="bg-white border-b-4 border-slate-200 hover:border-blue-400 hover:bg-blue-50 hover:-translate-y-1 active:translate-y-0 active:border-b-0 text-slate-700 text-5xl font-black py-6 rounded-2xl shadow-sm transition-all transform duration-100 flex justify-center items-center">
+                <div class="grid grid-cols-1 gap-2.5 w-full max-w-[300px]">
+                    <button v-for="opt in options" :key="opt" @click="selectOption(opt)"
+                        class="bg-white border-b-4 border-slate-200 hover:border-blue-400 active:translate-y-1 active:border-b-0 text-slate-700 text-4xl font-black py-4 rounded-2xl shadow-md transition-all flex justify-center items-center">
                         {{ opt }}
                     </button>
                 </div>
-            </div>
 
-            <div v-else class="flex flex-col items-center gap-6 animate-fade-in text-center p-6 bg-white rounded-3xl shadow-xl w-full max-w-sm border-2 border-slate-100">
-                <h2 class="text-4xl font-black text-slate-800">¡Terminaste!</h2>
-                
-                <div class="relative">
-                    <div class="absolute inset-0 bg-orange-400 blur-2xl opacity-20 rounded-full animate-pulse"></div>
-                    <div class="bg-gradient-to-br from-orange-100 to-orange-50 p-8 rounded-full border-4 border-orange-200 shadow-inner relative z-10">
-                        <Coins class="w-20 h-20 text-orange-600 drop-shadow-sm" />
+                <div class="mt-6 text-center px-4 w-full">
+                    <div class="flex items-center justify-center gap-1.5 mb-1">
+                        <Sparkles size="14" class="text-indigo-500" />
+                        <span class="text-[11px] font-black text-indigo-800 uppercase tracking-widest">REGLAS DEL DESAFÍO</span>
                     </div>
-                </div>
-
-                <div class="flex flex-col gap-1">
-                    <p class="text-slate-500 font-bold uppercase tracking-wide text-sm">Recompensa Total</p>
-                    <p class="text-5xl font-black text-slate-800 flex items-center justify-center gap-2">
-                        {{ score + 5 }} <span class="text-xl text-orange-600 font-bold">Cobres</span>
+                    <p class="text-[11px] font-bold text-slate-600 leading-tight uppercase">
+                        Suma = <span class="text-orange-600">Cobre</span> | Resta = <span class="text-slate-500">Plata</span> | Mult/Div = <span class="text-amber-500">Oro</span>
                     </p>
                 </div>
-                
-                <p class="text-sm text-slate-400 px-4">
-                    ¡Buen trabajo! Cada moneda cuenta para tus retos diarios y para subir tu racha.
-                </p>
+            </div>
 
-                <div class="grid grid-cols-2 gap-3 w-full mt-4">
-                    <button @click="$emit('back')" class="py-4 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition">
-                        Salir
-                    </button>
-                    <button @click="resetGame" class="py-4 bg-blue-600 text-white font-bold rounded-xl shadow-lg hover:bg-blue-500 hover:shadow-blue-500/30 transition flex items-center justify-center gap-2">
-                        <RefreshCw class="w-5 h-5" /> Repetir
-                    </button>
+            <div v-else class="flex flex-col items-center gap-6 animate-fade-in text-center p-8 bg-white rounded-[3rem] shadow-2xl w-[90%] border-4 border-orange-100 my-auto">
+                <h2 class="text-4xl font-black text-slate-800 uppercase tracking-tighter italic">¡Felicidades!</h2>
+                <div class="bg-gradient-to-br from-orange-100 to-orange-50 p-8 rounded-full border-4 border-orange-200 shadow-inner">
+                    <Coins class="w-16 h-16 text-orange-600" />
+                </div>
+                <p class="text-5xl font-black text-slate-800 italic uppercase">{{ score + 5 }} Cobres</p>
+                <div class="flex flex-col gap-3 w-full mt-4">
+                    <button @click="resetGame" class="w-full py-5 bg-blue-600 text-white font-black rounded-2xl shadow-lg active:translate-y-1 transition-all uppercase text-sm tracking-widest">OTRA CARRERA</button>
+                    <button @click="handleBack" class="w-full py-4 bg-slate-100 text-slate-500 font-black rounded-2xl hover:bg-slate-200 uppercase text-xs">SALIR</button>
                 </div>
             </div>
-        </div>
+        </main>
     </div>
   </div>
 </template>
 
 <style scoped>
-.animate-bounce-short { animation: bounceShort 0.5s; }
-@keyframes bounceShort { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
-.animate-ping-once { animation: ping .4s cubic-bezier(0, 0, 0.2, 1) 1; }
-.animate-fade-in { animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
-@keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+.animate-bounce-short { animation: bounceShort 0.6s ease-in-out infinite alternate; }
+@keyframes bounceShort { from { transform: translateY(0); } to { transform: translateY(-8px); } }
+.animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
+@keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
+.scrollbar-hide::-webkit-scrollbar { display: none; }
 </style>

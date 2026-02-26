@@ -15,7 +15,7 @@ onMounted(() => {
   for (let i = 0; i < props.count; i++) {
     newCoins.push({
       id: i,
-      // Matemáticas para que la caída se vea natural y aleatoria
+      // Matemáticas para que la caída se vea natural y aleatoria dentro del ancho del contenedor
       left: Math.random() * 100 + '%',
       duration: Math.random() * 2 + 1 + 's',
       delay: Math.random() * 0.5 + 's',
@@ -48,10 +48,14 @@ onMounted(() => {
 
 <style scoped>
 .coin-rain-container {
-  position: fixed;
-  top: 0; left: 0; width: 100%; height: 100%;
+  /* CAMBIO: 'absolute' para que se limite al ancho de 500px del padre (IndexScreen) */
+  position: absolute;
+  top: 0; 
+  left: 0; 
+  right: 0;
+  bottom: 0;
   pointer-events: none; 
-  z-index: 9999;
+  z-index: 9999; /* Se mantiene por encima de todo */
   overflow: hidden;
 }
 
@@ -67,6 +71,7 @@ onMounted(() => {
 @keyframes fall {
   0% { transform: translateY(0) rotate(0deg); opacity: 1; }
   85% { opacity: 1; }
-  100% { transform: translateY(110vh) rotate(var(--rotation)); opacity: 0; }
+  /* Cae hasta el final del alto del dispositivo sin importar el scroll */
+  100% { transform: translateY(110dvh) rotate(var(--rotation)); opacity: 0; }
 }
 </style>
