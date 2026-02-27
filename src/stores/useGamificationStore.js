@@ -1,18 +1,23 @@
 import { defineStore } from 'pinia';
 import { missionsData } from '../data/missions'; 
 
-// --- IMPORTAMOS FIREBASE ---
+// --- IMPORTACIONES FIREBASE ---
 import { auth, db } from '../firebaseConfig';
 import { doc, updateDoc } from "firebase/firestore";
-// -----------------------------------------
 
 const STORAGE_KEY = 'buho-matematico-tesoro-v1';
 
 export const useGamificationStore = defineStore('gamification', {
   state: () => ({
+    // Saldo real visible
     copper: 0,
     silver: 0,
     gold: 0,
+
+    // --- 🏦 REFERENCIAS BANCARIAS (Última foto confirmada por la nube) ---
+    lastSyncedCopper: 0,
+    lastSyncedSilver: 0,
+    lastSyncedGold: 0,
 
     sessionCopperEarned: 0,
     sessionSilverEarned: 0,
@@ -31,7 +36,6 @@ export const useGamificationStore = defineStore('gamification', {
     lastNotificationDate: null,
     bubbleMessage: '',
 
-    // --- 🛡️ v2.9.1: BANDERA DE BLOQUEO DE SEGURIDAD ---
     isSyncing: false 
   }),
 
@@ -42,29 +46,26 @@ export const useGamificationStore = defineStore('gamification', {
   },
 
   actions: {
-    // --- 🛡️ ESCUDO DE RIQUEZA INTELIGENTE (v2.9.1) ---
-    // Este método es el que evita que los puntos se reseteen al ganar o comprar.
+    // --- 📥 RECEPCIÓN DE EXTRACTO (Fusión de Nube + Tránsito Local) ---
     setCoinsFromCloud(stats) {
-      // Bloqueo 1: Si estamos subiendo datos (comprando o ganando), ignoramos la nube
       if (!stats || this.isSyncing) return; 
       
-      const cloudWealth = (stats.gold || 0) * 10000 + 
-                          (stats.silver || 0) * 100 + 
-                          (stats.copper || 0) + 
-                          (stats.puntos || 0);
+      console.log("🏦 Recibiendo extracto... Calculando depósitos y retiros en tránsito.");
 
-      const localWealth = (this.gold * 10000) + (this.silver * 100) + this.copper;
+      // 1. Calculamos el "Movimiento Neto en Tránsito" (Lo que el móvil tiene pero la nube aún no sabe)
+      const copperInTransit = this.copper - this.lastSyncedCopper;
+      const silverInTransit = this.silver - this.lastSyncedSilver;
+      const goldInTransit   = this.gold   - this.lastSyncedGold;
 
-      // Bloqueo 2: Si ya hay actividad local (puntos > 0) y hay diferencia con la nube,
-      // NO sobreescribimos. Confiamos en el móvil para evitar que la nube nos "pise" el progreso.
-      if (localWealth !== 0 && localWealth !== cloudWealth) {
-          console.log("🛡️ Escudo Activo: Protegiendo progreso local de hoy.");
-          return; 
-      }
+      // 2. Fusión: Saldo de Nube + Delta de Tránsito
+      this.gold = (stats.gold || 0) + goldInTransit;
+      this.silver = (stats.silver || 0) + silverInTransit;
+      this.copper = (stats.copper || 0) + (stats.puntos || 0) + copperInTransit;
 
-      this.gold = stats.gold || 0;
-      this.silver = stats.silver || 0;
-      this.copper = (stats.copper || 0) + (stats.puntos || 0);
+      // 3. Actualizamos la referencia de "Lo que la nube ya tiene consignado"
+      this.lastSyncedGold = stats.gold || 0;
+      this.lastSyncedSilver = stats.silver || 0;
+      this.lastSyncedCopper = (stats.copper || 0) + (stats.puntos || 0);
 
       this.currentStreak = stats.racha || 0;
       this.lastPlayedDate = stats.lastPlayedDate || null;
@@ -74,12 +75,12 @@ export const useGamificationStore = defineStore('gamification', {
       this.saveToStorage();
     },
 
-    // --- 📡 SINCRONIZACIÓN TOTAL ASÍNCRONA (v2.9.1) ---
+    // --- 📤 CONSIGNACIÓN TOTAL (Depósito a Firebase) ---
     async syncAllToCloud() {
         const user = auth.currentUser;
         if (!user) return;
 
-        this.isSyncing = true; // Bloqueamos el escudo temporalmente
+        this.isSyncing = true; 
 
         try {
             const userRef = doc(db, "users", user.uid);
@@ -93,18 +94,21 @@ export const useGamificationStore = defineStore('gamification', {
                 "stats.activeMissions": this.activeMissions,
                 lastActivity: Date.now()
             });
-            console.log("☁️ Nube sincronizada con éxito.");
+
+            // ✅ ÉXITO: El depósito se consignó. Sincronizamos marcas de referencia.
+            this.lastSyncedGold = this.gold;
+            this.lastSyncedSilver = this.silver;
+            this.lastSyncedCopper = this.copper;
+            
+            console.log("☁️ Depósito consignado exitosamente en Firebase.");
         } catch (error) {
-            console.log("📡 Modo Offline: Guardado local.");
+            console.log("📡 Oficina cerrada (Offline): El saldo queda 'en tránsito'.");
         } finally {
-            // Esperamos un segundo extra para que Firebase procese antes de liberar el escudo
-            setTimeout(() => {
-                this.isSyncing = false;
-            }, 1000);
+            setTimeout(() => { this.isSyncing = false; }, 1000);
         }
     },
 
-    // --- 🟠 GANAR MONEDAS (ACTIVA LOS RETOS) ---
+    // --- 🟠 GANAR MONEDAS ---
     async addCoins(type, amount) {
       const safeAmount = Math.max(0, parseInt(amount) || 0);
       if (safeAmount === 0) return;
@@ -113,13 +117,11 @@ export const useGamificationStore = defineStore('gamification', {
         case 'copper':
           this.copper += safeAmount;
           this.sessionCopperEarned += safeAmount;
-          // Esto activa el avance de los retos de cobre
           this.updateMissionProgress('earn_copper', safeAmount);
           break;
         case 'silver':
           this.silver += safeAmount;
           this.sessionSilverEarned += safeAmount;
-          // Esto activa el avance de los retos de plata
           this.updateMissionProgress('earn_silver', safeAmount);
           break;
         case 'gold':
@@ -130,10 +132,10 @@ export const useGamificationStore = defineStore('gamification', {
 
       this.processConversions();
       this.saveToStorage();
-      await this.syncAllToCloud(); // Obligatorio esperar para que no se reseteen los puntos
+      await this.syncAllToCloud(); 
     },
 
-    // --- 🛒 GASTAR MONEDAS (ACTIVA RETOS DE COMPRA) ---
+    // --- 🛒 GASTAR MONEDAS (Retiro Bancario) ---
     async spendCoins(type, amount) {
       const safeAmount = Math.max(0, parseInt(amount) || 0);
       let success = false;
@@ -143,7 +145,6 @@ export const useGamificationStore = defineStore('gamification', {
       else if (type === 'copper' && this.copper >= safeAmount) { this.copper -= safeAmount; success = true; }
 
       if (success) {
-          // Esto activa el avance de los retos de "comprar"
           this.updateMissionProgress('buy_shop', 1); 
           this.saveToStorage();
           await this.syncAllToCloud(); 
@@ -161,9 +162,11 @@ export const useGamificationStore = defineStore('gamification', {
         if (this.purchasedItems.length === 0) return null;
         const lastTicket = this.purchasedItems.shift(); 
         const cost = Math.max(0, parseInt(lastTicket.cost) || 0);
+        
         if (lastTicket.type === 'gold') this.gold += cost;
         else if (lastTicket.type === 'silver') this.silver += cost;
         else if (lastTicket.type === 'copper') this.copper += cost;
+        
         this.saveToStorage();
         await this.syncAllToCloud();
         return lastTicket; 
@@ -171,6 +174,7 @@ export const useGamificationStore = defineStore('gamification', {
 
     async hardReset() {
         this.copper = 0; this.silver = 0; this.gold = 0;
+        this.lastSyncedCopper = 0; this.lastSyncedSilver = 0; this.lastSyncedGold = 0;
         this.sessionCopperEarned = 0; this.sessionSilverEarned = 0; this.sessionGoldEarned = 0;
         this.purchasedItems = []; this.currentStreak = 0;
         this.lastPlayedDate = null; this.activeMissions = [];
@@ -196,7 +200,6 @@ export const useGamificationStore = defineStore('gamification', {
       while (this.silver >= 100) { this.silver -= 100; this.gold += 1; }
     },
 
-    // --- 📅 RACHA AUTOMÁTICA (v2.7/2.8) ---
     checkDailyStreak() {
         const now = new Date();
         const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -251,17 +254,14 @@ export const useGamificationStore = defineStore('gamification', {
         this.syncAllToCloud();
     },
 
-    // --- 💬 EL MOTOR DE LOS RETOS (v2.9.1) ---
     updateMissionProgress(type, amount = 1) {
         let changed = false;
         this.activeMissions.forEach(m => {
-            // Si el tipo coincide y el reto no está terminado, avanzamos
             if (m.type === type && !m.completed) {
                 m.progress += amount;
                 if (m.progress >= m.target) {
                     m.progress = m.target;
                     m.completed = true;
-                    // Entregamos el premio exclusivo del reto
                     this.addCoins(m.rewardType, m.rewardAmount);
                     if (this.dailyNotifications < 3) {
                         this.bubbleMessage = `¡Reto cumplido! Ganaste ${m.rewardAmount} de ${m.rewardType}. 🏆`;
@@ -273,7 +273,6 @@ export const useGamificationStore = defineStore('gamification', {
         });
         if (changed) {
             this.saveToStorage();
-            // No llamamos a syncAllToCloud aquí porque addCoins ya lo hará si el reto se completa
         }
     },
 
@@ -281,6 +280,9 @@ export const useGamificationStore = defineStore('gamification', {
       try {
         const dataToSave = {
           copper: this.copper, silver: this.silver, gold: this.gold,
+          lastSyncedCopper: this.lastSyncedCopper,
+          lastSyncedSilver: this.lastSyncedSilver,
+          lastSyncedGold: this.lastSyncedGold,
           purchasedItems: this.purchasedItems, currentStreak: this.currentStreak,
           lastPlayedDate: this.lastPlayedDate, activeMissions: this.activeMissions,
           dailyNotifications: this.dailyNotifications,
@@ -298,6 +300,9 @@ export const useGamificationStore = defineStore('gamification', {
           this.copper = parseInt(parsedData.copper) || 0;
           this.silver = parseInt(parsedData.silver) || 0;
           this.gold = parseInt(parsedData.gold) || 0;
+          this.lastSyncedCopper = parseInt(parsedData.lastSyncedCopper) || 0;
+          this.lastSyncedSilver = parseInt(parsedData.lastSyncedSilver) || 0;
+          this.lastSyncedGold = parseInt(parsedData.lastSyncedGold) || 0;
           this.purchasedItems = parsedData.purchasedItems || [];
           this.currentStreak = parseInt(parsedData.currentStreak) || 0;
           this.lastPlayedDate = parsedData.lastPlayedDate || null;

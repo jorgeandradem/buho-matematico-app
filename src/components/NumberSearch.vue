@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue';
-import { ArrowLeft, Search, Trophy, Star, Target, AlertCircle, Sparkles, Coins } from 'lucide-vue-next';
+import { X as CloseIcon, Search, Trophy, AlertCircle, Sparkles, Coins } from 'lucide-vue-next';
 import SimpleConfetti from './SimpleConfetti.vue';
 import CoinRain from './CoinRain.vue';
 import OwlImage from './OwlImage.vue';
@@ -82,7 +82,7 @@ const initGame = () => {
             gridReady = true;
         }
     }
-    if (gameFinished.value) speak("¡Sopa lista!");
+    speak("¡Sopa de números activada!");
 };
 
 const handleCellClick = (cell) => {
@@ -120,7 +120,7 @@ const triggerWin = async () => {
     playOwlHoot();
     const prize = perfectGame.value ? 10 : 5;
     await store.addCoins('silver', prize);
-    emit('win', { type: 'silver', count: prize * 4 });
+    emit('win', { type: 'silver', count: prize });
 };
 
 onMounted(() => initGame());
@@ -129,96 +129,97 @@ onMounted(() => initGame());
 <template>
   <div class="fixed inset-0 z-[200] bg-white flex justify-center items-center overflow-hidden select-none normal-case">
     
-    <div class="w-full max-w-xl h-full bg-slate-50 flex flex-col items-center p-4 relative shadow-2xl border-x border-slate-200 overflow-hidden">
+    <div class="w-full max-w-xl h-full bg-slate-50 flex flex-col items-center relative shadow-2xl border-x border-slate-200 overflow-hidden">
         
         <CoinRain v-if="showCoinRain" type="silver" :count="50" class="z-[400]" />
 
-        <div class="w-full flex justify-between items-center mb-3 pt-2 shrink-0 px-2 uppercase">
-          <button @click="$emit('close')" class="flex items-center gap-2 bg-indigo-600 text-white px-5 py-3 rounded-2xl shadow-lg border-b-4 border-indigo-800 active:translate-y-1 active:border-b-0 transition-all font-black text-xs">
-              <ArrowLeft size="18" />
-              REGRESAR
-          </button>
-          
-          <button @click="initGame" 
-            class="text-indigo-600 font-bold text-[11px] uppercase tracking-widest px-4 py-2 rounded-full border-[0.5px] border-indigo-200/50 bg-white shadow-sm active:scale-95 transition-all">
-            Nueva Sopa
-          </button>
-
-          <div class="bg-white px-3 py-1.5 rounded-xl border-2 border-indigo-100 shadow-sm flex items-center gap-2">
-            <Search size="12" class="text-indigo-400" />
-            <span class="text-indigo-600 font-black text-[10px] italic">SOPA NUMÉRICA</span>
+        <header class="w-full flex items-center justify-between px-4 py-3 shrink-0 bg-white border-b border-slate-100 z-10">
+          <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2 text-indigo-900 font-black text-sm sm:text-base uppercase tracking-tighter italic">
+                <Search size="20" class="text-indigo-500" /> SOPA NUMÉRICA
+            </div>
+            
+            <button @click="initGame" 
+              class="text-indigo-600 font-black text-[11px] uppercase tracking-widest px-4 py-2 rounded-full border border-indigo-100 bg-indigo-50 shadow-sm active:scale-95 transition-all">
+              Nueva Sopa
+            </button>
           </div>
-        </div>
 
-        <div class="w-full grid grid-cols-4 gap-1.5 mb-3 px-2 shrink-0">
-            <div v-for="ch in challenges" :key="ch.text" 
-                :class="['py-2 rounded-xl border text-center transition-all', 
-                         ch.found ? 'bg-green-100 border-green-200 opacity-30 scale-90' : 'bg-white border-indigo-50 shadow-sm']">
-                <p :class="['text-2xl font-black leading-none italic tracking-tighter', ch.found ? 'text-green-700 line-through' : 'text-indigo-900']">
-                    {{ ch.text }}
-                </p>
-            </div>
-        </div>
+          <button @click="$emit('close')" 
+                  class="bg-slate-100/50 hover:bg-slate-200/70 border border-slate-200 text-slate-500 p-2 rounded-full transition-all active:scale-90 shadow-sm">
+              <CloseIcon :size="22" />
+          </button>
+        </header>
 
-        <div class="relative w-full max-w-[340px] aspect-square bg-white rounded-[2rem] p-1 shadow-2xl border-4 border-white ring-8 ring-indigo-50/50 overflow-hidden shrink-0">
-            <div class="grid grid-cols-6 grid-rows-6 h-full w-full gap-0 border border-slate-100">
-                <button v-for="cell in grid" :key="cell.id" @click="handleCellClick(cell)"
-                    :class="['h-full w-full flex items-center justify-center relative border-[0.5px] border-slate-50 text-3xl font-black transition-all italic',
-                        cell.status === 'neutral' ? 'bg-white text-slate-400' : '',
-                        cell.status === 'selected' ? 'bg-yellow-300 text-yellow-900 z-10 scale-110 shadow-lg rounded-lg' : '',
-                        cell.status === 'correct' ? 'bg-green-500/20 text-green-700' : '',
-                        cell.status === 'error' ? 'bg-red-500/20 text-red-700 animate-shake' : '']">
-                    
-                    <div v-if="cell.isOverlapping && cell.status === 'neutral'" 
-                         class="absolute inset-1.5 border-[1.5px] border-indigo-200/40 rounded-full bg-indigo-50/30"></div>
-                    
-                    <span class="relative z-10">{{ cell.val }}</span>
-                </button>
+        <main class="flex-1 flex flex-col items-center justify-start p-2 gap-3 overflow-hidden pt-4">
+            
+            <div class="w-full grid grid-cols-4 gap-2 mb-2 px-2 shrink-0">
+                <div v-for="ch in challenges" :key="ch.text" 
+                    :class="['py-2.5 rounded-xl border text-center transition-all', 
+                             ch.found ? 'bg-green-100 border-green-200 opacity-30 scale-90' : 'bg-white border-indigo-50 shadow-sm']">
+                    <p :class="['text-2xl font-black leading-none italic tracking-tighter', ch.found ? 'text-green-700 line-through' : 'text-indigo-900']">
+                        {{ ch.text }}
+                    </p>
+                </div>
             </div>
-        </div>
 
-        <div class="mt-auto mb-24 w-[92%] bg-white p-4 rounded-[2.5rem] border-2 border-indigo-100 shadow-inner">
-            <div class="flex items-center gap-2 mb-2">
-                <Sparkles size="16" class="text-indigo-500" />
-                <h4 class="font-black text-xs text-indigo-900 uppercase tracking-widest leading-none">Reglas de Recompensa</h4>
+            <div class="relative w-full max-w-[340px] aspect-square bg-white rounded-[2.5rem] p-1 shadow-2xl border-4 border-white ring-8 ring-indigo-50/50 overflow-hidden shrink-0">
+                <div class="grid grid-cols-6 grid-rows-6 h-full w-full gap-0 border border-slate-100">
+                    <button v-for="cell in grid" :key="cell.id" @click="handleCellClick(cell)"
+                        :class="['h-full w-full flex items-center justify-center relative border-[0.5px] border-slate-50 text-3xl font-black transition-all italic',
+                            cell.status === 'neutral' ? 'bg-white text-slate-400' : '',
+                            cell.status === 'selected' ? 'bg-yellow-300 text-yellow-900 z-10 scale-110 shadow-lg rounded-lg' : '',
+                            cell.status === 'correct' ? 'bg-green-500/20 text-green-700' : '',
+                            cell.status === 'error' ? 'bg-red-500/20 text-red-700 animate-shake' : '']">
+                        
+                        <div v-if="cell.isOverlapping && cell.status === 'neutral'" 
+                             class="absolute inset-1.5 border-[1.5px] border-indigo-200/40 rounded-full bg-indigo-50/30"></div>
+                        
+                        <span class="relative z-10">{{ cell.val }}</span>
+                    </button>
+                </div>
             </div>
-            <ul class="text-[12.5px] font-normal text-slate-500 space-y-2 leading-snug">
-                <li class="flex items-start gap-3">
-                   <div class="w-6 h-6 mt-0.5 shrink-0"><OwlImage customClass="w-full h-full" /></div>
-                   <span>Busca los 12 resultados en horizontal o vertical para completar la sopa.</span>
-                </li>
-                <li class="flex items-start gap-3">
-                   <div class="w-6 h-6 shrink-0 flex items-center justify-center mt-0.5">
-                       <div class="w-5 h-5 bg-yellow-400 rounded-full border-2 border-yellow-600 flex items-center justify-center shadow-sm">
-                           <Coins size="10" class="text-yellow-800" />
-                       </div>
-                   </div>
-                   <span>Si terminas sin cometer fallos, ganas <span class="text-indigo-600 font-bold">10 monedas de plata</span>.</span>
-                </li>
-                <li class="flex items-start gap-3">
-                   <div class="p-1 bg-slate-50 rounded-lg text-slate-400 shrink-0"><AlertCircle size="14" /></div>
-                   <span>Si tienes algún error, el premio será de <span class="text-indigo-600 font-bold">5 monedas</span>.</span>
-                </li>
-            </ul>
-        </div>
+
+            <div class="w-full max-w-[380px] bg-white p-5 rounded-[2.5rem] border-2 border-indigo-100 shadow-md relative mt-2 shrink-0">
+                <div class="absolute -top-3 left-6 bg-indigo-600 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-sm">
+                    REGLAS DEL RETO
+                </div>
+                <div class="space-y-3 mt-1">
+                    <div class="flex items-center gap-3">
+                        <Sparkles size="16" class="text-indigo-500 shrink-0" />
+                        <p class="text-[13px] font-bold text-slate-700 leading-tight">Busca los 12 resultados en horizontal o vertical.</p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="w-5 h-5 bg-yellow-400 rounded-full border-2 border-yellow-600 flex items-center justify-center shadow-sm shrink-0">
+                            <Coins size="10" class="text-yellow-800" />
+                        </div>
+                        <p class="text-[13px] font-bold text-slate-700 leading-tight">Sin fallos: <span class="text-indigo-600 font-black">10 PLATA</span>.</p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <AlertCircle size="16" class="text-red-500 shrink-0" />
+                        <p class="text-[13px] font-bold text-slate-700 leading-tight">Con algún error: <span class="text-indigo-500 font-black">5 PLATA</span>.</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <div class="h-6 shrink-0"></div>
 
         <Transition name="pop">
           <div v-if="gameFinished" class="absolute inset-0 z-[300] bg-white flex flex-col items-center justify-center p-6 text-center animate-fade-in uppercase">
             <SimpleConfetti />
-            <Trophy class="w-24 h-24 text-amber-500 mb-6 drop-shadow-2xl" />
-            <h2 class="text-4xl font-black text-indigo-900 mb-2 leading-none">¡Sopa Resuelta!</h2>
-            <p class="text-indigo-400 font-bold mb-8 text-xs italic tracking-widest">{{ perfectGame ? 'PERFECCIÓN TOTAL' : '¡MUY BIEN HECHO!' }}</p>
+            <Trophy class="w-20 h-20 text-amber-500 mb-4 drop-shadow-2xl" />
+            <h2 class="text-3xl font-black text-indigo-900 mb-2 leading-none italic">¡Sopa Resuelta!</h2>
             
-            <div class="bg-indigo-50 border-4 border-indigo-100 rounded-[3rem] p-10 mb-10 shadow-inner w-full max-w-[280px]">
-               <div class="flex items-center justify-center gap-4">
-                  <img src="/images/coin-silver.png" class="w-14 h-14" />
-                  <span class="text-7xl font-black text-indigo-900 italic tracking-tighter">+{{ perfectGame ? 10 : 5 }}</span>
+            <div class="bg-indigo-50 border-4 border-indigo-100 rounded-[3rem] p-8 mb-8 shadow-inner w-full max-w-[240px]">
+               <div class="flex items-center justify-center gap-3">
+                  <img src="/images/coin-silver.png" class="w-12 h-12" />
+                  <span class="text-6xl font-black text-indigo-900 italic tracking-tighter">+{{ perfectGame ? 10 : 5 }}</span>
                </div>
-               <p class="text-[11px] font-black text-indigo-400 mt-4 tracking-[0.2em] leading-none">Monedas de Plata</p>
             </div>
 
-            <button @click="initGame" class="w-full max-w-[280px] bg-indigo-600 text-white font-black py-6 rounded-[2.5rem] shadow-xl border-b-8 border-indigo-800 active:translate-y-2 active:border-b-0 mb-4 text-xs tracking-widest transition-all">OTRO DESAFÍO</button>
-            <button @click="$emit('close')" class="text-slate-400 font-black text-[10px] tracking-widest py-4">VOLVER AL INICIO</button>
+            <button @click="initGame" class="w-full max-w-[240px] bg-indigo-600 text-white font-black py-4 rounded-[2rem] shadow-xl border-b-4 border-indigo-800 active:translate-y-1 transition-all text-sm mb-4">OTRO DESAFÍO</button>
+            <button @click="$emit('close')" class="text-slate-400 font-black text-[10px] tracking-widest py-2">VOLVER AL PORTAL</button>
           </div>
         </Transition>
     </div>

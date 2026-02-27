@@ -10,19 +10,22 @@ export default defineConfig({
     vue(),
     vueDevTools(),
     VitePWA({
-      // 🦉 CAMBIO CLAVE: Cambiamos 'autoUpdate' por 'prompt'.
-      // Esto permite que el usuario vea el aviso y decida cuándo actualizar pulsando el botón.
+      // 🦉 CONFIGURACIÓN DE ACTUALIZACIÓN (v2.9.3)
+      // 'prompt' permite que nuestro componente ReloadPrompt controle el reinicio
       registerType: 'prompt', 
       
       // Asegura que el Service Worker se registre automáticamente en el navegador
       injectRegister: 'auto',
       
+      // Recursos que deben estar disponibles offline
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
+      
       manifest: {
         name: 'Búho Matemático', 
         short_name: 'Búho Mate', 
         description: 'Mentoría Matemática con IA para todas las edades',
         theme_color: '#4f46e5',
+        background_color: '#4f46e5',
         icons: [
           {
             src: 'pwa-192x192.png',
@@ -38,12 +41,23 @@ export default defineConfig({
             src: 'pwa-512x512.png',
             sizes: '512x512',
             type: 'image/png',
-            purpose: 'any maskable'
+            purpose: 'any maskable' // Optimiza el icono para Android/iOS
           }
         ]
       },
+
+      // 🦉 MOTOR DE TRABAJO (Workbox) - El cerebro del reinicio forzado
+      workbox: {
+        // Borra versiones antiguas de la caché automáticamente al actualizar
+        cleanupOutdatedCaches: true,
+        // No salta la espera automáticamente; permite que el usuario pulse "Actualizar"
+        skipWaiting: false, 
+        // Toma el control de las pestañas abiertas inmediatamente tras actualizar
+        clientsClaim: true,
+      },
+
       // 🦉 MEJORA PARA DESARROLLO:
-      // Esto permite que la PWA y el aviso de actualización funcionen mientras usas "npm run dev".
+      // Permite probar el banner de actualización en modo local (npm run dev)
       devOptions: {
         enabled: true
       }

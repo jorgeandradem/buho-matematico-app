@@ -35,7 +35,7 @@ const quizButtons = [
 ];
 
 const buttonColors = [
-    'bg-red-500 hover:bg-red-600 shadow-[0_6px_0_rgb(185,28,28)] text-white',
+    'bg-red-500 hover:bg-red-600 shadow-[0_6px_0_rgb(185,28_28)] text-white',
     'bg-blue-500 hover:bg-blue-600 shadow-[0_6px_0_rgb(29,78,216)] text-white',
     'bg-yellow-400 hover:bg-yellow-500 shadow-[0_6px_0_rgb(202,138,4)] text-slate-900',
     'bg-green-500 hover:bg-green-600 shadow-[0_6px_0_rgb(21,128,61)] text-white'

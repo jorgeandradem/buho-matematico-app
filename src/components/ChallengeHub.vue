@@ -22,7 +22,7 @@ const gamesPerPage = 4;
 const games = [
   { 
     id: 'quiz', 
-    name: 'Desafío Contrarreloj', 
+    name: 'Desafío Contra Reloj', // ✅ CAMBIO QUIRÚRGICO APLICADO
     icon: Zap, 
     color: 'bg-orange-500', 
     desc: '60 segundos para ganar Plata' 

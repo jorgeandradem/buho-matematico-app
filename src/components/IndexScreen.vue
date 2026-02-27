@@ -213,13 +213,13 @@ const currentSubjectLabel = computed(() => {
     <div class="w-full max-w-[500px] h-full flex flex-col bg-gradient-to-br from-indigo-500 to-purple-600 shadow-2xl relative overflow-hidden p-4 mx-auto">
     
         <Transition name="bubble-pop">
-            <div v-if="showBubble" class="absolute top-20 left-1/2 -translate-x-1/2 z-[200] w-[85%] max-w-xs">
-                <div class="bg-yellow-400 text-indigo-900 p-4 rounded-2xl shadow-2xl border-4 border-white flex items-center gap-3 relative">
-                    <div class="bg-indigo-900/10 p-2 rounded-full">
-                        <BellRing class="animate-ring" :size="24" />
+            <div v-if="showBubble" class="absolute top-20 left-1/2 -translate-x-1/2 z-[200] w-[94%] max-w-xs">
+                <div class="bg-yellow-400 text-indigo-900 p-8 rounded-[2rem] shadow-2xl border-4 border-white flex items-center gap-5 relative min-h-[130px] h-auto transition-all">
+                    <div class="bg-indigo-900/10 p-3 rounded-full shrink-0">
+                        <BellRing class="animate-ring text-indigo-900" :size="30" />
                     </div>
-                    <p class="font-black text-sm leading-tight">{{ bubbleText }}</p>
-                    <div class="absolute -bottom-3 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[12px] border-l-transparent border-r-[12px] border-r-transparent border-t-[12px] border-t-yellow-400"></div>
+                    <p class="font-black text-lg leading-snug flex-1">{{ bubbleText }}</p>
+                    <div class="absolute -bottom-3 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[15px] border-l-transparent border-r-[15px] border-r-transparent border-t-[15px] border-t-yellow-400"></div>
                 </div>
             </div>
         </Transition>
@@ -280,16 +280,18 @@ const currentSubjectLabel = computed(() => {
 
         <header class="flex justify-between items-center w-full z-30 mb-2">
             <div class="flex gap-2">
-                <button @click="handleExitClick" class="p-2 bg-white rounded-full text-indigo-600 shadow-md border-2 border-indigo-100 active:scale-95 transition-transform"><LogOut :size="20" class="transform rotate-180" /></button>
+                <button @click="showShop = true" class="p-2 bg-gradient-to-b from-yellow-300 to-yellow-500 rounded-full text-yellow-900 shadow-lg border-2 border-yellow-200 hover:scale-110 active:scale-95 transition-transform flex items-center justify-center animate-bounce-slow relative">
+                     <ShoppingBag :size="20" stroke-width="2.5" />
+                     <span class="absolute top-0 right-0 w-3 h-3 bg-red-500 border-2 border-white rounded-full"></span>
+                </button>
                 <button @click="showMissions = true" class="px-3 py-1 bg-gradient-to-b from-orange-400 to-red-500 rounded-full text-white shadow-md border-2 border-red-200 hover:scale-105 active:scale-95 transition-transform flex items-center gap-1 font-black">
                     <Flame :size="18" fill="currentColor" class="text-yellow-300" />
                     {{ gamificationStore.currentStreak || 0 }}
                 </button>
             </div>
             <div class="bg-white px-4 py-1 rounded-full shadow-md hidden sm:block"><span class="text-lg font-black text-indigo-600 tracking-wider uppercase">Materias</span></div>
-            <button @click="showShop = true" class="p-2 bg-gradient-to-b from-yellow-300 to-yellow-500 rounded-full text-yellow-900 shadow-lg border-2 border-yellow-200 hover:scale-110 active:scale-95 transition-transform flex items-center justify-center animate-bounce-slow relative">
-                 <ShoppingBag :size="20" stroke-width="2.5" />
-                 <span class="absolute top-0 right-0 w-3 h-3 bg-red-500 border-2 border-white rounded-full"></span>
+            <button @click="handleExitClick" class="p-2 bg-white rounded-full text-indigo-600 shadow-md border-2 border-indigo-100 active:scale-95 transition-transform">
+                <LogOut :size="20" class="transform rotate-180" />
             </button>
         </header>
 

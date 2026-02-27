@@ -5,7 +5,7 @@ export default {
     "./src/**/*.{vue,js,ts,jsx,tsx}",
   ],
   theme: {
-    extend: {},
+    extend: {}, // ✅ Se eliminó la línea de 'moderna'
   },
   plugins: [],
 }

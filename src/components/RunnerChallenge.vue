@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
-import { ArrowLeft, Zap, Heart, Trophy, Cloud } from 'lucide-vue-next';
+import { X as CloseIcon, Zap, Heart, Trophy, Cloud } from 'lucide-vue-next'; // Cambiado ArrowLeft por CloseIcon
 import SimpleConfetti from './SimpleConfetti.vue';
 import CoinRain from './CoinRain.vue';
 import { useGamificationStore } from '../stores/useGamificationStore';
@@ -153,22 +153,18 @@ onUnmounted(() => { if (gameLoopId) cancelAnimationFrame(gameLoopId); });
 <template>
   <div class="fixed inset-0 z-[200] bg-white flex justify-center items-center overflow-hidden select-none normal-case font-sans" @touchstart="jump" @mousedown="jump">
     
-    <div class="w-full max-w-xl h-full flex flex-col items-center relative overflow-hidden shadow-2xl border-x border-slate-100">
+    <div class="w-full max-w-[500px] h-full flex flex-col items-center relative overflow-hidden shadow-2xl border-x border-slate-100 mx-auto">
         
         <CoinRain v-if="showCoinRain" type="gold" :count="50" class="z-[400]" />
 
         <div class="absolute inset-0 pointer-events-none overflow-hidden bg-gradient-to-b from-sky-400 via-sky-300 to-blue-200">
-            
             <div class="absolute -bottom-[40%] -right-[50%] w-[180%] h-[180%] rounded-full border-[60px] border-transparent transform -rotate-12 opacity-90 mix-blend-overlay"
                  style="background: radial-gradient(circle at center, transparent 60%, #8b5cf6 62%, #3b82f6 65%, #22c55e 68%, #eab308 71%, #f97316 74%, #ef4444 77%);">
             </div>
-
             <div class="absolute top-16 left-[5%] animate-cloud-slow opacity-95"><Cloud class="text-white fill-current drop-shadow-lg" size="72" /></div>
             <div class="absolute top-36 right-[10%] animate-cloud-fast opacity-90"><Cloud class="text-white fill-current drop-shadow-md" size="56" /></div>
             <div class="absolute top-24 left-[60%] animate-cloud-slow delay-700 opacity-90"><Cloud class="text-white fill-current drop-shadow-lg" size="64" /></div>
-
             <div class="absolute -bottom-[15%] w-[140%] -left-[20%] h-[45%] bg-gradient-to-t from-emerald-700 to-emerald-500 rounded-t-[100%] shadow-2xl"></div>
-            
             <div class="absolute bottom-[28%] w-full flex justify-around px-6 z-0">
                 <span class="text-5xl animate-bounce drop-shadow-md">🌻</span>
                 <span class="text-4xl animate-bounce delay-100 drop-shadow-md">🌸</span>
@@ -178,22 +174,22 @@ onUnmounted(() => { if (gameLoopId) cancelAnimationFrame(gameLoopId); });
             </div>
         </div>
 
-        <div class="w-full flex justify-between items-center p-6 z-50 absolute top-0 uppercase">
-          <button @click="$emit('close')" class="flex items-center gap-2 bg-indigo-600 text-white px-5 py-3 rounded-2xl shadow-lg border-b-4 border-indigo-800 active:translate-y-1 active:border-b-0 transition-all font-black text-xs">
-              <ArrowLeft size="18" />
-              REGRESAR
-          </button>
-          
-          <div class="flex gap-4">
-              <div class="bg-black/20 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/30 flex items-center gap-2 shadow-lg">
+        <div class="w-full flex justify-between items-center px-4 py-3 z-50 absolute top-0 uppercase">
+          <div class="flex gap-2">
+              <div class="bg-black/20 backdrop-blur-md px-3 py-1.5 rounded-2xl border border-white/30 flex items-center gap-2 shadow-lg">
                 <Heart size="18" class="text-red-500 fill-current animate-pulse" />
                 <span class="text-white font-black text-xl">{{ lives }}</span>
               </div>
-              <div class="bg-amber-500 px-4 py-2 rounded-2xl shadow-lg flex items-center gap-2 border-2 border-amber-300">
+              <div class="bg-amber-500 px-3 py-1.5 rounded-2xl shadow-lg flex items-center gap-2 border-2 border-amber-300">
                 <Trophy size="18" class="text-amber-900" />
                 <span class="text-amber-900 font-black text-xl">{{ score }}/10</span>
               </div>
           </div>
+
+          <button @click="$emit('close')" 
+                  class="bg-white/20 hover:bg-white/40 backdrop-blur-md border border-white/50 text-white p-2 rounded-full transition-all active:scale-90 shadow-lg">
+              <CloseIcon :size="22" />
+          </button>
         </div>
 
         <div class="absolute top-28 left-1/2 -translate-x-1/2 z-50 w-full text-center px-6 uppercase">

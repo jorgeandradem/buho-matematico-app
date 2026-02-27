@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue';
-import { ArrowLeft, RefreshCw, Trophy, Coins, Sparkles } from 'lucide-vue-next';
+import { X as CloseIcon, RefreshCw, Trophy, Coins, Sparkles } from 'lucide-vue-next';
 import CoinRain from './CoinRain.vue';
 import { useGamificationStore } from '../stores/useGamificationStore';
 import { speak } from '../utils/voice';
@@ -92,7 +92,6 @@ const finishGame = async () => {
     showCoinRain.value = true;
     // Bono final en la moneda de la última operación resuelta
     await gamificationStore.addCoins(getCurrencyType(activeOp.value), 5);
-    const totalSessionCoins = score.value + 5; 
     speak(`¡Excelente velocidad! Desafío terminado.`);
 };
 
@@ -102,13 +101,6 @@ const resetGame = () => {
     score.value = 0;
     showCoinRain.value = false;
     generateQuestion();
-};
-
-const getThemeColor = () => {
-    if (activeOp.value === 'add') return 'bg-blue-500';
-    if (activeOp.value === 'sub') return 'bg-red-500';
-    if (activeOp.value === 'mult') return 'bg-green-500';
-    return 'bg-yellow-400';
 };
 
 const handleBack = () => {
@@ -130,19 +122,23 @@ onMounted(() => {
             <CoinRain :type="getCurrencyType(activeOp)" :count="40" />
         </div>
 
-        <header :class="`flex-none p-4 ${getThemeColor()} text-white flex justify-between items-center shadow-md z-10 transition-colors duration-300 text-center`">
+        <header class="w-full flex items-center justify-between px-4 py-3 shrink-0 bg-white border-b border-slate-100 z-10 transition-colors duration-300">
+            <div class="flex items-center gap-4">
+                <div class="flex flex-col text-left">
+                    <span class="text-[10px] font-bold text-indigo-400 uppercase tracking-widest leading-none">Reto Mixto</span>
+                    <span class="text-lg font-black text-indigo-900 leading-none mt-0.5">{{ currentQuestionIndex + 1 }} / {{ QUESTIONS_COUNT }}</span>
+                </div>
+                
+                <div class="flex items-center gap-2 bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-100">
+                    <Trophy class="w-4 h-4 text-yellow-500" />
+                    <span class="font-mono font-bold text-lg text-indigo-900">{{ score }}</span>
+                </div>
+            </div>
+
             <button @click="handleBack" 
-                    class="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-xl shadow-[0_4px_0_rgb(21,128,61)] active:translate-y-1 transition-all font-black text-xs border-2 border-green-700 uppercase tracking-widest">
-                <ArrowLeft size="18" stroke-width="3" /> REGRESAR
+                    class="bg-slate-100/50 hover:bg-slate-200/70 border border-slate-200 text-slate-500 p-2 rounded-full transition-all active:scale-90 shadow-sm">
+                <CloseIcon :size="22" />
             </button>
-            <div class="flex flex-col items-center">
-                <span class="text-[10px] font-bold opacity-80 uppercase tracking-widest">Reto Mixto</span>
-                <span class="text-xl font-black">{{ currentQuestionIndex + 1 }} / {{ QUESTIONS_COUNT }}</span>
-            </div>
-            <div class="flex items-center gap-2 bg-black/20 px-3 py-1.5 rounded-full border border-white/20">
-                <Trophy class="w-4 h-4 text-yellow-300" />
-                <span class="font-mono font-bold text-lg">{{ score }}</span>
-            </div>
         </header>
 
         <main class="flex-1 flex flex-col items-center justify-start p-6 relative bg-white pt-6">
