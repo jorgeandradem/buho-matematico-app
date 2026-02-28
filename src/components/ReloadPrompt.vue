@@ -2,7 +2,7 @@
 import { useRegisterSW } from 'virtual:pwa-register/vue';
 import { RefreshCw, X } from 'lucide-vue-next';
 
-// 🦉 El motor que detecta si hay cambios en GitHub/Vercel
+// 🦉 Motor de detección de actualizaciones
 const { needRefresh, updateServiceWorker } = useRegisterSW();
 
 const close = () => {
@@ -10,14 +10,28 @@ const close = () => {
 };
 
 /**
- * 🚀 FUNCIÓN DE ACTUALIZACIÓN DINÁMICA
- * Al pulsar el banner, forzamos al Service Worker a saltar la espera (skipWaiting)
- * y recargar la ventana inmediatamente. Esto "mata" la versión vieja en la memoria.
+ * 🚀 FUNCIÓN DE ACTUALIZACIÓN DINÁMICA CON REFUERZO
+ * Intentamos la actualización oficial y, si el Service Worker se queda trabado,
+ * forzamos un refresco total de la ventana después de 1.5 segundos.
  */
 const handleUpdate = async () => {
-    console.log("🚀 Búho Matemático: Reiniciando para instalar mejoras...");
-    // El parámetro 'true' es vital para el refresco automático de la ventana
-    await updateServiceWorker(true); 
+    console.log("🚀 Búho Matemático: Iniciando limpieza de memoria y actualización...");
+    
+    try {
+        // 1. Vía oficial: solicita al Service Worker que salte la espera y recargue
+        await updateServiceWorker(true);
+        
+        // 2. 🚨 SEGURO DE VIDA: Si el navegador no ha reiniciado por sí solo en 1.5s,
+        // lo obligamos manualmente para eliminar la versión vieja de la RAM.
+        setTimeout(() => {
+            console.log("⚠️ Forzando recarga manual del nido...");
+            window.location.reload(true); 
+        }, 1500);
+
+    } catch (error) {
+        console.error("❌ Fallo crítico al actualizar, forzando recarga nuclear...", error);
+        window.location.reload(true);
+    }
 };
 </script>
 
@@ -62,7 +76,7 @@ const handleUpdate = async () => {
 .animate-spin-slow { animation: spin 4s linear infinite; }
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
-/* Animación de rebote suave para llamar la atención en el escritorio del móvil */
+/* Animación de rebote suave */
 .animate-bounce-slow { animation: bounce 3s infinite; }
 @keyframes bounce { 
   0%, 100% { transform: translateY(0); } 

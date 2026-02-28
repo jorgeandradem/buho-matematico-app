@@ -1,8 +1,8 @@
 <script setup>
-import { ref, nextTick } from 'vue';
+import { ref, nextTick, computed } from 'vue';
 import { 
   ChevronDown, ShieldCheck, Lock, Gavel, Cpu, Info,
-  ZoomIn, Shrink 
+  ZoomIn, Shrink, Type
 } from 'lucide-vue-next';
 
 const emit = defineEmits(['accepted']);
@@ -11,9 +11,19 @@ const activeTab = ref(null);
 const isZoomed = ref(false);
 const sectionRefs = ref([]);
 
+// --- 🧪 ESTADO DE LECTURA INMERSIVA ---
+const fontSize = ref(24); 
+const readingTheme = ref('light'); // 'light', 'sepia', 'dark'
+
+// 🎨 ESTILOS REACTIVOS (El truco para que la fuente obedezca al 100%)
+const readingStyles = computed(() => ({
+  fontSize: `${fontSize.value}px`,
+  fontFamily: '"Inter Variable", sans-serif',
+  transition: 'all 0.3s ease'
+}));
+
 /**
  * Lógica para abrir secciones y posicionar la lectura al inicio.
- * Detecta si estamos en modo normal o modo zoom para aplicar el scroll correcto.
  */
 const toggle = async (id) => {
   activeTab.value = activeTab.value === id ? null : id;
@@ -25,17 +35,13 @@ const toggle = async (id) => {
     
     if (element) {
       setTimeout(() => {
-        // Si estamos en modo Zoom, el scroll debe ocurrir dentro de su contenedor propio
         const container = isZoomed.value ? document.getElementById('scroll-container') : null;
-        
         if (container) {
-          // Ajuste fino para modo Smartphone
           container.scrollTo({
             top: element.offsetTop - 10,
             behavior: 'smooth'
           });
         } else {
-          // Scroll estándar para vista normal
           element.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
       }, 150);
@@ -43,12 +49,16 @@ const toggle = async (id) => {
   }
 };
 
+// ✅ RESET AL SALIR: Restablece todo al valor por defecto
 const toggleZoom = () => {
+  if (isZoomed.value) {
+    readingTheme.value = 'light';
+    fontSize.value = 24;
+    activeTab.value = null;
+  }
   isZoomed.value = !isZoomed.value;
-  if (!isZoomed.value) activeTab.value = null;
 };
 
-// Función para confirmar aceptación y cerrar
 const handleAcceptance = () => {
   if (isAccepted.value) {
     emit('accepted', true);
@@ -86,20 +96,29 @@ const sections = [
 <template>
   <div class="flex flex-col h-full bg-white text-slate-800 font-sans relative">
     
-    <header class="text-center mb-4 shrink-0 px-2 relative">
+    <header 
+      class="text-center mb-4 shrink-0 px-2 relative border-b border-slate-50 pb-2" 
+      style="font-family: 'Inter Variable', sans-serif;"
+    >
       <div class="flex justify-center mb-1">
-        <span class="bg-indigo-100 text-indigo-700 text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Búho Mate v2.8.2</span>
+        <span class="bg-indigo-100 text-indigo-700 text-[9px] px-2 py-0.5 rounded-full font-black uppercase tracking-widest">
+          Búho Mate v2.8.2
+        </span>
       </div>
       <div class="flex items-center justify-center gap-4">
-        <h1 class="text-lg font-black text-indigo-900 uppercase italic tracking-tight">Marco Legal e Integral</h1>
+        <h1 class="text-lg font-black text-indigo-900 uppercase tracking-tight">
+          Marco Legal e Integral
+        </h1>
         <button 
           @click="toggleZoom" 
-          class="p-2 bg-indigo-600 text-white rounded-full shadow-xl active:scale-90 hover:bg-indigo-700 transition-all"
+          class="p-2 bg-indigo-600 text-white rounded-full shadow-xl active:scale-90 transition-all"
         >
-          <ZoomIn :size="42" stroke-width="2.5" />
+          <ZoomIn :size="32" stroke-width="2.5" />
         </button>
       </div>
-      <p class="text-[10px] text-slate-400 italic font-medium">Actualización: 20 de febrero de 2026</p>
+      <p class="text-[10px] text-slate-400 font-bold">
+        Actualización: 20 de febrero de 2026
+      </p>
     </header>
 
     <div class="flex-1 space-y-2 mb-4 overflow-y-auto pr-1 custom-scrollbar">
@@ -131,12 +150,11 @@ const sections = [
     </div>
 
     <Teleport to="body">
-      <div v-if="isZoomed" class="fixed inset-0 z-[9999] bg-white flex justify-center overflow-hidden animate-fade-in">
-        
-        <div class="w-full max-w-[500px] h-full bg-white shadow-[0_0_60px_rgba(0,0,0,0.15)] border-x border-slate-100 flex flex-col animate-pop-in relative">
+      <div v-if="isZoomed" class="fixed inset-0 z-[9999] bg-slate-900/40 flex justify-center overflow-hidden animate-fade-in backdrop-blur-md">
+        <div class="w-full max-w-[500px] h-full bg-white shadow-2xl border-x border-slate-200 flex flex-col animate-pop-in relative">
           
           <header class="bg-indigo-900 text-white p-5 flex justify-between items-center shadow-xl shrink-0 z-10">
-            <div class="flex flex-col">
+            <div class="flex flex-col text-left">
               <span class="text-[10px] font-black text-yellow-300 uppercase tracking-widest italic leading-none">Lectura Inmersiva</span>
               <h1 class="text-xl font-black uppercase tracking-tighter">Búho Matemático</h1>
             </div>
@@ -145,31 +163,60 @@ const sections = [
             </button>
           </header>
 
-          <div id="scroll-container" class="flex-1 overflow-y-auto p-6 bg-slate-50 custom-scrollbar scroll-smooth">
+          <div class="p-3 border-b flex items-center justify-center gap-4 bg-slate-50 shrink-0">
+            <button @click="fontSize > 16 && fontSize--" 
+                    class="flex-1 max-w-[120px] h-10 bg-indigo-100 text-indigo-700 rounded-xl font-black text-2xl active:scale-95 transition-all flex items-center justify-center shadow-sm">
+              -
+            </button>
+            <div class="flex items-center gap-1 px-4 bg-white py-1 rounded-full border border-slate-200 shadow-inner">
+              <Type :size="14" class="text-indigo-400" />
+              <span class="text-xs font-black text-indigo-900 w-4 text-center">{{ fontSize }}</span>
+            </div>
+            <button @click="fontSize < 48 && fontSize++" 
+                    class="flex-1 max-w-[120px] h-10 bg-indigo-100 text-indigo-700 rounded-xl font-black text-2xl active:scale-95 transition-all flex items-center justify-center shadow-sm">
+              +
+            </button>
+            <div class="flex gap-2 ml-2">
+              <button @click="readingTheme = 'light'" class="w-6 h-6 rounded-full bg-white border-2 border-slate-300 shadow-sm" :class="{'ring-2 ring-indigo-500': readingTheme === 'light'}"></button>
+              <button @click="readingTheme = 'sepia'" class="w-6 h-6 rounded-full bg-[#f4ecd8] border-2 border-[#d3c5a3] shadow-sm" :class="{'ring-2 ring-indigo-500': readingTheme === 'sepia'}"></button>
+              <button @click="readingTheme = 'dark'" class="w-6 h-6 rounded-full bg-slate-700 border-2 border-slate-600 shadow-sm" :class="{'ring-2 ring-indigo-500': readingTheme === 'dark'}"></button>
+            </div>
+          </div>
+
+          <div id="scroll-container" 
+               class="flex-1 overflow-y-auto p-6 custom-scrollbar scroll-smooth transition-colors duration-500"
+               :style="readingStyles"
+               :class="{
+                 'bg-white text-slate-700': readingTheme === 'light',
+                 'bg-[#f4ecd8] text-[#5b4636]': readingTheme === 'sepia',
+                 'bg-slate-800 text-slate-100': readingTheme === 'dark'
+               }">
             <div class="space-y-6 pb-20">
               <div 
                 v-for="(sec, index) in sections" 
                 :key="sec.id" 
                 :ref="el => sectionRefs[index] = el" 
-                class="bg-white border-2 rounded-[2rem] overflow-hidden shadow-sm transition-all"
-                :class="activeTab === sec.id ? 'border-indigo-600' : 'border-white'"
+                class="border-2 rounded-[2rem] overflow-hidden shadow-lg transition-all"
+                :class="[
+                  activeTab === sec.id ? 'border-indigo-600' : 'border-slate-100/50',
+                  readingTheme === 'dark' ? 'bg-slate-700/50' : 'bg-white/80'
+                ]"
               >
-                <button @click="toggle(sec.id)" class="w-full p-6 flex items-center justify-between text-left bg-indigo-50/50">
-                  <span class="text-xl font-black text-indigo-900 uppercase flex items-center gap-4">
-                    <component :is="sec.icon" :size="28" class="text-indigo-600" /> {{ sec.title }}
+                <button @click="toggle(sec.id)" class="w-full p-8 flex items-center justify-between text-left" 
+                        :class="readingTheme === 'dark' ? 'bg-slate-900/20' : 'bg-indigo-50/30'">
+                  <span class="font-black uppercase flex items-center gap-4">
+                    <component :is="sec.icon" :size="fontSize * 1.2" class="text-indigo-600 shrink-0" /> {{ sec.title }}
                   </span>
-                  <ChevronDown :size="28" :class="activeTab === sec.id ? 'rotate-180 text-indigo-600' : ''" />
+                  <ChevronDown :size="fontSize * 1.2" :class="activeTab === sec.id ? 'rotate-180 text-indigo-600' : ''" />
                 </button>
-                
-                <div v-if="activeTab === sec.id" class="p-8 text-2xl text-slate-700 leading-snug font-medium border-t-2 border-slate-100 animate-fade-in">
+                <div v-if="activeTab === sec.id" class="p-10 leading-snug font-medium border-t-2 border-slate-100/20 animate-fade-in">
                   {{ sec.content }}
                 </div>
               </div>
             </div>
           </div>
-          
-          <div class="h-6 bg-white flex justify-center items-center shrink-0 border-t border-slate-50">
-              <div class="w-16 h-1 bg-slate-200 rounded-full"></div>
+          <div class="h-8 bg-white flex justify-center items-center shrink-0 border-t border-slate-100">
+              <div class="w-20 h-1.5 bg-slate-200 rounded-full"></div>
           </div>
         </div>
       </div>

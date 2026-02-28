@@ -1,0 +1,41 @@
+/* 🦉 Declaración de la Familia Inter (Optimizado para 18pt) */
+
+@font-face {
+  font-family: 'Inter';
+  src: url('./fonts/Inter_18pt-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Inter';
+  src: url('./fonts/Inter_18pt-Medium.woff2') format('woff2');
+  font-weight: 500; /* 🚀 Usa esto para textos pequeños legibles */
+  font-weight: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Inter';
+  src: url('./fonts/Inter_18pt-SemiBold.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Inter';
+  src: url('./fonts/Inter_18pt-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* 🧪 Fuente Variable (Para navegadores modernos e iOS) */
+@font-face {
+  font-family: 'Inter Variable';
+  src: url('./fonts/Inter-VariableFont_opsz,wght.woff2') format('woff2-variations');
+  font-weight: 100 900;
+  font-display: swap;
+}

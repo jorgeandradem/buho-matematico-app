@@ -2,7 +2,7 @@
 import { ref, computed } from 'vue';
 import { 
   X as CloseIcon, Zap, Trophy, Brain, Search, Puzzle, 
-  Rocket, Plane, ChevronLeft, ChevronRight 
+  Rocket, Plane, Anchor, ChevronLeft, ChevronRight 
 } from 'lucide-vue-next';
 
 // --- IMPORTACIÓN DE JUEGOS ---
@@ -11,18 +11,21 @@ import MemoryChallenge from './MemoryChallenge.vue';
 import NumberSearch from './NumberSearch.vue';
 import PuzzleChallenge from './PuzzleChallenge.vue';
 import RunnerChallenge from './RunnerChallenge.vue';
-// ENLACE: Importamos el nuevo juego de Tablas Rápidas
 import QuickFly from './QuickFly.vue';
+import TreasureHunt from '../views/TreasureHunt.vue';
 
 const emit = defineEmits(['close']);
 const activeGame = ref(null); 
 const currentPage = ref(0); 
-const gamesPerPage = 4; 
 
+// AJUSTE: Ahora mostramos 5 retos por página
+const gamesPerPage = 5;
+
+// --- LISTA ORIGINAL DE JUEGOS ---
 const games = [
   { 
     id: 'quiz', 
-    name: 'Desafío Contra Reloj', // ✅ CAMBIO QUIRÚRGICO APLICADO
+    name: 'Desafío Contra Reloj', 
     icon: Zap, 
     color: 'bg-orange-500', 
     desc: '60 segundos para ganar Plata' 
@@ -54,14 +57,20 @@ const games = [
     icon: Rocket, 
     color: 'bg-sky-500', 
     desc: 'Calcula mientras vuelas' 
-  },
-  // ENLACE: Registro para que aparezca en la Página 2
+  }, // Este cierra la Página 1 ahora
   { 
     id: 'fly', 
     name: 'Tablas Rápidas', 
     icon: Plane, 
     color: 'bg-rose-500', 
     desc: 'Agilidad mental con Cobre' 
+  },
+  { 
+    id: 'treasure', 
+    name: 'Ruta del Tesoro', 
+    icon: Anchor, 
+    color: 'bg-amber-600', 
+    desc: '10 Misiones: El Cofre Pirata' 
   }
 ];
 
@@ -87,7 +96,7 @@ const closeGame = () => { activeGame.value = null; };
       <div class="flex items-center gap-3 text-white px-2">
         <Trophy class="text-yellow-400" :size="32" />
         <div>
-          <h2 class="text-2xl font-black uppercase tracking-tighter">Portal de Desafíos</h2>
+          <h2 class="text-2xl font-black uppercase tracking-tighter text-white">Portal de Desafíos</h2>
           <p class="text-indigo-200 text-[10px] font-bold uppercase italic">Página {{ currentPage + 1 }} de {{ totalPages }}</p>
         </div>
       </div>
@@ -132,6 +141,7 @@ const closeGame = () => { activeGame.value = null; };
       <PuzzleChallenge v-if="activeGame === 'puzzle'" @close="closeGame" />
       <RunnerChallenge v-if="activeGame === 'runner'" @close="closeGame" />
       <QuickFly v-if="activeGame === 'fly'" @close="closeGame" />
+      <TreasureHunt v-if="activeGame === 'treasure'" @close="closeGame" />
     </div>
   </div>
 </template>

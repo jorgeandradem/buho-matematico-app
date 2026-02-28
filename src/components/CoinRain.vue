@@ -2,9 +2,9 @@
 import { ref, onMounted } from 'vue';
 
 const props = defineProps({
-  // Puede ser 'gold', 'silver' o 'copper'. El componente decide qué imagen usar.
+  // Puede ser 'gold', 'silver' o 'copper'.
   type: { type: String, default: 'gold' },
-  // Cantidad de monedas
+  // Cantidad de monedas a generar
   count: { type: Number, default: 30 }
 });
 
@@ -15,12 +15,16 @@ onMounted(() => {
   for (let i = 0; i < props.count; i++) {
     newCoins.push({
       id: i,
-      // Matemáticas para que la caída se vea natural y aleatoria dentro del ancho del contenedor
+      // Posicionamiento aleatorio horizontal
       left: Math.random() * 100 + '%',
+      // Duración de caída entre 1 y 3 segundos
       duration: Math.random() * 2 + 1 + 's',
+      // Retraso para que no caigan todas al mismo tiempo
       delay: Math.random() * 0.5 + 's',
+      // Rotación final aleatoria
       rotation: Math.random() * 360 + 'deg',
-      size: Math.random() * 20 + 30 + 'px' // Tamaño variable
+      // Tamaño entre 30px y 50px
+      size: Math.random() * 20 + 30 + 'px' 
     });
   }
   coins.value = newCoins;
@@ -48,20 +52,20 @@ onMounted(() => {
 
 <style scoped>
 .coin-rain-container {
-  /* CAMBIO: 'absolute' para que se limite al ancho de 500px del padre (IndexScreen) */
+  /* Se limita al contenedor padre para no desbordar la interfaz */
   position: absolute;
   top: 0; 
   left: 0; 
   right: 0;
   bottom: 0;
   pointer-events: none; 
-  z-index: 9999; /* Se mantiene por encima de todo */
+  z-index: 9999; 
   overflow: hidden;
 }
 
 .falling-coin {
   position: absolute;
-  top: -100px;
+  top: -100px; /* Inicia fuera de la pantalla superior */
   object-fit: contain;
   animation-name: fall;
   animation-timing-function: ease-in;
@@ -69,9 +73,17 @@ onMounted(() => {
 }
 
 @keyframes fall {
-  0% { transform: translateY(0) rotate(0deg); opacity: 1; }
-  85% { opacity: 1; }
-  /* Cae hasta el final del alto del dispositivo sin importar el scroll */
-  100% { transform: translateY(110dvh) rotate(var(--rotation)); opacity: 0; }
+  0% { 
+    transform: translateY(0) rotate(0deg); 
+    opacity: 1; 
+  }
+  85% { 
+    opacity: 1; 
+  }
+  /* Cae hasta el final del alto dinámico del dispositivo */
+  100% { 
+    transform: translateY(110dvh) rotate(var(--rotation)); 
+    opacity: 0; 
+  }
 }
 </style>

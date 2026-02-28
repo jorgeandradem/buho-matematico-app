@@ -73,7 +73,7 @@ const rawInventory = [
     { id: 's10', name: 'Bolsa Gusanitos', cost: 20, type: 'silver', icon: '🥨', desc: 'Saladitos' },
     { id: 's11', name: 'Juego de Mesa', cost: 15, type: 'silver', icon: '🎲', desc: 'Una partida juntos' },
     { id: 's12', name: 'Pintar Témperas', cost: 25, type: 'silver', icon: '🎨', desc: 'Arte con pinceles' },
-    { id: 's13', name: 'Elegir Merienda', cost: 20, type: 'silver', icon: ' Sandwich🥪', desc: 'Lo que tú quieras' },
+    { id: 's13', name: 'Sandwich', cost: 20, type: 'silver', icon: '🥪', desc: '¡Elige lo que tú quieras!' },
     { id: 's14', name: 'Un Comic Corto', cost: 40, type: 'silver', icon: '📚', desc: 'Lectura divertida' },
     { id: 's15', name: 'Pompero', cost: 35, type: 'silver', icon: '🫧', desc: 'Hacer burbujas' },
     { id: 's16', name: 'Hacer Slime', cost: 45, type: 'silver', icon: '🧪', desc: 'Experimento casero' },

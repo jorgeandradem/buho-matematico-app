@@ -37,7 +37,7 @@ export const playOwlHoot = () => {
         osc.frequency.setValueAtTime(startFreq, startTime); 
         osc.frequency.exponentialRampToValueAtTime(endFreq, startTime + duration);
 
-        // Volumen AJUSTADO: Bajamos a 0.2 para que sea sutil frente a la voz
+        // Volumen AJUSTADO: sutil frente a la voz
         gain.gain.setValueAtTime(0, startTime);
         gain.gain.linearRampToValueAtTime(maxVol, startTime + (duration * 0.1));
         gain.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
@@ -49,7 +49,7 @@ export const playOwlHoot = () => {
         osc.stop(startTime + duration + 0.1);
     };
 
-    // Secuencia "Huuu... Huuuuu" con volumen SUAVE (0.2)
+    // Secuencia "Huuu... Huuuuu" con volumen SUAVE
     createHoot(t, 0.4, 600, 450, 0.2);       
     createHoot(t + 0.5, 0.6, 550, 400, 0.15); 
 
@@ -59,7 +59,7 @@ export const playOwlHoot = () => {
 };
 
 // ----------------------------------------------------
-// 2. SONIDO DE SALIDA
+// 2. SONIDO DE SALIDA (Sintetizado)
 // ----------------------------------------------------
 export const playExitSound = () => {
     try {
@@ -89,21 +89,42 @@ export const playExitSound = () => {
 };
 
 // ----------------------------------------------------
-// 3. NUEVO: SONIDO DE MONEDAS CAYENDO
+// 3. SONIDO DE MONEDAS CAYENDO (Archivo MP3)
 // ----------------------------------------------------
 export const playCoinSound = () => {
   try {
-    // Apunta al archivo físico public/audios/coins.mp3
+    // Apunta al archivo físico en public/audios/coins.mp3
     const audio = new Audio('/audios/coins.mp3');
     
-    // Volumen al 50% para que sea agradable y no asuste
+    // Volumen moderado para la experiencia del usuario
     audio.volume = 0.5; 
     
-    // Reproducimos capturando posibles bloqueos del navegador
+    // Reproducción con manejo de promesas para evitar bloqueos del navegador
     audio.play().catch(error => {
-      console.warn('El navegador bloqueó el sonido de la moneda:', error);
+      console.warn('El navegador bloqueó el inicio automático del sonido:', error);
     });
   } catch (error) {
-    console.error('Error general al intentar reproducir coins.mp3:', error);
+    console.error('Error al intentar reproducir coins.mp3:', error);
+  }
+};
+
+/**
+ * Función genérica para disparar sonidos por nombre
+ * Útil para integraciones rápidas en componentes
+ */
+export const playSound = (soundName) => {
+  switch (soundName) {
+    case 'coin':
+    case 'coins':
+      playCoinSound();
+      break;
+    case 'owl':
+      playOwlHoot();
+      break;
+    case 'exit':
+      playExitSound();
+      break;
+    default:
+      console.warn(`Sonido no encontrado: ${soundName}`);
   }
 };
