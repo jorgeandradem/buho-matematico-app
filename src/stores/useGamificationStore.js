@@ -3,7 +3,7 @@ import { missionsData } from '../data/missions';
 
 // --- IMPORTACIONES FIREBASE ---
 import { auth, db } from '../firebaseConfig';
-import { doc, updateDoc } from "firebase/firestore";
+import { doc, updateDoc, runTransaction } from "firebase/firestore";
 
 const STORAGE_KEY = 'buho-matematico-tesoro-v1';
 
@@ -22,13 +22,15 @@ export const useGamificationStore = defineStore('gamification', {
     purchasedItems: [],
     pirateLevel: 1,
     completedIslands: [],
+    worldTourLevel: 0, 
     currentStreak: 0,
     lastPlayedDate: null,
     activeMissions: [],
     dailyNotifications: 0,
     lastNotificationDate: null,
     bubbleMessage: '',
-    isSyncing: false 
+    isSyncing: false,
+    syncTimeout: null // Para el Debouncing
   }),
 
   getters: {
@@ -39,80 +41,79 @@ export const useGamificationStore = defineStore('gamification', {
   },
 
   actions: {
+    // --- LÓGICA DE CONCILIACIÓN (PROTOCOLO DELTA) ---
     setCoinsFromCloud(stats) {
       if (!stats || this.isSyncing) return; 
       
+      // Cálculo del "Saldo en Tránsito" (Ganancias locales no sincronizadas)
       const copperInTransit = this.copper - this.lastSyncedCopper;
       const silverInTransit = this.silver - this.lastSyncedSilver;
       const goldInTransit   = this.gold   - this.lastSyncedGold;
 
+      // Fusionar: Saldo Nube + Delta Local
       this.gold = (stats.gold || 0) + goldInTransit;
       this.silver = (stats.silver || 0) + silverInTransit;
       this.copper = (stats.copper || 0) + (stats.puntos || 0) + copperInTransit;
 
+      // Actualizar Referencia Sincronizada
       this.lastSyncedGold = stats.gold || 0;
       this.lastSyncedSilver = stats.silver || 0;
       this.lastSyncedCopper = (stats.copper || 0) + (stats.puntos || 0);
 
+      // Resto de metadatos
       this.currentStreak = stats.racha || 0;
       this.lastPlayedDate = stats.lastPlayedDate || null;
       this.purchasedItems = stats.purchasedItems || [];
       this.activeMissions = stats.activeMissions || [];
       this.pirateLevel = stats.pirateLevel || 1;
       this.completedIslands = stats.completedIslands || [];
+      this.worldTourLevel = stats.worldTourLevel || 0;
       
       this.saveToStorage();
     },
 
+    // --- SINCRONIZACIÓN ATÓMICA CON DEBOUNCING ---
     async syncAllToCloud() {
-        const user = auth.currentUser;
-        if (!user || this.isSyncing) return;
+        if (this.syncTimeout) clearTimeout(this.syncTimeout);
 
-        this.isSyncing = true; 
-        try {
-            const userRef = doc(db, "users", user.uid);
-            await updateDoc(userRef, {
-                "stats.gold": this.gold,
-                "stats.silver": this.silver,
-                "stats.copper": this.copper,
-                "stats.racha": this.currentStreak,
-                "stats.lastPlayedDate": this.lastPlayedDate,
-                "stats.purchasedItems": this.purchasedItems,
-                "stats.activeMissions": this.activeMissions,
-                "stats.pirateLevel": this.pirateLevel,
-                "stats.completedIslands": this.completedIslands,
-                lastActivity: Date.now()
-            });
-            this.lastSyncedGold = this.gold;
-            this.lastSyncedSilver = this.silver;
-            this.lastSyncedCopper = this.copper;
-        } catch (error) {
-            console.log("📡 Saldo en tránsito (Offline/Error)");
-        } finally {
-            this.isSyncing = false;
-        }
+        // Debouncing de 2 segundos para no saturar Firebase
+        this.syncTimeout = setTimeout(async () => {
+            const user = auth.currentUser;
+            if (!user || this.isSyncing) return;
+
+            this.isSyncing = true; 
+            try {
+                const userRef = doc(db, "users", user.uid);
+                
+                // Usamos updateDoc para el envío masivo de estado
+                await updateDoc(userRef, {
+                    "stats.gold": this.gold,
+                    "stats.silver": this.silver,
+                    "stats.copper": this.copper,
+                    "stats.racha": this.currentStreak,
+                    "stats.lastPlayedDate": this.lastPlayedDate,
+                    "stats.purchasedItems": this.purchasedItems,
+                    "stats.activeMissions": this.activeMissions,
+                    "stats.pirateLevel": this.pirateLevel,
+                    "stats.completedIslands": this.completedIslands,
+                    "stats.worldTourLevel": this.worldTourLevel,
+                    lastActivity: Date.now()
+                });
+
+                // Actualizar marcas de sincronización exitosa
+                this.lastSyncedGold = this.gold;
+                this.lastSyncedSilver = this.silver;
+                this.lastSyncedCopper = this.copper;
+                
+            } catch (error) {
+                console.warn("⚠️ Banco Central: Saldo en tránsito (Modo Offline)");
+            } finally {
+                this.isSyncing = false;
+            }
+        }, 2000);
     },
 
-    // --- FLUJO SIN BLOQUEOS: Prioridad a la UI ---
-    completePirateMission(islandId, rewardType, rewardAmount) {
-      if (this.completedIslands.includes(islandId)) return;
-
-      this.completedIslands.push(islandId);
-      if (this.pirateLevel < 10) {
-        this.pirateLevel++;
-      } else {
-        this.pirateLevel = 1;
-        this.completedIslands = [];
-        this.bubbleMessage = "¡Felicidades Gran Pirata! Nueva ruta iniciada. 🏴‍☠️";
-      }
-
-      this.addCoins(rewardType, rewardAmount);
-      this.bubbleMessage = `¡Cofre abierto! Ganaste ${rewardAmount} de ${rewardType}. 🚢`;
-      
-      this.saveToStorage();
-      this.syncAllToCloud(); 
-    },
-
+    // --- MÉTODOS DE GENERACIÓN DE RIQUEZA ---
     addCoins(type, amount) {
       const safeAmount = Math.max(0, parseInt(amount) || 0);
       if (safeAmount === 0) return;
@@ -139,9 +140,12 @@ export const useGamificationStore = defineStore('gamification', {
       this.syncAllToCloud(); 
     },
 
+    // --- SEGURIDAD: GASTO VALIDADO ---
     async spendCoins(type, amount) {
       const safeAmount = Math.max(0, parseInt(amount) || 0);
       let success = false;
+
+      // Validación de solvencia antes de procesar
       if (type === 'gold' && this.gold >= safeAmount) { this.gold -= safeAmount; success = true; }
       else if (type === 'silver' && this.silver >= safeAmount) { this.silver -= safeAmount; success = true; }
       else if (type === 'copper' && this.copper >= safeAmount) { this.copper -= safeAmount; success = true; }
@@ -150,8 +154,33 @@ export const useGamificationStore = defineStore('gamification', {
           this.updateMissionProgress('buy_shop', 1); 
           this.saveToStorage();
           this.syncAllToCloud(); 
+      } else {
+          this.bubbleMessage = "No tienes suficiente saldo en la bóveda. 🦉";
       }
       return success;
+    },
+
+    completeWorldTourChallenge(rewardType, rewardAmount) {
+      this.worldTourLevel++;
+      this.addCoins(rewardType, rewardAmount);
+      this.bubbleMessage = "¡Increíble! Un paso más cerca de completar el mapa mundial. 🌍";
+      this.updateMissionProgress('complete_challenge', 1);
+    },
+
+    completePirateMission(islandId, rewardType, rewardAmount) {
+      if (this.completedIslands.includes(islandId)) return;
+
+      this.completedIslands.push(islandId);
+      if (this.pirateLevel < 10) {
+        this.pirateLevel++;
+      } else {
+        this.pirateLevel = 1;
+        this.completedIslands = [];
+        this.bubbleMessage = "¡Felicidades Gran Pirata! Nueva ruta iniciada. 🏴‍☠️";
+      }
+
+      this.addCoins(rewardType, rewardAmount);
+      this.bubbleMessage = `¡Cofre abierto! Ganaste ${rewardAmount} de ${rewardType}. 🚢`;
     },
 
     saveTicket(ticket) {
@@ -177,6 +206,7 @@ export const useGamificationStore = defineStore('gamification', {
     async hardReset() {
         this.copper = 0; this.silver = 0; this.gold = 0;
         this.pirateLevel = 1; this.completedIslands = [];
+        this.worldTourLevel = 0;
         this.lastSyncedCopper = 0; this.lastSyncedSilver = 0; this.lastSyncedGold = 0;
         this.sessionCopperEarned = 0; this.sessionSilverEarned = 0; this.sessionGoldEarned = 0;
         this.purchasedItems = []; this.currentStreak = 0;
@@ -193,7 +223,8 @@ export const useGamificationStore = defineStore('gamification', {
               "stats.gold": 0, "stats.silver": 0, "stats.copper": 0,
               "stats.puntos": 0, "stats.racha": 0, "stats.lastPlayedDate": null,
               "stats.purchasedItems": [], "stats.activeMissions": [],
-              "stats.pirateLevel": 1, "stats.completedIslands": []
+              "stats.pirateLevel": 1, "stats.completedIslands": [],
+              "stats.worldTourLevel": 0
             });
           } catch (error) { console.error(error); }
         }
@@ -220,7 +251,7 @@ export const useGamificationStore = defineStore('gamification', {
                 const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
                 if (diffDays === 1) {
                     this.currentStreak += 1; 
-                    if (this.currentStreak > 7) { this.currentStreak = 0; }
+                    if (this.currentStreak > 7) { this.currentStreak = 1; }
                 } else if (diffDays > 1) {
                     this.currentStreak = 1; 
                 }
@@ -236,9 +267,9 @@ export const useGamificationStore = defineStore('gamification', {
 
     generateNewMissions() {
         if (!missionsData || missionsData.length === 0) return;
-        const copper = missionsData.filter(m => m.id && m.id.startsWith('m_c'));
-        const silver = missionsData.filter(m => m.id && m.id.startsWith('m_s'));
-        const gold   = missionsData.filter(m => m.id && m.id.startsWith('m_g'));
+        const copper = missionsData.filter(m => m.id?.startsWith('m_c'));
+        const silver = missionsData.filter(m => m.id?.startsWith('m_s'));
+        const gold   = missionsData.filter(m => m.id?.startsWith('m_g'));
 
         const selected = [
             copper[Math.floor(Math.random() * copper.length)],
@@ -274,13 +305,14 @@ export const useGamificationStore = defineStore('gamification', {
           lastSyncedGold: this.lastSyncedGold,
           pirateLevel: this.pirateLevel,
           completedIslands: this.completedIslands,
+          worldTourLevel: this.worldTourLevel,
           purchasedItems: this.purchasedItems, currentStreak: this.currentStreak,
           lastPlayedDate: this.lastPlayedDate, activeMissions: this.activeMissions,
           dailyNotifications: this.dailyNotifications,
           lastNotificationDate: this.lastNotificationDate
         };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
-      } catch (e) { console.error(e); }
+      } catch (e) { console.error("Error localStorage:", e); }
     },
 
     loadFromStorage() {
@@ -288,22 +320,9 @@ export const useGamificationStore = defineStore('gamification', {
         const savedData = localStorage.getItem(STORAGE_KEY);
         if (savedData) {
           const parsedData = JSON.parse(savedData);
-          this.copper = parseInt(parsedData.copper) || 0;
-          this.silver = parseInt(parsedData.silver) || 0;
-          this.gold = parseInt(parsedData.gold) || 0;
-          this.lastSyncedCopper = parseInt(parsedData.lastSyncedCopper) || 0;
-          this.lastSyncedSilver = parseInt(parsedData.lastSyncedSilver) || 0;
-          this.lastSyncedGold = parseInt(parsedData.lastSyncedGold) || 0;
-          this.pirateLevel = parseInt(parsedData.pirateLevel) || 1;
-          this.completedIslands = parsedData.completedIslands || [];
-          this.purchasedItems = parsedData.purchasedItems || [];
-          this.currentStreak = parseInt(parsedData.currentStreak) || 0;
-          this.lastPlayedDate = parsedData.lastPlayedDate || null;
-          this.activeMissions = parsedData.activeMissions || [];
-          this.dailyNotifications = parsedData.dailyNotifications || 0;
-          this.lastNotificationDate = parsedData.lastNotificationDate || null;
+          Object.assign(this, parsedData);
         }
-      } catch (e) { console.error(e); }
+      } catch (e) { console.error("Error cargando storage:", e); }
     }
   }
 });

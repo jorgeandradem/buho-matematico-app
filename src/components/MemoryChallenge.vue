@@ -107,88 +107,85 @@ const triggerWin = async () => {
     emit('win', { type: 'gold', count: prize });
 };
 
-onMounted(() => initGame());
+onMounted(() => {
+    document.body.style.overflow = 'hidden';
+    initGame();
+});
 </script>
 
 <template>
-  <div class="h-[100dvh] w-full bg-white flex justify-center overflow-hidden font-sans select-none text-slate-900">
-    <div class="w-full max-w-[500px] h-full flex flex-col bg-slate-50 relative shadow-2xl border-x border-slate-200 overflow-hidden mx-auto">
+  <div class="fixed inset-0 z-50 bg-white flex justify-center overflow-hidden font-sans select-none text-slate-900 overscroll-none touch-none w-full h-[100dvh]">
+    <div class="w-full max-w-[480px] h-full flex flex-col bg-slate-50 relative shadow-2xl overflow-hidden mx-auto">
         
         <CoinRain v-if="showCoinRain" type="gold" :count="50" class="z-[400]" />
 
-        <header class="w-full flex items-center justify-between px-4 py-3 shrink-0 bg-white border-b border-slate-100 z-10">
+        <header class="w-full flex items-center justify-between px-4 py-2 shrink-0 bg-white border-b border-slate-100 z-10">
           <div class="flex items-center gap-3">
-            <div class="flex items-center gap-2 text-indigo-900 font-black text-sm sm:text-base uppercase tracking-tighter">
-                <Brain size="20" class="text-indigo-500" /> MEMORIA PRO
+            <div class="flex items-center gap-1.5 text-indigo-900 font-black text-sm uppercase tracking-tighter">
+                <Brain size="18" class="text-indigo-500" /> MEMORIA
             </div>
             
-            <div class="flex gap-1.5 font-black text-[11px] uppercase">
-              <div class="flex items-center gap-1 text-red-500 bg-red-50 px-2.5 py-1 rounded-lg border border-red-100 shadow-sm">
-                  <AlertCircle size="14" /> {{ errors }}
+            <div class="flex gap-1.5 font-black text-[10px] uppercase">
+              <div class="flex items-center gap-1 text-red-500 bg-red-50 px-2.5 py-0.5 rounded-lg border border-red-100 shadow-sm">
+                  <AlertCircle size="12" /> {{ errors }}
               </div>
-              <div class="flex items-center gap-1 text-green-600 bg-green-50 px-2.5 py-1 rounded-lg border border-green-100 shadow-sm">
-                  <Trophy size="14" /> {{ matches }}/6
+              <div class="flex items-center gap-1 text-green-600 bg-green-50 px-2.5 py-0.5 rounded-lg border border-green-100 shadow-sm">
+                  <Trophy size="12" /> {{ matches }}/6
               </div>
             </div>
           </div>
 
           <button @click="$emit('close')" 
-                  class="bg-slate-100/50 hover:bg-slate-200/70 border border-slate-200 text-slate-500 p-2 rounded-full transition-all active:scale-90 shadow-sm">
-              <CloseIcon :size="22" />
+                  class="bg-slate-100/50 hover:bg-slate-200 text-slate-500 p-1.5 rounded-full active:scale-90 transition-all shadow-sm">
+              <CloseIcon :size="20" />
           </button>
         </header>
 
-        <main class="flex-1 flex flex-col items-center justify-start p-2 gap-2 overflow-hidden pt-4">
+        <main class="flex-1 flex flex-col items-center justify-start p-3 overflow-hidden gap-4">
             
-            <div class="grid grid-cols-3 gap-3 w-full max-w-[360px] shrink-0">
+            <div class="grid grid-cols-3 gap-2 w-full max-w-[340px] shrink-0 mt-2">
                 <div v-for="card in cards" :key="card.id" 
-                     class="perspective-1000 aspect-square h-full w-full"
-                     @click="handleCardClick(card)">
+                      class="perspective-1000 aspect-square w-full h-full"
+                      @click="handleCardClick(card)">
                     <div :class="['relative w-full h-full transition-all duration-300 preserve-3d cursor-pointer rounded-xl shadow-sm', 
                                   card.isFlipped ? 'rotate-y-180' : '']">
                         
                         <div class="absolute inset-0 backface-hidden rounded-xl flex items-center justify-center bg-sky-100/80 border-[2px] border-sky-300 shadow-inner">
-                            <Brain size="24" class="text-pink-500 opacity-40" />
+                            <Brain size="22" class="text-pink-500 opacity-40" />
                         </div>
 
                         <div :class="['absolute inset-0 backface-hidden rotate-y-180 rounded-xl flex items-center justify-center border-2 shadow-sm transition-colors', 
                                       card.hasError ? 'border-red-500 bg-red-100' : card.isMatched ? 'border-green-400 bg-green-50' : card.color]">
                             <span :class="['font-black text-center leading-none px-0.5 transition-colors', 
-                                           card.hasError ? 'text-red-700' : card.isMatched ? 'text-green-700' : (card.type === 'op' ? 'text-xl text-indigo-950' : 'text-3xl text-indigo-600')]">
+                                           card.hasError ? 'text-red-700' : card.isMatched ? 'text-green-700' : (card.type === 'op' ? 'text-lg text-indigo-950' : 'text-2xl text-indigo-600')]">
                                 {{ card.content }}
                             </span>
-                            <CheckCircle2 v-if="card.isMatched" class="absolute top-1 right-1 text-green-500" size="14" />
+                            <CheckCircle2 v-if="card.isMatched" class="absolute top-1 right-1 text-green-500" size="12" />
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="w-full max-w-[380px] bg-white p-4 rounded-2xl border-2 border-indigo-100 shadow-md relative mt-4 shrink-0">
+            <div class="w-full max-w-[380px] bg-white p-4 rounded-3xl border-2 border-indigo-100 shadow-md relative shrink-0">
                 <div class="absolute -top-3 left-4 bg-indigo-600 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-sm">
-                    REGLAS DEL RETO
+                    REGLAS
                 </div>
-                <div class="grid grid-cols-2 gap-x-4 gap-y-3 mt-2">
-                    <div class="flex items-center gap-2">
+                <div class="flex flex-col gap-3 mt-1">
+                    <div class="flex items-center gap-3">
                         <Sparkles size="16" class="text-amber-500 shrink-0" />
-                        <p class="text-[12px] font-bold text-slate-700 leading-tight">Une operación y resultado.</p>
+                        <p class="text-[13px] font-bold text-slate-800 leading-tight">Une operación y resultado correctamente.</p>
                     </div>
-                    <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-3">
                         <Trophy size="16" class="text-green-600 shrink-0" />
-                        <p class="text-[12px] font-bold text-slate-700 leading-tight">Bajo 6 fallos: <span class="text-green-700 font-black">10 ORO</span>.</p>
+                        <p class="text-[13px] font-bold text-slate-700 leading-tight">Menos de 6 fallos: <span class="text-green-700 font-black text-base">10 ORO</span></p>
                     </div>
-                    <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-3">
                         <AlertCircle size="16" class="text-blue-600 shrink-0" />
-                        <p class="text-[12px] font-bold text-slate-700 leading-tight">6 fallos o más: <span class="text-blue-700 font-black">5 ORO</span>.</p>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <div class="w-5 h-5 shrink-0"><OwlImage customClass="w-full h-full" /></div>
-                        <p class="text-[12px] font-bold text-slate-500 leading-tight italic">¡Memoria activada!</p>
+                        <p class="text-[13px] font-bold text-slate-700 leading-tight">6 o más fallos: <span class="text-blue-700 font-black text-base">5 ORO</span></p>
                     </div>
                 </div>
             </div>
         </main>
-
-        <div class="h-6 shrink-0"></div>
 
         <Transition name="pop">
           <div v-if="gameFinished" class="absolute inset-0 z-[300] bg-white flex flex-col items-center justify-center p-6 text-center animate-fade-in uppercase">
@@ -220,5 +217,4 @@ onMounted(() => initGame());
 
 .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-.scrollbar-hide::-webkit-scrollbar { display: none; }
 </style>

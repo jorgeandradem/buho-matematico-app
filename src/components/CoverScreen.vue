@@ -96,7 +96,6 @@ const checkAccess = () => {
         showModal.value = true;
       }
     } else {
-      // --- CORRECCIÓN DE ORDEN: Mostrar Login si no hay usuario ---
       authMode.value = 'login';
       showModal.value = true;
     }
@@ -266,7 +265,7 @@ onMounted(async () => {
           <div class="flex-1 overflow-y-auto p-6 scrollbar-thin">
               <div v-if="activeSubView === 'auth'">
                   <template v-if="!showRecovery">
-                    <div class="space-y-4">
+                    <div class="space-y-4" @keyup.enter="handleAuth">
                       <div v-if="authMode === 'register'">
                         <label class="text-sm font-medium uppercase text-slate-400 ml-2">Nombre del Alumno</label>
                         <input v-model="form.username" placeholder="¿Cómo te llamas?" class="w-full p-3 bg-slate-50 border-2 border-slate-100 rounded-xl focus:border-indigo-500 outline-none transition-all" />
@@ -278,7 +277,7 @@ onMounted(async () => {
                       <div class="relative">
                         <label class="text-sm font-medium uppercase text-slate-400 ml-2">Contraseña</label>
                         <input :type="showPassword ? 'text' : 'password'" v-model="form.password" placeholder="Mínimo 6 letras" class="w-full p-3 bg-slate-50 border-2 border-slate-100 rounded-xl focus:border-indigo-500 outline-none pr-12 transition-all" />
-                        <button @click="showPassword = !showPassword" class="absolute right-3 bottom-3 text-slate-400"><component :is="showPassword ? EyeOff : Eye" :size="20"/></button>
+                        <button @click="showPassword = !showPassword" type="button" class="absolute right-3 bottom-3 text-slate-400"><component :is="showPassword ? EyeOff : Eye" :size="20"/></button>
                       </div>
 
                       <div v-if="authMode === 'register' || acceptedTerms" 
@@ -364,7 +363,7 @@ onMounted(async () => {
       <div class="p-4 text-center relative z-10 flex flex-col items-center mb-2">
           <div class="flex flex-col items-center gap-1 text-white">
               <p class="text-sm sm:text-base font-bold drop-shadow-sm">@Copyright 2026</p>
-              <p class="text-xs sm:text-sm font-medium opacity-100 drop-shadow-sm">Búho Mate v2.8.5</p>
+              <p class="text-xs sm:text-sm font-medium opacity-100 drop-shadow-sm">Búho Mate v2.8.6</p>
           </div>
       </div>
     </div>

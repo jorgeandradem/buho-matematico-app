@@ -2,7 +2,8 @@
 import { ref, computed } from 'vue';
 import { 
   X as CloseIcon, Zap, Trophy, Brain, Search, Puzzle, 
-  Rocket, Plane, Anchor, ChevronLeft, ChevronRight 
+  Rocket, Plane, Anchor, Globe, ChevronLeft, ChevronRight,
+  Scale, PieChart // Importamos iconos para los nuevos retos
 } from 'lucide-vue-next';
 
 // --- IMPORTACIÓN DE JUEGOS ---
@@ -13,65 +14,30 @@ import PuzzleChallenge from './PuzzleChallenge.vue';
 import RunnerChallenge from './RunnerChallenge.vue';
 import QuickFly from './QuickFly.vue';
 import TreasureHunt from '../views/TreasureHunt.vue';
+import WorldTourChallenge from './WorldTourChallenge.vue';
+import ScaleMaster from './ScaleMaster.vue'; // Nuevo
+import FractionArchitect from './FractionArchitect.vue'; // Nuevo
 
 const emit = defineEmits(['close']);
 const activeGame = ref(null); 
 const currentPage = ref(0); 
 
-// AJUSTE: Ahora mostramos 5 retos por página
-const gamesPerPage = 5;
+// Mantenemos 4 juegos por página para máxima legibilidad
+const gamesPerPage = 4; 
 
-// --- LISTA ORIGINAL DE JUEGOS ---
+// --- LISTA DE JUEGOS ACTUALIZADA ---
 const games = [
-  { 
-    id: 'quiz', 
-    name: 'Desafío Contra Reloj', 
-    icon: Zap, 
-    color: 'bg-orange-500', 
-    desc: '60 segundos para ganar Plata' 
-  },
-  { 
-    id: 'memory', 
-    name: 'Memoria Pro', 
-    icon: Brain, 
-    color: 'bg-indigo-500', 
-    desc: 'Une parejas y gana Oro' 
-  },
-  { 
-    id: 'search', 
-    name: 'Sopa de Números', 
-    icon: Search, 
-    color: 'bg-green-500', 
-    desc: 'Encuentra resultados ocultos' 
-  },
-  { 
-    id: 'puzzle', 
-    name: 'Rompecabezas Mate', 
-    icon: Puzzle, 
-    color: 'bg-purple-500', 
-    desc: 'Arma, resuelve y gana' 
-  },
-  { 
-    id: 'runner', 
-    name: 'Vuelo Legendario', 
-    icon: Rocket, 
-    color: 'bg-sky-500', 
-    desc: 'Calcula mientras vuelas' 
-  }, // Este cierra la Página 1 ahora
-  { 
-    id: 'fly', 
-    name: 'Tablas Rápidas', 
-    icon: Plane, 
-    color: 'bg-rose-500', 
-    desc: 'Agilidad mental con Cobre' 
-  },
-  { 
-    id: 'treasure', 
-    name: 'Ruta del Tesoro', 
-    icon: Anchor, 
-    color: 'bg-amber-600', 
-    desc: '10 Misiones: El Cofre Pirata' 
-  }
+  { id: 'quiz', name: 'Desafío Contra Reloj', icon: Zap, color: 'bg-orange-500', desc: '60 segundos para ganar Plata' },
+  { id: 'memory', name: 'Memoria Pro', icon: Brain, color: 'bg-indigo-500', desc: 'Une parejas y gana Oro' },
+  { id: 'search', name: 'Sopa de Números', icon: Search, color: 'bg-green-500', desc: 'Encuentra resultados ocultos' },
+  { id: 'puzzle', name: 'Rompecabezas Mate', icon: Puzzle, color: 'bg-purple-500', desc: 'Arma, resuelve y gana' },
+  { id: 'runner', name: 'Vuelo Legendario', icon: Rocket, color: 'bg-sky-500', desc: 'Calcula mientras vuelas' },
+  { id: 'fly', name: 'Tablas Rápidas', icon: Plane, color: 'bg-rose-500', desc: 'Agilidad mental con Cobre' },
+  { id: 'treasure', name: 'Ruta del Tesoro', icon: Anchor, color: 'bg-amber-600', desc: '10 Misiones: El Cofre Pirata' },
+  { id: 'world-tour', name: 'Expedición Mundial', icon: Globe, color: 'bg-emerald-600', desc: 'Resuelve el misterio y viaja' },
+  // PÁGINA 3
+  { id: 'scale', name: 'Scale Master', icon: Scale, color: 'bg-cyan-600', desc: 'Equilibra el álgebra con pesas' },
+  { id: 'pizza', name: 'Arquitecto de Fracciones', icon: PieChart, color: 'bg-red-500', desc: 'Prepara pedidos y domina partes' }
 ];
 
 // --- LÓGICA DE PAGINACIÓN ---
@@ -142,12 +108,9 @@ const closeGame = () => { activeGame.value = null; };
       <RunnerChallenge v-if="activeGame === 'runner'" @close="closeGame" />
       <QuickFly v-if="activeGame === 'fly'" @close="closeGame" />
       <TreasureHunt v-if="activeGame === 'treasure'" @close="closeGame" />
+      <WorldTourChallenge v-if="activeGame === 'world-tour'" @close="closeGame" />
+      <ScaleMaster v-if="activeGame === 'scale'" @close="closeGame" />
+      <FractionArchitect v-if="activeGame === 'pizza'" @close="closeGame" />
     </div>
   </div>
 </template>
-
-<style scoped>
-.animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-.scrollbar-hide::-webkit-scrollbar { display: none; }
-</style>
