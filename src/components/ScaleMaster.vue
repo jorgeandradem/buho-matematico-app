@@ -1,12 +1,11 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue';
-import { X as CloseIcon, Coins } from 'lucide-vue-next';
+import { X as CloseIcon, Coins, Star } from 'lucide-vue-next';
 import { gsap } from 'gsap'; 
-// CORRECCIÓN: Ruta exacta basada en tu video (Carpeta: stores / Archivo: useGamificationStore.js)
 import { useGamificationStore } from '@/stores/useGamificationStore'; 
 
 const emit = defineEmits(['close']);
-const gamificationStore = useGamificationStore(); // Instancia del banco central
+const gamificationStore = useGamificationStore();
 
 // --- ESTADO ---
 const currentLevel = ref(1);
@@ -15,6 +14,11 @@ const isVictory = ref(false);
 const showFinalCelebration = ref(false); 
 const targetWeight = ref(0); 
 const rightWeights = ref([]); 
+
+// 🚀 MÉTODO PARA CARGAR IMÁGENES COMPATIBLE CON VERCEL
+const getAssetUrl = (name) => {
+  return new URL(`../assets/scale-master/${name}`, import.meta.url).href;
+};
 
 const inventory = computed(() => {
   return currentLevel.value < 5 ? [2, 3, 5, 10] : [2, 3, 10, 20, 25];
@@ -31,22 +35,17 @@ onMounted(() => {
   targetWeight.value = generateRandomWeight();
 });
 
-// --- MOTOR DE CÁLCULO Y MOVIMIENTO ---
 const totalRight = computed(() => {
   return rightWeights.value
     .filter(w => !w.isRemoving)
     .reduce((a, b) => a + b.value, 0);
 });
 
-// Estado reactivo para la rotación visual
 const currentRotation = ref(0);
 
-// Observador para animar el balanceo con inercia
 watch(totalRight, (newTotal) => {
   const diff = newTotal - targetWeight.value;
   const targetRot = Math.max(Math.min(diff * 2.5, 18), -18);
-
-  // Animación GSAP para el "sentido de peso"
   gsap.to(currentRotation, {
     value: targetRot,
     duration: 0.8,
@@ -57,10 +56,11 @@ watch(totalRight, (newTotal) => {
 
 const isGoldMode = computed(() => currentLevel.value >= 7);
 
+// 🚀 RUTAS CORREGIDAS PARA PRODUCCIÓN
 const weightImage = computed(() => 
   isGoldMode.value 
-    ? '/src/assets/scale-master/weight-gold.png' 
-    : '/src/assets/scale-master/weight-iron.png'
+    ? getAssetUrl('weight-gold.png') 
+    : getAssetUrl('weight-iron.png')
 );
 
 const resetGame = () => {
@@ -71,7 +71,6 @@ const resetGame = () => {
   showFinalCelebration.value = false;
 };
 
-// --- VALIDACIÓN Y RECOMPENSAS ---
 watch(totalRight, (newTotal) => {
   if (newTotal === targetWeight.value && !isVictory.value && newTotal > 0) {
     isVictory.value = true; 
@@ -80,12 +79,9 @@ watch(totalRight, (newTotal) => {
     setTimeout(() => {
       if (currentLevel.value >= totalLevels) {
         showFinalCelebration.value = true;
-        
-        // --- INTEGRACIÓN CON BANCO CENTRAL ---
         gamificationStore.addCoins('copper', 10); 
         gamificationStore.updateMissionProgress('complete_challenge', 1); 
         gamificationStore.bubbleMessage = "¡Excelente equilibrio! He guardado tus monedas en la bóveda. 🦉💰";
-
         triggerCoinRain();
         playSound('finish1'); 
         playSound('coins');   
@@ -103,11 +99,9 @@ const autoNextLevel = () => {
   isVictory.value = false;
 };
 
-// --- LLUVIA DE MONEDAS ---
 const triggerCoinRain = () => {
   const container = document.querySelector('.game-viewport');
   if (!container) return;
-
   for (let i = 0; i < 50; i++) {
     const coin = document.createElement('div');
     coin.innerHTML = '🪙';
@@ -115,7 +109,6 @@ const triggerCoinRain = () => {
     coin.style.left = Math.random() * 90 + 5 + '%';
     coin.style.top = '-60px';
     container.appendChild(coin);
-
     gsap.to(coin, {
       y: container.offsetHeight + 100,
       x: (Math.random() - 0.5) * 200,
@@ -130,18 +123,14 @@ const triggerCoinRain = () => {
 const addWeight = (val, event) => {
   if (isVictory.value || showFinalCelebration.value || rightWeights.value.length >= 15) return;
   playSound('whoosh');
-
   const rect = event.currentTarget.getBoundingClientRect();
   const flyer = event.currentTarget.cloneNode(true);
-  
   Object.assign(flyer.style, { 
     position: 'fixed', left: `${rect.left}px`, top: `${rect.top}px`, 
     width: `${rect.width}px`, zIndex: '5000', pointerEvents: 'none' 
   });
-  
   document.body.appendChild(flyer);
   const targetArea = document.querySelector('.plate-target-area').getBoundingClientRect();
-  
   gsap.to(flyer, {
     x: targetArea.left - rect.left + (targetArea.width / 4),
     y: targetArea.top - rect.top,
@@ -161,10 +150,8 @@ const triggerRemove = (id, event) => {
   if (isVictory.value || showFinalCelebration.value) return;
   const weightObj = rightWeights.value.find(w => w.id === id);
   if (!weightObj || weightObj.isRemoving) return;
-  
   weightObj.isRemoving = true; 
   playSound('wrong1');
-  
   gsap.to(event.currentTarget, {
     y: 1000, opacity: 0, scale: 0, duration: 0.25, ease: "power4.in",
     onComplete: () => { 
@@ -176,7 +163,6 @@ const triggerRemove = (id, event) => {
 
 <template>
   <div class="fixed inset-0 bg-[#FDF6E3] flex flex-col items-center overflow-hidden z-[200] game-viewport">
-    
     <header class="w-full p-6 flex justify-between items-center z-[210]">
       <div class="bg-amber-100 px-6 py-2 rounded-full border-2 border-amber-300 shadow-md">
         <Star class="text-orange-500 fill-orange-500 mr-2 inline" :size="20" />
@@ -188,7 +174,7 @@ const triggerRemove = (id, event) => {
     </header>
 
     <div class="relative w-full flex-1 flex flex-col items-center justify-center -mt-10 px-4">
-      <img src="/src/assets/scale-master/scale-base.png" class="absolute w-[380px] bottom-32 z-10 pointer-events-none" />
+      <img :src="getAssetUrl('scale-base.png')" class="absolute w-[380px] bottom-32 z-10 pointer-events-none" />
       
       <div class="relative w-full max-w-2xl flex justify-between items-end pointer-events-none transition-transform duration-100"
            :style="{ transform: `rotate(${currentRotation}deg)` }">
@@ -201,7 +187,7 @@ const triggerRemove = (id, event) => {
               {{ targetWeight }}
             </span>
           </div>
-          <img src="/src/assets/scale-master/scale-plate.png" class="w-full z-10" />
+          <img :src="getAssetUrl('scale-plate.png')" class="w-full z-10" />
         </div>
 
         <div class="relative w-48 flex flex-col items-center origin-top plate-target-area" :style="{ transform: `rotate(${-currentRotation}deg)` }">
@@ -213,7 +199,7 @@ const triggerRemove = (id, event) => {
                 <span class="absolute inset-0 flex items-center justify-center font-black text-slate-900 text-[10px] z-40">{{ w.value }}</span>
              </button>
           </div>
-          <img src="/src/assets/scale-master/scale-plate.png" class="w-full z-10" />
+          <img :src="getAssetUrl('scale-plate.png')" class="w-full z-10" />
         </div>
       </div>
     </div>
@@ -239,7 +225,7 @@ const triggerRemove = (id, event) => {
       <div class="bg-white rounded-[60px] p-16 flex flex-col items-center shadow-2xl border-8 border-amber-400 text-center relative">
         <div class="bg-amber-100 p-8 rounded-full mb-8 shadow-inner"><Coins class="text-amber-600" :size="100" /></div>
         <h2 class="text-5xl font-black text-slate-800 mb-4 uppercase leading-none">¡MAESTRO DE LA BALANZA!</h2>
-        <p class="text-slate-500 font-bold mb-12 text-xl italic px-4">Has completado los 10 desafíos con éxito y ganado 10 monedas.</p>
+        <p class="text-slate-500 font-bold mb-12 text-xl italic px-4">Has completado los 10 desafíos con éxito.</p>
         <button @click="emit('close')" class="bg-amber-500 text-white px-20 py-6 rounded-full font-black text-2xl uppercase shadow-[0_10px_0_rgb(180,130,0)] active:translate-y-2 active:shadow-none transition-all">FINALIZAR</button>
       </div>
     </div>
@@ -253,8 +239,5 @@ const triggerRemove = (id, event) => {
 @keyframes bounceIn { from { opacity: 0; transform: scale(0.5); } to { opacity: 1; transform: scale(1.1); } }
 .animate-in { animation: fadeIn 0.5s ease-out forwards; }
 @keyframes fadeIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
-
-.origin-top {
-  transition: transform 0.1s linear;
-}
+.origin-top { transition: transform 0.1s linear; }
 </style>
