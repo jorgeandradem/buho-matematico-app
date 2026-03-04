@@ -1,11 +1,22 @@
 import './assets/main.css'
 
 import { createApp } from 'vue'
-import { createPinia } from 'pinia' // 1. Traemos la herramienta
+import { createPinia } from 'pinia'
 import App from './App.vue'
 
-const app = createApp(App) // 2. Iniciamos la app
-const pinia = createPinia() // 3. Iniciamos el cerebro
+// 1. Creamos la instancia de la aplicación
+const app = createApp(App)
 
-app.use(pinia) // 4. Conectamos el cerebro a la app
-app.mount('#app') // 5. Arrancamos   
+// 2. Creamos e instalamos Pinia (El Banco Central)
+const pinia = createPinia()
+app.use(pinia)
+
+// 3. Montamos la aplicación
+app.mount('#app')
+
+/**
+ * NOTA TÉCNICA: 
+ * Al instalar pinia antes del mount, garantizamos que cualquier 
+ * componente que necesite monedas o datos de usuario los tenga
+ * disponibles inmediatamente en el ciclo 'onMounted'.
+ */

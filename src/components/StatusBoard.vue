@@ -1,26 +1,29 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue';
-import { useGamificationStore } from '../stores/useGamificationStore';
+// 🚀 UNIFICACIÓN: Usamos el alias @ para conectar con el Banco Central exacto
+import { useGamificationStore } from '@/stores/useGamificationStore';
 import { storeToRefs } from 'pinia';
-// NUEVAS IMPORTACIONES: El sonido y la lluvia de monedas
-import { playCoinSound } from '../utils/sound';
+import { playCoinSound } from '@/utils/sound';
 import CoinRain from './CoinRain.vue';
 
 // Conectamos con el Banco
 const store = useGamificationStore();
-// Extraemos los saldos REALES (Objetivos)
+// Extraemos los saldos REALES con reactividad total
 const { copper, silver, gold } = storeToRefs(store);
 
 // Variables para controlar la celebración
 const showRain = ref(false);
 const rainType = ref('copper'); 
 
-// Estos son los valores que se MUESTRAN en pantalla (empiezan en 0)
+// Valores de visualización para la animación numérica
 const displayCopper = ref(0);
 const displaySilver = ref(0);
 const displayGold = ref(0);
 
-// Función maestra de animación suave
+/**
+ * Función de animación suave con Easing
+ * Asegura que los números suban o bajen con fluidez visual.
+ */
 const animateValue = (start, end, duration, elementRef) => {
   if (start === end) {
       elementRef.value = end;
@@ -31,72 +34,57 @@ const animateValue = (start, end, duration, elementRef) => {
   const step = (timestamp) => {
     if (!startTimestamp) startTimestamp = timestamp;
     const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-    
-    // Easing: "easeOutExpo" (rápido al inicio, frena suave al final)
     const easeProgress = 1 - Math.pow(1 - progress, 3);
     
-    // Calculamos el valor actual
     elementRef.value = Math.floor(easeProgress * (end - start) + start);
 
     if (progress < 1) {
       window.requestAnimationFrame(step);
     } else {
-      elementRef.value = end; // Asegurar precisión final
+      elementRef.value = end; 
     }
   };
   
   window.requestAnimationFrame(step);
 };
 
-// Al montar el componente, animamos y vigilamos si hay premios nuevos
 onMounted(() => {
-    // 1. Animación secuencial de los números (tu efecto original)
+    // 1. Sincronización inicial: Animamos desde 0 al saldo actual del Banco
     animateValue(0, gold.value, 1500, displayGold);
     animateValue(0, silver.value, 1500, displaySilver);
     animateValue(0, copper.value, 1500, displayCopper);
 
-    // 2. EL VIGILANTE DE PREMIOS
+    // 2. VIGILANTE DE PREMIOS (Celebración de sesión)
     const earnedGold = store.sessionGoldEarned || 0;
     const earnedSilver = store.sessionSilverEarned || 0;
     const earnedCopper = store.sessionCopperEarned || 0;
     
     const currentSessionTotal = earnedGold + earnedSilver + earnedCopper;
-    
-    // Leemos en memoria temporal cuánto habíamos celebrado ya
     const lastCelebrated = parseInt(sessionStorage.getItem('lastCelebratedTotal') || '0');
 
-    // Si el total de la sesión es mayor a lo que habíamos celebrado... ¡Hay ganancias nuevas!
     if (currentSessionTotal > 0 && currentSessionTotal > lastCelebrated) {
-        
-        // Actualizamos la memoria para no repetir la celebración si recarga la página
         sessionStorage.setItem('lastCelebratedTotal', currentSessionTotal.toString());
 
-        // Decidimos de qué color será la lluvia (la moneda de mayor valor ganada)
         if (earnedGold > 0) rainType.value = 'gold';
         else if (earnedSilver > 0) rainType.value = 'silver';
         else rainType.value = 'copper';
 
-        // Disparamos efectos
         showRain.value = true;
         
-        // Pequeño retraso para que el sonido cuadre justo cuando la moneda toca la pantalla
         setTimeout(() => {
             playCoinSound();
         }, 100);
 
-        // Apagamos la lluvia después de 4 segundos
         setTimeout(() => {
             showRain.value = false;
         }, 4000);
 
     } else if (currentSessionTotal === 0) {
-        // Si la sesión está en 0 (porque el niño le dio al botón Salir y se reinició),
-        // limpiamos también el vigilante para la próxima partida.
         sessionStorage.setItem('lastCelebratedTotal', '0');
     }
 });
 
-// Si el saldo cambia en tiempo real estando en esta pantalla
+// 🔄 VIGILANTES REACTIVOS: Si el Banco Central cambia, el tablero se actualiza solo
 watch(copper, (newVal, oldVal) => animateValue(oldVal, newVal, 500, displayCopper));
 watch(silver, (newVal, oldVal) => animateValue(oldVal, newVal, 500, displaySilver));
 watch(gold, (newVal, oldVal) => animateValue(oldVal, newVal, 500, displayGold));
@@ -131,7 +119,6 @@ watch(gold, (newVal, oldVal) => animateValue(oldVal, newVal, 500, displayGold));
   justify-content: space-evenly;
   align-items: center;
   background: rgba(255, 255, 255, 0.95);
-  /* AJUSTE: Usamos el espacio de arriba (14px) y mantenemos el recorte abajo (4px) */
   padding: 14px 10px 4px 10px; 
   border-radius: 24px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
@@ -160,14 +147,11 @@ watch(gold, (newVal, oldVal) => animateValue(oldVal, newVal, 500, displayGold));
 }
 
 .count {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: 'Nunito', sans-serif;
   font-weight: 800;
   font-size: 1.15rem;
   color: #444;
-  
-  /* AJUSTE: Separación positiva para despegar el número de la moneda */
   margin-top: 8px; 
-  
   background: white;
   padding: 1px 12px;
   border-radius: 12px;

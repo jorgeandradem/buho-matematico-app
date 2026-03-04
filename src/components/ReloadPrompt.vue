@@ -2,7 +2,10 @@
 import { useRegisterSW } from 'virtual:pwa-register/vue';
 import { RefreshCw, X } from 'lucide-vue-next';
 
-// 🦉 Motor de detección de actualizaciones
+/**
+ * 🕵️ Motor de detección de actualizaciones PWA.
+ * needRefresh se activará automáticamente cuando Vite detecte un nuevo build.
+ */
 const { needRefresh, updateServiceWorker } = useRegisterSW();
 
 const close = () => {
@@ -10,27 +13,27 @@ const close = () => {
 };
 
 /**
- * 🚀 FUNCIÓN DE ACTUALIZACIÓN DINÁMICA CON REFUERZO
- * Intentamos la actualización oficial y, si el Service Worker se queda trabado,
- * forzamos un refresco total de la ventana después de 1.5 segundos.
+ * 🚀 FUNCIÓN DE ACTUALIZACIÓN CON REFUERZO
+ * 1. Solicita al Service Worker que tome el control (skipWaiting).
+ * 2. Si en 1.5s la página no ha refrescado, forzamos una recarga "nuclear"
+ * para limpiar la caché persistente del navegador.
  */
 const handleUpdate = async () => {
-    console.log("🚀 Búho Matemático: Iniciando limpieza de memoria y actualización...");
+    console.log("🚀 Búho Matemático: Sincronizando nueva versión...");
     
     try {
-        // 1. Vía oficial: solicita al Service Worker que salte la espera y recargue
+        // Paso 1: Vía oficial de Vite PWA
         await updateServiceWorker(true);
         
-        // 2. 🚨 SEGURO DE VIDA: Si el navegador no ha reiniciado por sí solo en 1.5s,
-        // lo obligamos manualmente para eliminar la versión vieja de la RAM.
+        // Paso 2: Refuerzo para móviles (si el paso 1 no dispara el reload)
         setTimeout(() => {
-            console.log("⚠️ Forzando recarga manual del nido...");
-            window.location.reload(true); 
+            console.log("⚠️ Refuerzo: Forzando recarga manual de seguridad.");
+            window.location.reload(); 
         }, 1500);
 
     } catch (error) {
-        console.error("❌ Fallo crítico al actualizar, forzando recarga nuclear...", error);
-        window.location.reload(true);
+        console.error("❌ Fallo crítico de actualización:", error);
+        window.location.reload();
     }
 };
 </script>
@@ -63,7 +66,7 @@ const handleUpdate = async () => {
 </template>
 
 <style scoped>
-/* Animación de entrada fluida */
+/* Animación de entrada: escala y sube */
 .animate-pop-in { 
   animation: popIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; 
 }
@@ -72,11 +75,11 @@ const handleUpdate = async () => {
   to { opacity: 1; transform: scale(1) translateY(0) translateX(-50%); } 
 }
 
-/* Animación de rotación del icono */
+/* Animación de rotación del icono de refresco */
 .animate-spin-slow { animation: spin 4s linear infinite; }
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
-/* Animación de rebote suave */
+/* Rebote suave para llamar la atención del usuario */
 .animate-bounce-slow { animation: bounce 3s infinite; }
 @keyframes bounce { 
   0%, 100% { transform: translateY(0); } 

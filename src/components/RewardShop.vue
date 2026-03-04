@@ -1,7 +1,8 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { X, ShoppingBag, Settings, Save, Backpack, Lock, Loader2 } from 'lucide-vue-next';
-import { useGamificationStore } from '../stores/useGamificationStore';
+// 🚀 UNIFICACIÓN: Usamos el alias @ para conectar con el Banco Central exacto
+import { useGamificationStore } from '@/stores/useGamificationStore';
 import { speak } from '../utils/voice';
 import RewardTicket from './RewardTicket.vue';
 
@@ -164,10 +165,9 @@ const executeBuy = async () => {
     const product = productToConfirm.value;
     if (!product || isProcessing.value) return;
 
-    isProcessing.value = true; // Bloqueamos el botón
+    isProcessing.value = true; 
 
     try {
-        // Ejecutamos el gasto en el Store asíncronamente
         const success = await store.spendCoins(product.type, product.cost);
 
         if (success) {
@@ -177,7 +177,6 @@ const executeBuy = async () => {
                 date: new Date().toLocaleDateString()
             };
             
-            // Guardamos el ticket y sincronizamos la mochila
             await store.saveTicket(newTicket);
             
             productToConfirm.value = null;
@@ -189,7 +188,7 @@ const executeBuy = async () => {
     } catch (e) {
         console.error("Error en la ejecución de compra:", e);
     } finally {
-        isProcessing.value = false; // Liberamos el botón
+        isProcessing.value = false; 
     }
 };
 
@@ -407,7 +406,6 @@ const shareReward = () => {
 .animate-fade-in { animation: fadeIn 0.2s ease-out forwards; }
 @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
 
-/* ELIMINA FLECHAS DEL INPUT DE NÚMERO */
 .no-spinners::-webkit-outer-spin-button,
 .no-spinners::-webkit-inner-spin-button {
   -webkit-appearance: none;
@@ -415,6 +413,6 @@ const shareReward = () => {
 }
 
 .no-spinners {
-  -moz-appearance: textfield; /* Firefox */
+  -moz-appearance: textfield; 
 }
 </style>

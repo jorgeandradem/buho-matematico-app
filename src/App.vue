@@ -1,17 +1,29 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { Plus, Minus, X as MultiplyIcon, Divide } from 'lucide-vue-next';
 
 import CoverScreen from './components/CoverScreen.vue';
 import IndexScreen from './components/IndexScreen.vue';
 import GenericTableModule from './components/GenericTableModule.vue';
 import DivisionModule from './components/DivisionModule.vue';
-// 🦉 IMPORTAMOS EL AVISO DE ACTUALIZACIÓN
 import ReloadPrompt from './components/ReloadPrompt.vue';
+
+// IMPORTAMOS EL STORE PARA INICIALIZAR EL BANCO
+import { useGamificationStore } from '@/stores/useGamificationStore';
 
 const currentView = ref('cover'); 
 const previousView = ref(null); 
 const currentConfig = ref({}); 
+const gamificationStore = useGamificationStore();
+
+// LÓGICA DE IGNICIÓN AL ARRANCAR
+onMounted(() => {
+  // 1. Cargamos lo que el usuario tenía guardado en el bolsillo (LocalStorage)
+  gamificationStore.loadFromStorage();
+  
+  // 2. Verificamos si hoy le toca premio por racha diaria
+  gamificationStore.checkDailyStreak();
+});
 
 const navigateTo = (viewName, config) => {
   const safeConfig = config || {}; 
@@ -67,7 +79,9 @@ const navigateTo = (viewName, config) => {
 </template>
 
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Nunito:wght@400;700;800;900&display=swap');
+
 .font-handwriting { font-family: 'Patrick Hand', cursive; }
 .font-numbers { font-family: 'Nunito', sans-serif; font-weight: 800; }
-body { background-color: #f0f4f8; }
+body { background-color: #f0f4f8; margin: 0; padding: 0; }
 </style>
