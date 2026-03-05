@@ -120,12 +120,44 @@ export const useGamificationStore = defineStore('gamification', {
         }, 2000);
     },
 
-    // --- 💰 GESTIÓN DE RIQUEZA ---
+    // --- 💰 GESTIÓN DE RIQUEZA (MEJORADA) ---
+
+    // 1. NUEVA FUNCIÓN: Añadir un paquete de monedas (Ideal para el final de los juegos)
+    addMultipleCoins(rewards) {
+      if (!rewards) return;
+      
+      // Acepta tanto 'copper' como 'bronze' por compatibilidad con los juegos
+      const c = parseInt(rewards.copper || rewards.bronze || 0);
+      const s = parseInt(rewards.silver || 0);
+      const g = parseInt(rewards.gold || 0);
+
+      if (c > 0) {
+        this.copper += c;
+        this.sessionCopperEarned += c;
+        this.updateMissionProgress('earn_copper', c);
+      }
+      if (s > 0) {
+        this.silver += s;
+        this.sessionSilverEarned += s;
+        this.updateMissionProgress('earn_silver', s);
+      }
+      if (g > 0) {
+        this.gold += g;
+        this.sessionGoldEarned += g;
+      }
+
+      this.processConversions();
+      this.saveToStorage();
+      this.syncAllToCloud();
+    },
+
+    // 2. Función Individual (Corregida con alias 'bronze')
     addCoins(type, amount) {
       const safeAmount = Math.max(0, parseInt(amount) || 0);
       if (safeAmount === 0) return;
 
-      if (type === 'copper') {
+      // ALIAS: Si un juego envía 'bronze', el sistema lo entiende como 'copper'
+      if (type === 'copper' || type === 'bronze') {
           this.copper += safeAmount;
           this.sessionCopperEarned += safeAmount;
           this.updateMissionProgress('earn_copper', safeAmount);
@@ -147,9 +179,12 @@ export const useGamificationStore = defineStore('gamification', {
       const safeAmount = Math.max(0, parseInt(amount) || 0);
       let success = false;
 
-      if (type === 'gold' && this.gold >= safeAmount) { this.gold -= safeAmount; success = true; }
-      else if (type === 'silver' && this.silver >= safeAmount) { this.silver -= safeAmount; success = true; }
-      else if (type === 'copper' && this.copper >= safeAmount) { this.copper -= safeAmount; success = true; }
+      // Alias aquí también por si acaso
+      const coinType = (type === 'bronze') ? 'copper' : type;
+
+      if (coinType === 'gold' && this.gold >= safeAmount) { this.gold -= safeAmount; success = true; }
+      else if (coinType === 'silver' && this.silver >= safeAmount) { this.silver -= safeAmount; success = true; }
+      else if (coinType === 'copper' && this.copper >= safeAmount) { this.copper -= safeAmount; success = true; }
 
       if (success) {
           this.updateMissionProgress('buy_shop', 1); 

@@ -3,7 +3,7 @@ import { ref, computed } from 'vue';
 import { 
   X as CloseIcon, Zap, Trophy, Brain, Search, Puzzle, 
   Rocket, Plane, Anchor, Globe, ChevronLeft, ChevronRight,
-  Scale, PieChart // Importamos iconos para los nuevos retos
+  Scale, PieChart, Waves, Dribbble // Importamos nuevos iconos
 } from 'lucide-vue-next';
 
 // --- IMPORTACIÓN DE JUEGOS ---
@@ -15,17 +15,19 @@ import RunnerChallenge from './RunnerChallenge.vue';
 import QuickFly from './QuickFly.vue';
 import TreasureHunt from '../views/TreasureHunt.vue';
 import WorldTourChallenge from './WorldTourChallenge.vue';
-import ScaleMaster from './ScaleMaster.vue'; // Nuevo
-import FractionArchitect from './FractionArchitect.vue'; // Nuevo
+import ScaleMaster from './ScaleMaster.vue'; 
+import FractionArchitect from './FractionArchitect.vue';
+import SubmarineAlgebra from './SubmarineAlgebra.vue'; // Nuevo
+import SoccerAlgebra from './SoccerAlgebra.vue'; // Nuevo
 
-const emit = defineEmits(['close']);
+const emit = defineEmits(['close', 'update-coins']);
 const activeGame = ref(null); 
 const currentPage = ref(0); 
 
 // Mantenemos 4 juegos por página para máxima legibilidad
 const gamesPerPage = 4; 
 
-// --- LISTA DE JUEGOS ACTUALIZADA ---
+// --- LISTA DE JUEGOS ACTUALIZADA (v2.9.0) ---
 const games = [
   { id: 'quiz', name: 'Desafío Contra Reloj', icon: Zap, color: 'bg-orange-500', desc: '60 segundos para ganar Plata' },
   { id: 'memory', name: 'Memoria Pro', icon: Brain, color: 'bg-indigo-500', desc: 'Une parejas y gana Oro' },
@@ -35,9 +37,11 @@ const games = [
   { id: 'fly', name: 'Tablas Rápidas', icon: Plane, color: 'bg-rose-500', desc: 'Agilidad mental con Cobre' },
   { id: 'treasure', name: 'Ruta del Tesoro', icon: Anchor, color: 'bg-amber-600', desc: '10 Misiones: El Cofre Pirata' },
   { id: 'world-tour', name: 'Expedición Mundial', icon: Globe, color: 'bg-emerald-600', desc: 'Resuelve el misterio y viaja' },
-  // PÁGINA 3
   { id: 'scale', name: 'Scale Master', icon: Scale, color: 'bg-cyan-600', desc: 'Equilibra el álgebra con pesas' },
-  { id: 'pizza', name: 'Arquitecto de Fracciones', icon: PieChart, color: 'bg-red-500', desc: 'Prepara pedidos y domina partes' }
+  { id: 'pizza', name: 'Arquitecto de Fracciones', icon: PieChart, color: 'bg-red-500', desc: 'Prepara pedidos y domina partes' },
+  // NUEVOS RETOS
+  { id: 'submarine', name: 'Burbujas de Álgebra', icon: Waves, color: 'bg-blue-600', desc: 'Explota el valor de X bajo el mar' },
+  { id: 'soccer', name: 'Estadio de Ecuaciones', icon: Dribbble, color: 'bg-lime-600', desc: 'Anota goles resolviendo incógnitas' }
 ];
 
 // --- LÓGICA DE PAGINACIÓN ---
@@ -53,10 +57,15 @@ const prevPage = () => { if (currentPage.value > 0) currentPage.value--; };
 
 const openGame = (gameId) => { activeGame.value = gameId; };
 const closeGame = () => { activeGame.value = null; };
+
+// Manejador de monedas global
+const handleCoins = (amount) => {
+  emit('update-coins', amount);
+};
 </script>
 
 <template>
-  <div class="absolute inset-0 z-[150] bg-indigo-900/95 backdrop-blur-md flex flex-col p-4 animate-fade-in">
+  <div class="absolute inset-0 z-[150] bg-indigo-900/95 backdrop-blur-md flex flex-col p-4 animate-fade-in font-['Inter']">
     
     <header class="flex justify-between items-center mb-6 shrink-0">
       <div class="flex items-center gap-3 text-white px-2">
@@ -87,7 +96,7 @@ const closeGame = () => { activeGame.value = null; };
         </button>
       </div>
 
-      <footer class="flex justify-between items-center pt-6 gap-4">
+      <footer class="flex justify-between items-center pt-6 gap-4 shrink-0">
         <button @click="prevPage" :disabled="currentPage === 0"
           :class="`flex-1 py-4 rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2 transition-all ${currentPage === 0 ? 'bg-slate-800 text-slate-600 opacity-50' : 'bg-indigo-600 text-white shadow-lg active:translate-y-1'}`">
           <ChevronLeft :size="20" /> REGRESAR
@@ -100,7 +109,7 @@ const closeGame = () => { activeGame.value = null; };
       </footer>
     </div>
 
-    <div v-else class="flex-1 relative overflow-hidden">
+    <div v-else class="flex-1 relative overflow-hidden bg-black rounded-3xl shadow-2xl">
       <QuizModule v-if="activeGame === 'quiz'" @close="closeGame" />
       <MemoryChallenge v-if="activeGame === 'memory'" @close="closeGame" />
       <NumberSearch v-if="activeGame === 'search'" @close="closeGame" />
@@ -111,6 +120,28 @@ const closeGame = () => { activeGame.value = null; };
       <WorldTourChallenge v-if="activeGame === 'world-tour'" @close="closeGame" />
       <ScaleMaster v-if="activeGame === 'scale'" @close="closeGame" />
       <FractionArchitect v-if="activeGame === 'pizza'" @close="closeGame" />
+      
+      <SubmarineAlgebra v-if="activeGame === 'submarine'" @close="closeGame" @update-coins="handleCoins" />
+      <SoccerAlgebra v-if="activeGame === 'soccer'" @close="closeGame" @update-coins="handleCoins" />
     </div>
   </div>
 </template>
+
+<style scoped>
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+</style>
