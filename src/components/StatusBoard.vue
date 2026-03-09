@@ -1,28 +1,28 @@
 <script setup>
+/** * ARCHIVO: StatusBoard.vue
+ * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.2 + SINCRONIZACIÓN BANCO CENTRAL
+ * LOGICA: Visualización reactiva de saldos con animación de conteo suave.
+ */
 import { ref, onMounted, watch } from 'vue';
-// 🚀 UNIFICACIÓN: Usamos el alias @ para conectar con el Banco Central exacto
 import { useGamificationStore } from '@/stores/useGamificationStore';
 import { storeToRefs } from 'pinia';
 import { playCoinSound } from '@/utils/sound';
 import CoinRain from './CoinRain.vue';
 
-// Conectamos con el Banco
 const store = useGamificationStore();
-// Extraemos los saldos REALES con reactividad total
+// storeToRefs garantiza que el tablero "escuche" al Banco Central en tiempo real
 const { copper, silver, gold } = storeToRefs(store);
 
-// Variables para controlar la celebración
 const showRain = ref(false);
 const rainType = ref('copper'); 
 
-// Valores de visualización para la animación numérica
 const displayCopper = ref(0);
 const displaySilver = ref(0);
 const displayGold = ref(0);
 
 /**
- * Función de animación suave con Easing
- * Asegura que los números suban o bajen con fluidez visual.
+ * Función de animación quirúrgica con Easing
+ * Evita saltos visuales durante las conversiones de moneda.
  */
 const animateValue = (start, end, duration, elementRef) => {
   if (start === end) {
@@ -34,6 +34,7 @@ const animateValue = (start, end, duration, elementRef) => {
   const step = (timestamp) => {
     if (!startTimestamp) startTimestamp = timestamp;
     const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+    // Easing Out Cubic para suavidad premium
     const easeProgress = 1 - Math.pow(1 - progress, 3);
     
     elementRef.value = Math.floor(easeProgress * (end - start) + start);
@@ -49,12 +50,12 @@ const animateValue = (start, end, duration, elementRef) => {
 };
 
 onMounted(() => {
-    // 1. Sincronización inicial: Animamos desde 0 al saldo actual del Banco
-    animateValue(0, gold.value, 1500, displayGold);
-    animateValue(0, silver.value, 1500, displaySilver);
-    animateValue(0, copper.value, 1500, displayCopper);
+    // 1. Sincronización de entrada: Del estado actual a la visualización
+    animateValue(0, gold.value, 1000, displayGold);
+    animateValue(0, silver.value, 1000, displaySilver);
+    animateValue(0, copper.value, 1000, displayCopper);
 
-    // 2. VIGILANTE DE PREMIOS (Celebración de sesión)
+    // 2. Vigilante de Celebración (Protocolo de Sesión)
     const earnedGold = store.sessionGoldEarned || 0;
     const earnedSilver = store.sessionSilverEarned || 0;
     const earnedCopper = store.sessionCopperEarned || 0;
@@ -65,104 +66,127 @@ onMounted(() => {
     if (currentSessionTotal > 0 && currentSessionTotal > lastCelebrated) {
         sessionStorage.setItem('lastCelebratedTotal', currentSessionTotal.toString());
 
+        // Prioridad de lluvia por valor de moneda
         if (earnedGold > 0) rainType.value = 'gold';
         else if (earnedSilver > 0) rainType.value = 'silver';
         else rainType.value = 'copper';
 
         showRain.value = true;
-        
-        setTimeout(() => {
-            playCoinSound();
-        }, 100);
+        playCoinSound();
 
-        setTimeout(() => {
-            showRain.value = false;
-        }, 4000);
+        setTimeout(() => { showRain.value = false; }, 4000);
 
     } else if (currentSessionTotal === 0) {
         sessionStorage.setItem('lastCelebratedTotal', '0');
     }
 });
 
-// 🔄 VIGILANTES REACTIVOS: Si el Banco Central cambia, el tablero se actualiza solo
-watch(copper, (newVal, oldVal) => animateValue(oldVal, newVal, 500, displayCopper));
-watch(silver, (newVal, oldVal) => animateValue(oldVal, newVal, 500, displaySilver));
-watch(gold, (newVal, oldVal) => animateValue(oldVal, newVal, 500, displayGold));
+// 🔄 VIGILANTES REACTIVOS: Reaccionan a las correcciones automáticas del Banco Central
+watch(copper, (newVal, oldVal) => animateValue(oldVal, newVal, 600, displayCopper));
+watch(silver, (newVal, oldVal) => animateValue(oldVal, newVal, 600, displaySilver));
+watch(gold, (newVal, oldVal) => animateValue(oldVal, newVal, 600, displayGold));
 
 </script>
 
 <template>
-  <div class="status-board">
+  <div class="status-board-container">
     
-    <CoinRain v-if="showRain" :type="rainType" :count="25" />
+    <CoinRain v-if="showRain" :type="rainType" :count="30" />
 
-    <div class="coin-stat gold">
-      <img src="/images/coin-gold.png" alt="Oro" class="coin-icon" />
-      <span class="count">{{ displayGold }}</span>
-    </div>
+    <div class="board-inner shadow-2xl">
+      <div class="coin-stat-box gold-theme">
+        <div class="icon-wrapper">
+          <img src="/images/coin-gold.png" alt="Oro" class="coin-img" />
+        </div>
+        <div class="count-badge">{{ displayGold }}</div>
+      </div>
 
-    <div class="coin-stat silver">
-      <img src="/images/coin-silver.png" alt="Plata" class="coin-icon" />
-      <span class="count">{{ displaySilver }}</span>
-    </div>
+      <div class="coin-stat-box silver-theme">
+        <div class="icon-wrapper">
+          <img src="/images/coin-silver.png" alt="Plata" class="coin-img" />
+        </div>
+        <div class="count-badge">{{ displaySilver }}</div>
+      </div>
 
-    <div class="coin-stat copper">
-      <img src="/images/coin-copper.png" alt="Cobre" class="coin-icon" />
-      <span class="count">{{ displayCopper }}</span>
+      <div class="coin-stat-box copper-theme">
+        <div class="icon-wrapper">
+          <img src="/images/coin-copper.png" alt="Cobre" class="coin-img" />
+        </div>
+        <div class="count-badge">{{ displayCopper }}</div>
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.status-board {
+.status-board-container {
+  width: 100%;
+  padding: 10px;
+  display: flex;
+  justify-content: center;
+  z-index: 100;
+}
+
+.board-inner {
   display: flex;
   justify-content: space-evenly;
   align-items: center;
   background: rgba(255, 255, 255, 0.95);
-  padding: 14px 10px 4px 10px; 
-  border-radius: 24px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  border: 2px solid #f0f0f0;
+  backdrop-filter: blur(10px);
+  padding: 12px 20px;
+  border-radius: 30px;
+  border: 3px solid #f1f5f9;
   width: 100%;
+  max-width: 450px;
 }
 
-.coin-stat {
+.coin-stat-box {
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: 6px;
+  flex: 1;
+}
+
+.icon-wrapper {
   position: relative;
-  flex-shrink: 0;
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-.coin-icon {
-  width: 58px; 
-  height: 58px;
-  filter: drop-shadow(0 4px 6px rgba(0,0,0,0.25));
-  transition: transform 0.2s;
-  z-index: 1;
+.coin-img {
+  width: 52px;
+  height: 52px;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.15));
 }
 
-.coin-stat:hover .coin-icon {
-  transform: scale(1.1) rotate(5deg);
+.coin-stat-box:hover .icon-wrapper {
+  transform: scale(1.15) rotate(10deg);
 }
 
-.count {
-  font-family: 'Nunito', sans-serif;
-  font-weight: 800;
-  font-size: 1.15rem;
-  color: #444;
-  margin-top: 8px; 
-  background: white;
-  padding: 1px 12px;
+.count-badge {
+  font-family: 'Inter', sans-serif;
+  font-weight: 900;
+  font-size: 1.2rem;
+  padding: 2px 14px;
   border-radius: 12px;
-  border: 2px solid #eee;
-  z-index: 2;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  min-width: 42px; 
+  background: white;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+  min-width: 50px;
   text-align: center;
+  border: 2px solid #e2e8f0;
 }
 
-.gold .count { color: #d4af37; border-color: #d4af37; }
-.silver .count { color: #8e8e93; border-color: #a8a9ad; }
-.copper .count { color: #b87333; border-color: #b87333; }
+/* Colores de Marca por Metal */
+.gold-theme .count-badge { color: #b45309; border-color: #fbbf24; background: #fffbeb; }
+.silver-theme .count-badge { color: #475569; border-color: #94a3b8; background: #f8fafc; }
+.copper-theme .count-badge { color: #9a3412; border-color: #fb923c; background: #fff7ed; }
+
+/* Animación de entrada */
+.animate-ping-once {
+  animation: ping 0.5s cubic-bezier(0, 0, 0.2, 1);
+}
+
+@keyframes ping {
+  75%, 100% { transform: scale(1.2); opacity: 0; }
+}
 </style>

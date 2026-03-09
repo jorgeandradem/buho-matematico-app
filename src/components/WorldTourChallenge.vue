@@ -1,147 +1,55 @@
-<template>
-  <div class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm overscroll-none touch-none">
-    
-    <div class="relative w-full max-w-[480px] h-[100dvh] flex flex-col overflow-hidden shadow-2xl bg-white mx-auto" 
-          :style="{ backgroundColor: currentChallenge?.color + '11' }">
-      
-      <header class="grid grid-cols-[1.1fr_auto_1.1fr] items-stretch p-3 bg-white shadow-md shrink-0 z-40 relative gap-2">
-        <div class="relative flex items-center gap-1 bg-slate-100 p-1 rounded-full w-fit h-full">
-          <transition name="float">
-            <div v-if="floatingPoints" class="absolute -top-10 left-1/2 -translate-x-1/2 text-green-600 font-black text-2xl z-50 pointer-events-none">
-              +{{ currentReward }}
-            </div>
-          </transition>
-          <button v-for="coin in ['gold', 'silver', 'copper']" :key="coin" 
-                  @click="setDifficulty(coin)" 
-                  :class="[difficulty === coin ? 'ring-2 ring-indigo-500 scale-110 animate-bounce-slow' : 'opacity-40']" 
-                  class="transition-all rounded-full bg-white shadow-sm">
-            <img :src="`/images/coin-${coin}.png`" class="w-8 h-8" />
-          </button>
-        </div>
-
-        <div class="flex items-center">
-          <h1 class="bg-orange-500 text-white px-3 py-1.5 rounded-xl font-black shadow-lg border-b-4 border-orange-700 uppercase tracking-tighter text-[10px] text-center leading-none h-full flex items-center">
-            EXPEDICIÓN<br>MATEMÁTICA
-          </h1>
-        </div>
-
-        <div class="flex items-center justify-end gap-1.5 h-full">
-          <div class="bg-indigo-900 text-white px-2 rounded-xl font-black text-[10px] shadow-inner h-full flex items-center border-b-4 border-indigo-950">
-            MISIÓN {{ currentRound }}/6
-          </div>
-          <button @click="$emit('close')" class="bg-red-500 text-white w-10 h-10 rounded-full shadow-lg font-black border-b-4 border-red-700 text-xl shrink-0">✕</button>
-        </div>
-      </header>
-
-      <main class="flex-1 flex flex-col px-4 pt-4 pb-10 gap-2 overflow-hidden justify-between select-none z-10 relative">
-        
-        <section class="relative z-20 shrink-0 mt-2">
-          <div class="absolute -top-6 -left-2 w-28 h-28 globe-wrapper z-30 drop-shadow-xl">
-            <div :class="['relative w-full h-full transition-transform duration-1000', { 'rotate-y-360': isRotating }]">
-              <svg viewBox="0 0 100 100" class="w-full h-full">
-                <circle cx="50" cy="50" r="48" fill="#3b82f6" stroke="#1e40af" stroke-width="1"/>
-                <path d="M30,40 Q35,30 45,35 T60,30 T75,45 T65,60 T50,70 T30,60 Z" fill="#22c55e" />
-                <path d="M70,60 Q75,55 85,65 T75,80 T60,70 Z" fill="#16a34a" />
-              </svg>
-              <div class="absolute inset-0 flex items-center justify-center backface-hidden">
-                <div class="bg-blue-950/90 text-white px-2 py-0.5 rounded font-black text-[9px] uppercase border border-white/30 translate-y-3">
-                  {{ currentChallenge?.continente }}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="flex flex-col gap-2 ml-14 pl-16 pr-3 pt-4 pb-3 bg-white border-4 border-yellow-400 rounded-3xl shadow-lg min-h-[90px]">
-            <div class="font-bold text-[13px] leading-tight">
-              <p class="mb-1 text-black">{{ logicalSplitHistory.part1 }}</p>
-              <p class="text-blue-600 font-extrabold">{{ logicalSplitHistory.part2 }}</p>
-            </div>
-          </div>
-          
-          <div class="bg-yellow-50 text-indigo-950 p-2.5 rounded-xl shadow-lg transform -rotate-1 border-4 border-yellow-400 mt-2 mx-2">
-            <p class="font-black italic text-[13px] text-center leading-tight">{{ currentChallenge?.pregunta }}</p>
-          </div>
-        </section>
-
-        <section class="flex-1 flex flex-col justify-center bg-slate-100 rounded-[2.5rem] border-2 border-white relative px-2 my-2 min-h-0 shadow-inner">
-          <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-indigo-700 px-5 py-1 rounded-full border-2 border-white shadow-md z-20">
-            <h2 class="font-black text-white text-[10px] tracking-widest uppercase">Estaciones de Trabajo</h2>
-          </div>
-          
-          <div class="flex flex-col gap-2 py-1">
-            <div v-for="i in [1, 2]" :key="i" class="flex items-center justify-center gap-3 p-2 rounded-3xl transition-all h-[70px]"
-                 :class="step === i ? 'bg-white shadow-xl border-2 border-indigo-400 scale-[1.02]' : 'opacity-30 grayscale blur-[1px]'">
-              <span class="w-9 h-9 bg-indigo-600 text-white rounded-full flex items-center justify-center font-black text-lg shadow-md border-b-4 border-indigo-800 shrink-0">{{ i }}</span>
-              <div class="flex items-center gap-2">
-                <div v-for="field in ['a', 'op', 'b', 'eq', 'res']" :key="field">
-                  <span v-if="field === 'op'" class="font-black text-indigo-600 text-2xl mx-1">{{ currentChallenge?.pasos[i-1].op === 'x' ? '×' : currentChallenge?.pasos[i-1].op }}</span>
-                  <span v-else-if="field === 'eq'" class="font-black text-slate-400 text-2xl mx-1">=</span>
-                  <div v-else class="w-14 h-10 rounded-xl flex items-center justify-center font-black text-lg border-2 shadow-sm"
-                       :class="isTarget(i-1, field) ? 'bg-amber-50 border-amber-400 text-amber-700 animate-pulse' : 'bg-slate-50 border-slate-100'">
-                    {{ displayCell(i-1, field) }}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section class="grid grid-cols-3 gap-3 shrink-0 z-10 px-1">
-          <button v-for="(opt, idx) in currentOptions" :key="idx" 
-                  @click="checkAnswer(opt)" :disabled="revealFinalAnswer"
-                  :class="[getButtonClass(opt), revealFinalAnswer ? 'opacity-50' : '']"
-                  class="h-16 rounded-2xl font-black text-3xl shadow-lg border-b-[6px] transition-all active:translate-y-1 active:border-b-0 touch-manipulation bg-white">
-            <div class="text-[10px] opacity-60 font-bold -mb-1">{{ ['A', 'B', 'C'][idx] }}</div>
-            {{ opt }}
-          </button>
-        </section>
-      </main>
-
-      <CoinRain v-if="showRain" :type="difficulty" class="z-50" />
-
-      <div v-if="showFinalPopup" class="absolute inset-0 z-[60] flex items-center justify-center pointer-events-none p-4">
-        <div class="bg-yellow-400 border-4 border-white p-6 rounded-[2rem] shadow-2xl animate-pop-in pointer-events-auto max-w-[240px] text-center w-full">
-          <div class="text-5xl mb-2">🏆</div>
-          <h3 class="font-black text-indigo-900 text-lg leading-tight uppercase">¡EXPEDICIÓN COMPLETA!</h3>
-          <div class="my-3 bg-white/50 rounded-xl py-2 border-2 border-yellow-500">
-            <p class="text-indigo-950 font-black text-sm uppercase">Ganaste</p>
-            <p class="text-3xl font-black text-orange-600">+{{ totalPointsEarned }}</p>
-            <p class="text-indigo-950 font-bold text-[10px] uppercase">Monedas de {{ difficulty }}</p>
-          </div>
-          <button @click="resetExpedition" class="mt-2 w-full bg-indigo-600 text-white py-3 rounded-2xl font-black text-sm shadow-lg border-b-4 border-indigo-950 active:scale-95 transition-transform">
-            CONTINUAR
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-</template>
-
 <script setup>
+/** * ARCHIVO: WorldTourChallenge.vue
+ * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.2 + CORRECCIÓN DE NIVELACIÓN
+ * LOGICA: Expedición geográfica con transición optimizada y síntesis de voz.
+ */
 import { ref, computed, onMounted } from 'vue';
+import { Trophy, X, Globe, MapPin, Zap, AlertTriangle, ChevronRight, PlayCircle, BookOpen } from 'lucide-vue-next';
 import { worldTourData } from '../data/worldTourData';
 import { useGamificationStore } from '../stores/useGamificationStore';
 import { playSound } from '../utils/sound';
 import CoinRain from './CoinRain.vue';
 
+const emit = defineEmits(['close', 'win']);
 const store = useGamificationStore();
-const step = ref(1);
+
+// --- 1. ESTADOS DE FLUJO ---
+const gameState = ref('rules'); 
 const currentRound = ref(1);
-const difficulty = ref('silver');
+const QUESTIONS_COUNT = 10;
+const step = ref(1);
+const totalErrors = ref(0);
+const sessionCoins = ref({ gold: 0, silver: 0, copper: 0 });
+
+// --- 2. MOTOR DE JUEGO Y AUDIO ---
 const isRotating = ref(false);
 const showRain = ref(false);
-const showFinalPopup = ref(false);
-const floatingPoints = ref(false);
 const selectedAnswer = ref(null);
 const isWrong = ref(false);
 const revealFinalAnswer = ref(false);
-const totalPointsEarned = ref(0); // Acumulador de puntos para el popup final
+
+const speakContinent = (text) => {
+  if (!window.speechSynthesis) return;
+  window.speechSynthesis.cancel(); 
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = 'es-ES';
+  utterance.rate = 0.9;
+  utterance.volume = 1.0;
+  window.speechSynthesis.speak(utterance);
+};
+
+const playCustomSound = (file) => {
+    const audio = new Audio(`/audios/${file}`);
+    audio.volume = 0.9;
+    audio.play().catch(e => console.warn("Audio bloqueado", e));
+};
 
 const continentPool = ["América", "Europa", "Asia", "África", "Oceanía", "Antártida"];
 const shuffledPool = ref([...continentPool].sort(() => Math.random() - 0.5));
 
 const currentChallenge = computed(() => {
-  const cont = shuffledPool.value[currentRound.value - 1];
+  const index = (currentRound.value - 1) % continentPool.length;
+  const cont = shuffledPool.value[index];
   const list = worldTourData.filter(d => d.continente === cont);
   return list[Math.floor(Math.random() * list.length)];
 });
@@ -152,78 +60,107 @@ const logicalSplitHistory = computed(() => {
   return dotIndex !== -1 ? { part1: text.substring(0, dotIndex+1), part2: text.substring(dotIndex+1).trim() } : { part1: text, part2: "" };
 });
 
-const currentReward = computed(() => ({ gold: 10, silver: 5, copper: 2 }[difficulty.value]));
-
-const targetFields = ref([['a','b','res'][Math.floor(Math.random()*3)], ['a','b','res'][Math.floor(Math.random()*3)]]);
+const targetFields = ref([
+    ['a','b','res'][Math.floor(Math.random()*3)], 
+    ['a','b','res'][Math.floor(Math.random()*3)]
+]);
 const isTarget = (r, f) => targetFields.value[r] === f;
 
 const displayCell = (r, f) => {
-  if (step.value === 1 && r === 1) return "?";
-  if (r === 1 && isTarget(1, f) && revealFinalAnswer.value) return currentChallenge.value.pasos[1][f];
-  if (step.value === r + 1 && isTarget(r, f)) return "?";
+  if (r === 1 && f === 'a' && !isTarget(1, 'a')) return currentChallenge.value.pasos[0].res;
+  if (step.value === 1 && r === 1) return "?"; 
+  if (isTarget(r, f)) {
+      if (r === 1 && revealFinalAnswer.value) return currentChallenge.value.pasos[1][f];
+      if (step.value === r + 1) return "?";
+  }
   return currentChallenge.value.pasos[r][f];
 };
 
 const currentOptions = computed(() => {
   if (!currentChallenge.value) return [];
   const correct = currentChallenge.value.pasos[step.value - 1][targetFields.value[step.value - 1]];
-  const opts = new Set([correct, correct + 2, Math.abs(correct - 4), correct + 1]);
+  const opts = new Set([correct, correct + 2, Math.abs(correct - 1), correct + 1]);
   return Array.from(opts).slice(0, 3).sort(() => Math.random() - 0.5);
 });
 
-const setDifficulty = (d) => { difficulty.value = d; playSound('click'); };
+// --- 3. LÓGICA DE NAVEGACIÓN ---
+const startChallenge = () => {
+  gameState.value = 'playing';
+  currentRound.value = 1;
+  totalErrors.value = 0;
+  sessionCoins.value = { gold: 0, silver: 0, copper: 0 };
+  playSound('click');
+  setTimeout(() => speakContinent(currentChallenge.value.continente), 500);
+};
+
+const closeExpedition = () => {
+    if (gameState.value === 'rules') emit('close');
+    else { gameState.value = 'rules'; revealFinalAnswer.value = false; step.value = 1; }
+};
 
 const checkAnswer = (val) => {
   const correct = currentChallenge.value.pasos[step.value - 1][targetFields.value[step.value - 1]];
   selectedAnswer.value = val;
   if (val === correct) {
     isWrong.value = false;
-    playSound('correct');
+    playCustomSound('correct1.mp3'); 
+    
+    // JERARQUÍA DE MONEDAS HOMOLOGADA
+    const op = currentChallenge.value.pasos[step.value - 1].op;
+    if (op === '+') sessionCoins.value.copper++; 
+    else if (op === '-') sessionCoins.value.silver++;
+    else sessionCoins.value.gold++; 
+    
     if (step.value === 1) {
-      setTimeout(() => { step.value = 2; selectedAnswer.value = null; }, 600);
+      setTimeout(() => { step.value = 2; selectedAnswer.value = null; }, 400);
     } else {
-      revealFinalAnswer.value = true;
-      // TIMING: Estación 2 permanece 1.5s antes de avanzar
-      setTimeout(() => { handleMissionComplete(); }, 1500);
+      revealFinalAnswer.value = true; 
+      setTimeout(() => { handleMissionNext(); }, 1200);
     }
   } else {
-    isWrong.value = true;
-    playSound('wrong');
-    setTimeout(() => { selectedAnswer.value = null; }, 600);
+    isWrong.value = true; totalErrors.value++;
+    playSound('wrong'); setTimeout(() => { selectedAnswer.value = null; }, 600);
   }
 };
 
-const handleMissionComplete = () => {
-  totalPointsEarned.value += currentReward.value; // Acumular para el popup final
-  store.completeWorldTourChallenge(difficulty.value, currentReward.value);
-  
-  if (currentRound.value < 6) {
-    floatingPoints.value = true;
+const handleMissionNext = () => {
+  if (currentRound.value < QUESTIONS_COUNT) {
     isRotating.value = true;
+    playCustomSound('wrong1.mp3'); 
     setTimeout(() => {
-      floatingPoints.value = false;
-      isRotating.value = false;
-      currentRound.value++;
-      step.value = 1;
-      selectedAnswer.value = null;
-      revealFinalAnswer.value = false;
+      isRotating.value = false; currentRound.value++; step.value = 1;
+      selectedAnswer.value = null; revealFinalAnswer.value = false;
       targetFields.value = [['a','b','res'][Math.floor(Math.random()*3)], ['a','b','res'][Math.floor(Math.random()*3)]];
+      speakContinent(currentChallenge.value.continente);
     }, 1200);
-  } else {
-    showRain.value = true;
-    playSound('coins');
-    setTimeout(() => { showFinalPopup.value = true; }, 800);
-  }
+  } else { finishGame(); }
 };
 
-const resetExpedition = () => {
-  currentRound.value = 1;
-  totalPointsEarned.value = 0;
-  shuffledPool.value = [...continentPool].sort(() => Math.random() - 0.5);
-  showRain.value = false;
-  showFinalPopup.value = false;
-  revealFinalAnswer.value = false;
-  step.value = 1;
+const finishGame = async () => {
+  gameState.value = 'finished'; showRain.value = true; playSound('coins');
+  
+  // Castigo por errores excesivos
+  if (totalErrors.value > 6) sessionCoins.value = { gold: 0, silver: 0, copper: 5 };
+
+  // --- INTERVENCIÓN: LLAMADA ÚNICA PARA EVITAR TRIPLE NIVELACIÓN ---
+  // Subimos nivel y entregamos el oro (o la moneda principal)
+  await store.completeWorldTourChallenge('gold', sessionCoins.value.gold);
+  
+  // El resto se añade como monedas directas para no incrementar worldTourLevel 3 veces
+  if (sessionCoins.value.silver > 0) await store.addCoins('silver', sessionCoins.value.silver);
+  if (sessionCoins.value.copper > 0) await store.addCoins('copper', sessionCoins.value.copper);
+  
+  emit('win', { ...sessionCoins.value });
+};
+
+const resetGame = () => {
+    gameState.value = 'rules';
+    showRain.value = false;
+    revealFinalAnswer.value = false;
+    step.value = 1;
+    currentRound.value = 1;
+    totalErrors.value = 0;
+    sessionCoins.value = { gold: 0, silver: 0, copper: 0 };
 };
 
 onMounted(() => { document.body.style.overflow = 'hidden'; });
@@ -235,17 +172,167 @@ const getButtonClass = (opt) => {
 };
 </script>
 
+<template>
+  <div class="master-container font-inter">
+    <main class="app-canvas !bg-white shadow-smartphone">
+      
+      <header v-if="gameState === 'playing'" class="header-standard shrink-0">
+        <div class="trophy-section">
+          <Trophy size="22" class="text-yellow-500" />
+          <span class="text-xl font-black text-indigo-900">{{ currentRound }}/10</span>
+        </div>
+        <div class="session-loot-capsule">
+          <div class="loot-item"><img src="/images/coin-gold.png" /><span>{{ sessionCoins.gold }}</span></div>
+          <div class="loot-item border-x border-slate-100"><img src="/images/coin-silver.png" /><span>{{ sessionCoins.silver }}</span></div>
+          <div class="loot-item"><img src="/images/coin-copper.png" /><span>{{ sessionCoins.copper }}</span></div>
+        </div>
+        <button @click="closeExpedition" class="btn-close-circle"><X size="20" /></button>
+      </header>
+
+      <div class="game-content flex-1 flex flex-col relative overflow-hidden">
+        
+        <div v-if="gameState === 'rules'" class="flex-1 flex flex-col items-center justify-between p-6 w-full animate-fade-in z-50">
+            <button @click="closeExpedition" class="absolute top-4 right-4 bg-slate-100 w-10 h-10 rounded-full flex items-center justify-center text-slate-600 active:scale-75 transition-all">
+                <X size="24" stroke-width="3" />
+            </button>
+            <div class="flex flex-col items-center mt-6">
+                <Globe size="80" class="text-indigo-600 mb-4 animate-pulse drop-shadow-xl" />
+                <h1 class="game-title text-center text-4xl uppercase italic">Expedición Mundial</h1>
+            </div>
+            <div class="rules-panel shadow-2xl w-full">
+                <div class="rules-badge">BITÁCORA DE VIAJE</div>
+                <div class="flex flex-col gap-5 p-2">
+                    <div class="flex gap-4 items-start">
+                        <div class="bg-indigo-100 p-2 rounded-xl border border-blue-100"><MapPin class="text-indigo-600" size="20" /></div>
+                        <p class="text-sm font-bold text-slate-600">Escucha el nombre de cada continente al llegar a una nueva **Misión**.</p>
+                    </div>
+                    <div class="flex gap-4 items-start">
+                        <div class="bg-green-100 p-2 rounded-xl"><Zap class="text-green-600" size="20" /></div>
+                        <p class="text-sm font-bold text-slate-600">Resuelve las estaciones de trabajo para desbloquear el siguiente país.</p>
+                    </div>
+                </div>
+            </div>
+            <button @click="startChallenge" class="btn-action-primary w-full py-5 text-xl uppercase italic shadow-[0_6px_0_rgb(30,58,138)]">
+                ¡INICIAR MISIÓN! <PlayCircle class="ml-2" />
+            </button>
+        </div>
+
+        <template v-else-if="gameState === 'playing'">
+            <div class="flex-1 flex flex-col items-center py-2 px-2 relative w-full" :style="{ backgroundColor: currentChallenge?.color + '11' }">
+                
+                <div class="mission-tag-surgical z-20 mt-4 italic font-black">MISIÓN: {{ currentChallenge?.continente }}</div>
+
+                <section class="w-full relative z-20 shrink-0 mt-6">
+                  <div class="absolute -top-12 -left-2 w-24 h-24 globe-wrapper z-30 drop-shadow-2xl">
+                    <div :class="['relative w-full h-full transition-transform duration-1000', { 'rotate-y-360': isRotating }]">
+                      <svg viewBox="0 0 100 100" class="w-full h-full scale-90">
+                        <circle cx="50" cy="50" r="48" fill="#3b82f6" stroke="#1e40af" stroke-width="1"/>
+                        <path d="M30,40 Q35,30 45,35 T60,30 T75,45 T65,60 T50,70 T30,60 Z" fill="#22c55e" />
+                      </svg>
+                    </div>
+                  </div>
+
+                  <div class="flex flex-col gap-1.5 ml-14 pl-12 pr-4 pt-4 pb-3 bg-white border-4 border-yellow-400 rounded-3xl shadow-lg">
+                    <div class="font-bold text-[14px] leading-tight text-slate-800">
+                      <p>{{ logicalSplitHistory.part1 }}</p>
+                      <p class="text-blue-600 font-extrabold">{{ logicalSplitHistory.part2 }}</p>
+                    </div>
+                  </div>
+                  
+                  <div class="bg-yellow-50 text-indigo-950 p-4 rounded-2xl shadow-md border-2 border-yellow-400 mt-4 mx-6">
+                    <p class="font-black italic text-[15px] text-center leading-tight">{{ currentChallenge?.pregunta }}</p>
+                  </div>
+                </section>
+
+                <section class="w-full h-[32%] flex flex-col justify-center bg-white rounded-[3.5rem] border-4 border-indigo-100 relative px-2 my-4 shadow-xl">
+                  <div class="absolute -top-5 left-1/2 -translate-x-1/2 bg-indigo-700 px-8 py-1.5 rounded-full border-2 border-white shadow-md z-20">
+                    <h2 class="font-black text-yellow-400 text-xs tracking-widest uppercase italic">Estaciones de Trabajo</h2>
+                  </div>
+                  
+                  <div class="flex flex-col gap-4 py-2">
+                    <div v-for="i in [1, 2]" :key="i" class="flex items-center justify-center gap-10 p-2 rounded-3xl transition-all h-[75px]"
+                         :class="step === i ? 'bg-indigo-50 border-2 border-indigo-200 scale-105' : 'opacity-20 grayscale'">
+                      
+                      <span class="w-10 h-10 bg-indigo-600 text-white rounded-full flex items-center justify-center font-black text-lg shadow-md shrink-0">{{ i }}</span>
+                      
+                      <div class="flex items-center gap-8">
+                        <div v-for="field in ['a', 'op', 'b', 'eq', 'res']" :key="field">
+                          <span v-if="field === 'op'" class="font-black text-indigo-600 text-4xl mx-2">{{ currentChallenge?.pasos[i-1].op === 'x' ? '×' : currentChallenge?.pasos[i-1].op }}</span>
+                          <span v-else-if="field === 'eq'" class="font-black text-slate-300 text-4xl mx-2">=</span>
+                          <div v-else class="w-22 h-16 rounded-2xl flex items-center justify-center font-black text-5xl border-2 shadow-sm"
+                               :class="isTarget(i-1, field) ? 'bg-amber-100 border-amber-400 text-amber-700' : 'bg-slate-50 border-slate-100'">
+                            {{ displayCell(i-1, field) }}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                <section class="w-full grid grid-cols-3 gap-6 shrink-0 z-10 px-4 mt-auto mb-10">
+                  <button v-for="(opt, idx) in currentOptions" :key="idx" @click="checkAnswer(opt)" :disabled="revealFinalAnswer"
+                          :class="getButtonClass(opt)" 
+                          class="h-32 rounded-3xl font-black text-6xl shadow-2xl border-b-[12px] transition-all active:translate-y-2">
+                    {{ opt }}
+                  </button>
+                </section>
+            </div>
+        </template>
+
+        <div v-else-if="gameState === 'finished'" class="flex-1 flex flex-col items-center justify-center p-6 bg-slate-900 w-full animate-fade-in">
+          <CoinRain v-if="showRain" type="gold" class="z-50" />
+          <Trophy size="100" class="text-yellow-400 mb-6 animate-bounce drop-shadow-2xl" />
+          <h2 class="victory-title text-white text-center mb-8 italic uppercase text-4xl font-black">¡Expedición Lograda!</h2>
+          
+          <div class="prize-card-large w-full bg-white/10 border-4 border-white/20 rounded-[3rem] p-8 mb-10 text-center backdrop-blur-md">
+            <div class="flex justify-around w-full">
+              <div class="flex flex-col items-center"><img src="/images/coin-gold.png" class="w-14 h-14" /><span class="font-black text-2xl text-yellow-400">+{{ sessionCoins.gold }}</span></div>
+              <div class="flex flex-col items-center border-x border-white/10 px-6"><img src="/images/coin-silver.png" class="w-14 h-14" /><span class="font-black text-2xl text-slate-300">+{{ sessionCoins.silver }}</span></div>
+              <div class="flex flex-col items-center"><img src="/images/coin-copper.png" class="w-14 h-14" /><span class="font-black text-2xl text-orange-400">+{{ sessionCoins.copper }}</span></div>
+            </div>
+          </div>
+
+          <div class="w-full flex flex-col gap-4 max-w-[320px]">
+            <button @click="resetGame" class="w-full bg-indigo-600 text-white py-5 rounded-[2rem] font-black text-2xl shadow-[0_8px_0_rgb(49,46,129)] active:translate-y-2 italic uppercase">Nueva Misión</button>
+            <button @click="emit('close')" class="w-full bg-white/10 text-white py-4 rounded-[2rem] font-black text-lg border-2 border-white/20 active:translate-y-1">SALIR AL PORTAL</button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</template>
+
 <style scoped>
-.rotate-y-360 { transform: rotateY(360deg); }
+.master-container { position: fixed; inset: 0; z-index: 9999; display: flex; justify-content: center; align-items: center; background-color: #ffffff; overflow: hidden; touch-action: none !important; font-family: 'Inter', sans-serif !important; }
+.app-canvas { display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; background-color: #f8fafc; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); user-select: none; width: 100vw; height: 100dvh; }
+
+@media (min-width: 1025px) { .app-canvas { width: 1024px; height: 90dvh; border-radius: 45px; box-shadow: 0 40px 100px rgba(0,0,0,0.2); border: 8px solid white; } }
+@media (min-width: 600px) and (max-width: 1024px) { .app-canvas { width: 85vw; height: 95dvh; border-radius: 35px; } }
+
+.header-standard { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1.25rem; background: white; border-bottom: 2px solid #f1f5f9; }
+.session-loot-capsule { display: flex; align-items: center; background: white; padding: 6px 16px; border-radius: 9999px; border: 2px solid #f1f5f9; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+.loot-item { display: flex; align-items: center; gap: 6px; padding: 0 10px; font-weight: 900; }
+.loot-item img { width: 1.3rem; height: 1.3rem; object-fit: contain; }
+.btn-close-circle { background: #fee2e2; color: #ef4444; width: 40px; height: 40px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; }
+
+.mission-tag-surgical { background: #312e81; color: #fde047; padding: 6px 24px; border-radius: 9999px; font-weight: 900; text-transform: uppercase; font-size: 14px; letter-spacing: 2px; border: 2px solid #fde047; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+
+.rules-panel { width: 95%; max-width: 420px; background: white; padding: 1.5rem; border-radius: 2.5rem; border: 2px solid #e2e8f0; position: relative; }
+.rules-badge { position: absolute; top: -12px; left: 1.5rem; background: #4f46e5; color: white; font-size: 10px; font-weight: 900; padding: 4px 12px; border-radius: 9999px; }
+
+.btn-action-primary { background: #4f46e5; color: white; border-radius: 2rem; font-weight: 900; transition: all 0.1s; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.btn-action-primary:active { transform: translateY(5px); }
+
+.game-title { font-weight: 900; color: #312e81; text-transform: uppercase; font-style: italic; letter-spacing: -0.05em; }
 .globe-wrapper { perspective: 1000px; }
-.backface-hidden { backface-visibility: hidden; }
-.float-enter-active { animation: float-up 1.2s ease-out; }
-@keyframes float-up { 0% { transform: translate(-50%, 0); opacity: 0; } 20% { opacity: 1; } 100% { transform: translate(-50%, -50px); opacity: 0; } }
-.animate-bounce-slow { animation: bounce-rotate 2s infinite; }
-@keyframes bounce-rotate { 0%, 100% { transform: translateY(0) rotateY(0deg); } 50% { transform: translateY(-5px) rotateY(180deg); } }
+.rotate-y-360 { transform: rotateY(360deg); }
+
+.w-22 { width: 6.5rem; }
+
+.animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
 @keyframes shake { 0%, 100% { transform: translateX(0); } 25%, 75% { transform: translateX(-4px); } 50% { transform: translateX(4px); } }
 .animate-shake { animation: shake 0.2s ease-in-out 0s 2; }
-.animate-pop-in { animation: pop-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-@keyframes pop-in { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
 * { -webkit-tap-highlight-color: transparent; }
 </style>

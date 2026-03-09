@@ -1,9 +1,13 @@
+/** * ARCHIVO: useGamificationStore.js
+ * NOTA INTERNA: BANCO CENTRAL v2.9.2 - SISTEMA ANTIFRAUDE Y MULTI-DISPOSITIVO
+ * LOGICA: Conversión bidireccional (Dar cambio) + Transacciones Atómicas Firebase.
+ */
 import { defineStore } from 'pinia';
 import { missionsData } from '../data/missions'; 
 
 // --- IMPORTACIONES FIREBASE ---
 import { auth, db } from '../firebaseConfig';
-import { doc, updateDoc, setDoc, getDoc } from "firebase/firestore";
+import { doc, runTransaction } from "firebase/firestore";
 
 const STORAGE_KEY = 'buho-matematico-tesoro-v1';
 
@@ -19,7 +23,7 @@ export const useGamificationStore = defineStore('gamification', {
     lastSyncedSilver: 0,
     lastSyncedGold: 0,
 
-    // Estadísticas de Sesión (Para celebraciones en StatusBoard)
+    // Estadísticas de Sesión
     sessionCopperEarned: 0,
     sessionSilverEarned: 0,
     sessionGoldEarned: 0,
@@ -32,7 +36,7 @@ export const useGamificationStore = defineStore('gamification', {
     
     // Racha y Notificaciones
     currentStreak: 0,
-    lastPlayedDate: null, // Formato YYYY-MM-DD
+    lastPlayedDate: null, 
     activeMissions: [],
     bubbleMessage: '',
     
@@ -42,6 +46,10 @@ export const useGamificationStore = defineStore('gamification', {
   }),
 
   getters: {
+    /**
+     * RIQUEZA TOTAL: Convierte todo el capital a la unidad mínima (Cobre).
+     * 1 Oro = 10,000 Cobre | 1 Plata = 100 Cobre
+     */
     totalWealthInCopper: (state) => {
       return state.copper + (state.silver * 100) + (state.gold * 10000);
     },
@@ -53,22 +61,22 @@ export const useGamificationStore = defineStore('gamification', {
     setCoinsFromCloud(stats) {
       if (!stats || this.isSyncing) return; 
       
-      // 1. Calculamos el "Saldo en Tránsito" (Lo ganado localmente que no se ha subido)
-      const copperInTransit = this.copper - this.lastSyncedCopper;
-      const silverInTransit = this.silver - this.lastSyncedSilver;
-      const goldInTransit   = this.gold   - this.lastSyncedGold;
+      // Calculamos lo ganado localmente que aún no se ha subido
+      const copperDelta = this.copper - this.lastSyncedCopper;
+      const silverDelta = this.silver - this.lastSyncedSilver;
+      const goldDelta   = this.gold   - this.lastSyncedGold;
 
-      // 2. Fusionamos: Saldo Real de la Nube + Ganancias Locales Pendientes
-      this.gold = (stats.gold || 0) + goldInTransit;
-      this.silver = (stats.silver || 0) + silverInTransit;
-      this.copper = (stats.copper || 0) + (stats.puntos || 0) + copperInTransit;
+      // Fusionamos: Nube + Ganancias Locales Pendientes
+      this.gold = (stats.gold || 0) + goldDelta;
+      this.silver = (stats.silver || 0) + silverDelta;
+      this.copper = (stats.copper || 0) + (stats.puntos || 0) + copperDelta;
 
-      // 3. Actualizamos las marcas de referencia sincronizada
+      // Actualizamos marcas de referencia sincronizada
       this.lastSyncedGold = stats.gold || 0;
       this.lastSyncedSilver = stats.silver || 0;
       this.lastSyncedCopper = (stats.copper || 0) + (stats.puntos || 0);
 
-      // 4. Cargamos el resto de metadatos de progreso
+      // Metadatos de progreso
       this.currentStreak = stats.racha || 0;
       this.lastPlayedDate = stats.lastPlayedDate || null;
       this.purchasedItems = stats.purchasedItems || [];
@@ -77,14 +85,14 @@ export const useGamificationStore = defineStore('gamification', {
       this.completedIslands = stats.completedIslands || [];
       this.worldTourLevel = stats.worldTourLevel || 0;
       
+      this.processConversions(); // Balancear tras la carga
       this.saveToStorage();
     },
 
-    // --- ☁️ SINCRONIZACIÓN ATÓMICA CON DEBOUNCING ---
+    // --- ☁️ SINCRONIZACIÓN ATÓMICA (MULTI-DISPOSITIVO) ---
     async syncAllToCloud() {
         if (this.syncTimeout) clearTimeout(this.syncTimeout);
 
-        // Esperamos 2 segundos de inactividad antes de subir a Firebase
         this.syncTimeout = setTimeout(async () => {
             const user = auth.currentUser;
             if (!user || this.isSyncing) return;
@@ -93,81 +101,72 @@ export const useGamificationStore = defineStore('gamification', {
             try {
                 const userRef = doc(db, "users", user.uid);
                 
-                await updateDoc(userRef, {
-                    "stats.gold": this.gold,
-                    "stats.silver": this.silver,
-                    "stats.copper": this.copper,
-                    "stats.racha": this.currentStreak,
-                    "stats.lastPlayedDate": this.lastPlayedDate,
-                    "stats.purchasedItems": this.purchasedItems,
-                    "stats.activeMissions": this.activeMissions,
-                    "stats.pirateLevel": this.pirateLevel,
-                    "stats.completedIslands": this.completedIslands,
-                    "stats.worldTourLevel": this.worldTourLevel,
-                    lastActivity: Date.now()
+                // Usamos Transacciones para evitar colisiones entre tablets/móviles
+                await runTransaction(db, async (transaction) => {
+                    const sfDoc = await transaction.get(userRef);
+                    if (!sfDoc.exists()) return;
+
+                    transaction.update(userRef, {
+                        "stats.gold": this.gold,
+                        "stats.silver": this.silver,
+                        "stats.copper": this.copper,
+                        "stats.racha": this.currentStreak,
+                        "stats.lastPlayedDate": this.lastPlayedDate,
+                        "stats.purchasedItems": this.purchasedItems,
+                        "stats.activeMissions": this.activeMissions,
+                        "stats.pirateLevel": this.pirateLevel,
+                        "stats.completedIslands": this.completedIslands,
+                        "stats.worldTourLevel": this.worldTourLevel,
+                        lastActivity: Date.now()
+                    });
                 });
 
-                // Al tener éxito, igualamos las marcas de sincronización
                 this.lastSyncedGold = this.gold;
                 this.lastSyncedSilver = this.silver;
                 this.lastSyncedCopper = this.copper;
                 
             } catch (error) {
-                console.warn("🦉 Banco Central: Guardado en modo offline (Caché activa)");
+                console.warn("🦉 Banco Central: Guardado en caché (Modo offline)");
             } finally {
                 this.isSyncing = false;
             }
         }, 2000);
     },
 
-    // --- 💰 GESTIÓN DE RIQUEZA (MEJORADA) ---
+    // --- 💰 GESTIÓN DE RIQUEZA (ANTIFRAUDE) ---
 
-    // 1. NUEVA FUNCIÓN: Añadir un paquete de monedas (Ideal para el final de los juegos)
     addMultipleCoins(rewards) {
       if (!rewards) return;
-      
-      // Acepta tanto 'copper' como 'bronze' por compatibilidad con los juegos
       const c = parseInt(rewards.copper || rewards.bronze || 0);
       const s = parseInt(rewards.silver || 0);
       const g = parseInt(rewards.gold || 0);
 
-      if (c > 0) {
-        this.copper += c;
-        this.sessionCopperEarned += c;
-        this.updateMissionProgress('earn_copper', c);
-      }
-      if (s > 0) {
-        this.silver += s;
-        this.sessionSilverEarned += s;
-        this.updateMissionProgress('earn_silver', s);
-      }
-      if (g > 0) {
-        this.gold += g;
-        this.sessionGoldEarned += g;
-      }
+      if (c > 0) { this.copper += c; this.sessionCopperEarned += c; this.updateMissionProgress('earn_copper', c); }
+      if (s > 0) { this.silver += s; this.sessionSilverEarned += s; this.updateMissionProgress('earn_silver', s); }
+      if (g > 0) { this.gold += g; this.sessionGoldEarned += g; }
 
       this.processConversions();
       this.saveToStorage();
       this.syncAllToCloud();
     },
 
-    // 2. Función Individual (Corregida con alias 'bronze')
     addCoins(type, amount) {
-      const safeAmount = Math.max(0, parseInt(amount) || 0);
-      if (safeAmount === 0) return;
+      const intentAmount = parseInt(amount) || 0;
+      if (intentAmount === 0) return;
 
-      // ALIAS: Si un juego envía 'bronze', el sistema lo entiende como 'copper'
-      if (type === 'copper' || type === 'bronze') {
-          this.copper += safeAmount;
-          this.sessionCopperEarned += safeAmount;
-          this.updateMissionProgress('earn_copper', safeAmount);
-      } else if (type === 'silver') {
-          this.silver += safeAmount;
-          this.sessionSilverEarned += safeAmount;
-          this.updateMissionProgress('earn_silver', safeAmount);
-      } else if (type === 'gold') {
-          this.gold += safeAmount;
-          this.sessionGoldEarned += safeAmount;
+      const coinType = (type === 'bronze') ? 'copper' : type;
+      this[coinType] = Math.max(0, this[coinType] + intentAmount);
+      
+      if (intentAmount > 0) {
+          if (coinType === 'copper') {
+              this.sessionCopperEarned += intentAmount;
+              this.updateMissionProgress('earn_copper', intentAmount);
+          } else if (coinType === 'silver') {
+              this.sessionSilverEarned += intentAmount;
+              this.updateMissionProgress('earn_silver', intentAmount);
+          } else {
+              this.sessionGoldEarned += intentAmount;
+          }
       }
 
       this.processConversions();
@@ -175,39 +174,60 @@ export const useGamificationStore = defineStore('gamification', {
       this.syncAllToCloud(); 
     },
 
+    /**
+     * GASTO INTELIGENTE: Si el niño tiene riqueza total suficiente,
+     * el banco "rompe" monedas superiores para pagar (Dar Cambio).
+     */
     async spendCoins(type, amount) {
-      const safeAmount = Math.max(0, parseInt(amount) || 0);
-      let success = false;
-
-      // Alias aquí también por si acaso
+      const cost = Math.max(0, parseInt(amount) || 0);
       const coinType = (type === 'bronze') ? 'copper' : type;
 
-      if (coinType === 'gold' && this.gold >= safeAmount) { this.gold -= safeAmount; success = true; }
-      else if (coinType === 'silver' && this.silver >= safeAmount) { this.silver -= safeAmount; success = true; }
-      else if (coinType === 'copper' && this.copper >= safeAmount) { this.copper -= safeAmount; success = true; }
+      const costInCopper = (coinType === 'gold') ? cost * 10000 : (coinType === 'silver') ? cost * 100 : cost;
 
-      if (success) {
-          this.updateMissionProgress('buy_shop', 1); 
-          this.saveToStorage();
-          this.syncAllToCloud(); 
-      } else {
+      if (this.totalWealthInCopper < costInCopper) {
           this.bubbleMessage = "No tienes suficiente saldo en la bóveda. 🦉";
+          return false;
       }
-      return success;
+
+      this[coinType] -= cost;
+      this.processConversions(); // Aquí se repara el saldo usando monedas superiores
+      
+      this.updateMissionProgress('buy_shop', 1); 
+      this.saveToStorage();
+      this.syncAllToCloud(); 
+      return true;
     },
 
+    /**
+     * MOTOR DE CONVERSIÓN BIDIRECCIONAL
+     * 
+     */
     processConversions() {
-      // 100 cobre -> 1 plata | 100 plata -> 1 oro
+      // 1. ASCENSO: 100 Cobre -> 1 Plata | 100 Plata -> 1 Oro
       while (this.copper >= 100) { this.copper -= 100; this.silver += 1; }
       while (this.silver >= 100) { this.silver -= 100; this.gold += 1; }
+
+      // 2. DESCENSO (DAR CAMBIO): Si hay negativos, bajamos una moneda superior
+      while (this.silver < 0 && this.gold > 0) {
+          this.gold -= 1;
+          this.silver += 100;
+      }
+      while (this.copper < 0 && this.silver > 0) {
+          this.silver -= 1;
+          this.copper += 100;
+      }
+
+      // 3. BLINDAJE FINAL: Forzar a 0 si algo falló (Seguridad extrema)
+      if (this.copper < 0) this.copper = 0;
+      if (this.silver < 0) this.silver = 0;
+      if (this.gold < 0) this.gold = 0;
     },
 
-    // --- 🔥 LÓGICA DE RACHA DIARIA BLINDADA ---
+    // --- 🔥 LÓGICA DE RACHA ---
     checkDailyStreak() {
         const now = new Date();
         const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
-        // Si es un día nuevo, reseteamos mensajes y notificaciones
         if (this.lastPlayedDate !== today) {
             if (this.lastPlayedDate) {
                 const lastDate = new Date(this.lastPlayedDate);
@@ -216,10 +236,8 @@ export const useGamificationStore = defineStore('gamification', {
                 const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
                 if (diffDays === 1) {
-                    // Jugó ayer: incrementamos racha
                     this.currentStreak = (this.currentStreak % 7) + 1;
                 } else if (diffDays > 1) {
-                    // Pasó más de un día: racha vuelve a 1
                     this.currentStreak = 1;
                 }
             } else {
@@ -233,11 +251,9 @@ export const useGamificationStore = defineStore('gamification', {
         }
     },
 
-    // --- 🎮 PROGRESO DE JUEGO ---
     completeWorldTourChallenge(rewardType, rewardAmount) {
       this.worldTourLevel++;
       this.addCoins(rewardType, rewardAmount);
-      this.bubbleMessage = "¡Increíble! Un paso más cerca de completar el mapa mundial. 🌍";
       this.updateMissionProgress('complete_challenge', 1);
     },
 
@@ -246,7 +262,6 @@ export const useGamificationStore = defineStore('gamification', {
       this.completedIslands.push(islandId);
       this.pirateLevel = (this.pirateLevel < 10) ? this.pirateLevel + 1 : 1;
       this.addCoins(rewardType, rewardAmount);
-      this.bubbleMessage = `¡Cofre abierto! Ganaste ${rewardAmount} de ${rewardType}. 🚢`;
     },
 
     saveTicket(ticket) {
@@ -264,21 +279,21 @@ export const useGamificationStore = defineStore('gamification', {
     },
 
     async hardReset() {
-        this.$reset(); // Resetea el estado a los valores iniciales de Pinia
+        this.$reset(); 
         localStorage.removeItem(STORAGE_KEY);
-        
         const user = auth.currentUser;
         if (user) {
           try {
             const userRef = doc(db, "users", user.uid);
-            await updateDoc(userRef, { "stats": null }); // Limpia stats en nube
+            await runTransaction(db, async (transaction) => {
+               transaction.update(userRef, { "stats": null });
+            });
           } catch (error) { console.error(error); }
         }
     },
 
     generateNewMissions() {
         if (!missionsData || missionsData.length === 0) return;
-        // Filtramos misiones por categoría
         const copper = missionsData.filter(m => m.id?.startsWith('m_c'));
         const silver = missionsData.filter(m => m.id?.startsWith('m_s'));
         const gold   = missionsData.filter(m => m.id?.startsWith('m_g'));
@@ -307,24 +322,16 @@ export const useGamificationStore = defineStore('gamification', {
         if (changed) this.saveToStorage();
     },
 
-    // --- 💾 PERSISTENCIA LOCAL ---
     saveToStorage() {
       try {
-        const dataToSave = {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
           copper: this.copper, silver: this.silver, gold: this.gold,
-          lastSyncedCopper: this.lastSyncedCopper,
-          lastSyncedSilver: this.lastSyncedSilver,
-          lastSyncedGold: this.lastSyncedGold,
-          pirateLevel: this.pirateLevel,
-          completedIslands: this.completedIslands,
-          worldTourLevel: this.worldTourLevel,
-          purchasedItems: this.purchasedItems, 
-          currentStreak: this.currentStreak,
-          lastPlayedDate: this.lastPlayedDate, 
-          activeMissions: this.activeMissions
-        };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
-      } catch (e) { console.error("Error en LocalStorage:", e); }
+          lastSyncedCopper: this.lastSyncedCopper, lastSyncedSilver: this.lastSyncedSilver, lastSyncedGold: this.lastSyncedGold,
+          pirateLevel: this.pirateLevel, completedIslands: this.completedIslands, worldTourLevel: this.worldTourLevel,
+          purchasedItems: this.purchasedItems, currentStreak: this.currentStreak,
+          lastPlayedDate: this.lastPlayedDate, activeMissions: this.activeMissions
+        }));
+      } catch (e) { console.error("Error localStorage:", e); }
     },
 
     loadFromStorage() {
@@ -334,7 +341,7 @@ export const useGamificationStore = defineStore('gamification', {
           const parsedData = JSON.parse(savedData);
           Object.assign(this, parsedData);
         }
-      } catch (e) { console.error("Error cargando LocalStorage:", e); }
+      } catch (e) { console.error("Error cargando storage:", e); }
     }
   }
 });

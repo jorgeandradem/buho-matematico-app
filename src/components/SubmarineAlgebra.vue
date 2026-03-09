@@ -1,133 +1,30 @@
-<template>
-  <div class="device-container full-screen-mode">
-    <div class="submarine-game-container">
-      <div class="header-ui">
-        <div class="stat-box">
-          <span class="label">RACHA</span>
-          <span class="value">{{ streak }}/10</span>
-        </div>
-        
-        <div class="status-board-micro-large">
-          <div class="coin-item-large">
-            <img src="/images/coin-gold.png" alt="oro" class="img-coin-large" />
-            <span class="txt-coin-large">{{ goldSession }}</span>
-          </div>
-          <div class="coin-item-large">
-            <img src="/images/coin-silver.png" alt="plata" class="img-coin-large" />
-            <span class="txt-coin-large">{{ silverSession }}</span>
-          </div>
-          <div class="coin-item-large">
-            <img src="/images/coin-copper.png" alt="cobre" class="img-coin-large" />
-            <span class="txt-coin-large">{{ bronzeSession }}</span>
-          </div>
-        </div>
-
-        <button @click.prevent.stop="$emit('close')" class="exit-btn">
-          <div class="circle-x">✕</div>
-        </button>
-      </div>
-
-      <Transition name="fade">
-        <div v-if="showRules" class="rules-overlay">
-          
-          <button @click.prevent.stop="$emit('close')" class="exit-btn-final">
-            <div class="circle-x-final">✕</div>
-          </button>
-
-          <div class="rules-card">
-            <div class="rules-icon">🌊</div>
-            <h2 class="rules-title">REGLAS DEL RETO</h2>
-            <ul class="rules-list">
-              <li>🫧 Explota 10 burbujas para ganar</li>
-              <li>➕ Suma: 1 🥉 | ➖ Resta: 5 🥉</li>
-              <li>✖️ Multiplicar: 1 🥈 | ➗ Dividir: 1 🥇</li>
-              <li>⚠️ Las monedas se resetean en cada racha</li>
-            </ul>
-            <button @click.prevent.stop="startGame" class="start-btn-entrar">ENTRAR</button>
-          </div>
-        </div>
-      </Transition>
-
-      <div class="equation-board">
-        <div class="equation-badge">Nivel: {{ levelName }}</div>
-        <h2 v-if="currentEquation" class="equation-text">
-          <span v-html="formattedEquation"></span>
-        </h2>
-      </div>
-
-      <div class="ocean-area" ref="ocean">
-        <div 
-          v-for="bubble in bubbles" 
-          :key="bubble.id"
-          class="bubble"
-          :style="{ 
-            left: bubble.x + 'px', 
-            bottom: bubble.y + 'px', 
-            width: bubble.size + 'px', 
-            height: bubble.size + 'px',
-            opacity: bubble.opacity 
-          }"
-          @pointerdown.prevent.stop="checkAnswer(bubble)"
-        >
-          {{ bubble.value }}
-        </div>
-      </div>
-
-      <Transition name="fade">
-        <div v-if="showSummary" class="summary-overlay-vibrant">
-          <button @click.prevent.stop="$emit('close')" class="exit-btn-final">
-            <div class="circle-x-final">✕</div>
-          </button>
-
-          <div class="summary-card-gold">
-            <h1 class="summary-title">¡MISIÓN CUMPLIDA!</h1>
-            <p class="summary-subtitle">Premios obtenidos en esta racha:</p>
-            
-            <div class="session-recap">
-              <div class="recap-item">
-                <img src="/images/coin-gold.png" class="recap-icon" />
-                <span>{{ goldSession }}</span>
-              </div>
-              <div class="recap-item">
-                <img src="/images/coin-silver.png" class="recap-icon" />
-                <span>{{ silverSession }}</span>
-              </div>
-              <div class="recap-item">
-                <img src="/images/coin-copper.png" class="recap-icon" />
-                <span>{{ bronzeSession }}</span>
-              </div>
-            </div>
-
-            <div class="final-coins">¡Racha Completada!</div>
-            <button @click.prevent.stop="resetGame" class="continue-btn-gold">NUEVA RONDA</button>
-          </div>
-        </div>
-      </Transition>
-    </div>
-  </div>
-</template>
-
 <script setup>
+/** * ARCHIVO: SubmarineAlgebra.vue
+ * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.2 + REGLAS EXPLÍCITAS + BOTÓN 3D
+ * LOGICA: Burbujas ascendentes + Inyección Atómica al Banco Central.
+ */
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import { Trophy, X, Star, PlayCircle, RotateCcw, BookOpen, Waves, Target, Coins, Zap } from 'lucide-vue-next';
+import { gsap } from 'gsap';
+import { useGamificationStore } from '@/stores/useGamificationStore';
 
-const emit = defineEmits(['close', 'update-coins']);
+const emit = defineEmits(['close', 'win']);
+const store = useGamificationStore();
 
-// --- ESTADO ---
-const streak = ref(0);
+// --- 1. SISTEMA DE RECOMPENSAS EN TIEMPO REAL ---
+const sessionCoins = ref({ gold: 0, silver: 0, copper: 0 });
+const progress = ref(0); 
+
+// --- 2. ESTADO DEL JUEGO ---
 const bubbles = ref([]);
 const currentEquation = ref(null);
-const showSummary = ref(false);
-const showRules = ref(true);
+const gameState = ref('rules'); 
 const gameActive = ref(false);
 let bubbleInterval = null;
 
-const goldSession = ref(0);
-const silverSession = ref(0);
-const bronzeSession = ref(0);
-
 const levelName = computed(() => {
-  if (streak.value < 3) return 'Bronce (Sumas)';
-  if (streak.value < 7) return 'Plata (Restas)';
+  if (progress.value < 3) return 'Bronce (Sumas)';
+  if (progress.value < 7) return 'Plata (Restas)';
   return 'Oro (Tablas)';
 });
 
@@ -136,57 +33,52 @@ const soundPop = new Audio(new URL('../assets/sounds/submarine/bubble_pop.mp3', 
 const soundAmbient = new Audio(new URL('../assets/sounds/submarine/underwater_ambience.mp3', import.meta.url).href);
 const soundCoins = new Audio('/audios/coins.mp3');
 
-// X Caligráfica estilizada Blanca con Borde Dorado
 const formattedEquation = computed(() => {
   if (!currentEquation.value) return '';
   return currentEquation.value.text.replace(/x/g, '<span class="chalk-x-container"><span class="chalk-x">x</span></span>');
 });
 
+// --- 3. LÓGICA DE NAVEGACIÓN QUIRÚRGICA ---
 const startGame = () => {
-  showRules.value = false;
+  gameState.value = 'playing';
   gameActive.value = true;
   generateEquation();
-  bubbleInterval = setInterval(spawnBubble, 1400);
+  if (!bubbleInterval) bubbleInterval = setInterval(spawnBubble, 1400);
   soundAmbient.play().catch(() => {});
 };
 
+const returnToRules = () => {
+  gameActive.value = false;
+  gameState.value = 'rules';
+  bubbles.value = [];
+};
+
+// --- 4. MOTOR DEL JUEGO ---
 const generateEquation = () => {
   let x, a, text, type;
-  if (streak.value >= 7) {
-    // Para divisiones evitamos que el divisor sea 0
-    x = Math.floor(Math.random() * 9) + 1; // 1 al 9
-    a = Math.floor(Math.random() * 9) + 1; // 1 al 9
-    text = `${x * a} ÷ ${a} = x`;
-    type = 'div';
-  } else if (streak.value >= 4) {
-    x = Math.floor(Math.random() * 10);
-    // CIRUGÍA MATEMÁTICA: 'a' (multiplicador) genera del 1 al 9 (evita 0 x = 0)
-    a = Math.floor(Math.random() * 9) + 1; 
-    text = `${a} × x = ${a * x}`;
-    type = 'multi';
-  } else if (streak.value >= 2) {
-    x = Math.floor(Math.random() * 20);
-    a = Math.floor(Math.random() * 20);
-    text = `${x + a} - x = ${a}`;
-    type = 'sub';
+  if (progress.value >= 7) {
+    x = Math.floor(Math.random() * 9) + 1; a = Math.floor(Math.random() * 9) + 1;
+    text = `${x * a} ÷ ${a} = x`; type = 'div';
+  } else if (progress.value >= 4) {
+    x = Math.floor(Math.random() * 10); a = Math.floor(Math.random() * 9) + 1; 
+    text = `${a} × x = ${a * x}`; type = 'multi';
+  } else if (progress.value >= 2) {
+    x = Math.floor(Math.random() * 20); a = Math.floor(Math.random() * 20);
+    text = `${x + a} - x = ${a}`; type = 'sub';
   } else {
-    x = Math.floor(Math.random() * 20);
-    a = Math.floor(Math.random() * 20);
-    text = `x + ${a} = ${x + a}`;
-    type = 'add';
+    x = Math.floor(Math.random() * 20); a = Math.floor(Math.random() * 20);
+    text = `x + ${a} = ${x + a}`; type = 'add';
   }
   currentEquation.value = { text, answer: x, type };
 };
 
 const spawnBubble = () => {
-  if (!gameActive.value || showSummary.value) return;
+  if (!gameActive.value || gameState.value !== 'playing') return;
   const id = Date.now();
-  const isCorrect = Math.random() > 0.7;
-  const val = isCorrect ? currentEquation.value.answer : Math.floor(Math.random() * 40);
-  
+  const val = Math.random() > 0.7 ? currentEquation.value.answer : Math.floor(Math.random() * 40);
   bubbles.value.push({
-    id, value: val, x: Math.random() * 280 + 20, y: 100, 
-    size: 65, speed: 1.5 + (streak.value * 0.3), opacity: 1
+    id, value: val, x: Math.random() * 250 + 20, y: -80, 
+    size: 65, speed: 1.5 + (progress.value * 0.3), opacity: 1
   });
 };
 
@@ -194,7 +86,7 @@ const animateBubbles = () => {
   if (gameActive.value) {
     bubbles.value.forEach((b, index) => {
       b.y += b.speed;
-      if (b.y > window.innerHeight - 100) bubbles.value.splice(index, 1);
+      if (b.y > window.innerHeight + 100) bubbles.value.splice(index, 1);
     });
   }
   requestAnimationFrame(animateBubbles);
@@ -202,41 +94,66 @@ const animateBubbles = () => {
 
 const checkAnswer = (bubble) => {
   if (bubble.value === currentEquation.value.answer) {
-    soundPop.play();
-    if (navigator.vibrate) navigator.vibrate([50, 30, 50]);
-    
+    const pop = soundPop.cloneNode(); pop.play();
     const opType = currentEquation.value.type;
-    if (opType === 'add') bronzeSession.value += 1;
-    else if (opType === 'sub') bronzeSession.value += 5;
-    else if (opType === 'multi') silverSession.value += 1;
-    else if (opType === 'div') goldSession.value += 1;
+    if (opType === 'add') sessionCoins.value.copper += 1;
+    else if (opType === 'sub') sessionCoins.value.copper += 5;
+    else if (opType === 'multi') sessionCoins.value.silver += 1;
+    else if (opType === 'div') sessionCoins.value.gold += 1;
 
-    streak.value++;
+    progress.value++;
     bubbles.value = [];
-    if (streak.value >= 10) endGame();
+    if (progress.value >= 10) endGame();
     else generateEquation();
-  } else {
-    if (navigator.vibrate) navigator.vibrate(200);
-    bubble.opacity = 0.3;
+  } else { bubble.opacity = 0.3; }
+};
+
+const endGame = async () => {
+  gameState.value = 'finished';
+  gameActive.value = true;
+  soundAmbient.pause();
+  soundCoins.play().catch(() => {});
+  
+  await store.addMultipleCoins({...sessionCoins.value});
+  await store.updateMissionProgress('complete_challenge', 1);
+  
+  triggerFinalEffects();
+  emit('win', { ...sessionCoins.value });
+};
+
+const triggerFinalEffects = () => {
+  const container = document.querySelector('.app-canvas');
+  if (!container) return;
+
+  const rainInterval = setInterval(() => {
+    if (gameState.value !== 'finished') { clearInterval(rainInterval); return; }
+    bubbles.value.push({
+      id: Math.random(), value: '🫧', 
+      x: Math.random() * window.innerWidth, y: -50,
+      size: Math.random() * 40 + 20, speed: Math.random() * 4 + 2, opacity: 0.6
+    });
+  }, 150);
+
+  for (let i = 0; i < 30; i++) {
+    const coin = document.createElement('div');
+    coin.innerHTML = ['🥇', '🥈', '🥉'][Math.floor(Math.random() * 3)];
+    coin.className = 'absolute text-3xl z-[60] pointer-events-none';
+    coin.style.left = Math.random() * 100 + '%';
+    coin.style.top = '-50px';
+    container.appendChild(coin);
+    gsap.to(coin, {
+      y: window.innerHeight + 100, x: (Math.random() - 0.5) * 200,
+      rotation: Math.random() * 1080, duration: Math.random() * 2.5 + 1.5,
+      ease: "power1.in", onComplete: () => coin.remove()
+    });
   }
 };
 
-const endGame = () => {
-  showSummary.value = true;
-  gameActive.value = false;
-  soundAmbient.pause();
-  soundCoins.play().catch(() => {});
-  emit('update-coins', 100); // Aquí ajustado al sistema original de coins
-};
-
 const resetGame = () => {
-  streak.value = 0;
-  goldSession.value = 0; silverSession.value = 0; bronzeSession.value = 0;
+  progress.value = 0;
+  sessionCoins.value = { gold: 0, silver: 0, copper: 0 };
   bubbles.value = [];
-  showSummary.value = false;
-  gameActive.value = true;
-  generateEquation();
-  soundAmbient.play().catch(() => {});
+  startGame();
 };
 
 onMounted(() => {
@@ -245,135 +162,187 @@ onMounted(() => {
   soundAmbient.volume = 0.3;
 });
 
-onBeforeUnmount(() => {
-  clearInterval(bubbleInterval);
-  soundAmbient.pause();
-});
+onBeforeUnmount(() => { clearInterval(bubbleInterval); soundAmbient.pause(); });
 </script>
 
+<template>
+  <div class="master-container">
+    <main class="app-canvas submarino-bg shadow-smartphone">
+      
+      <header v-if="gameState === 'playing'" class="header-standard shrink-0">
+        <div class="trophy-section">
+          <Trophy size="22" class="text-yellow-500" />
+          <span class="text-xl font-black text-indigo-900">{{ progress }}/10</span>
+        </div>
+        <div class="session-loot-capsule">
+          <div class="loot-item"><img src="/images/coin-gold.png" /><span>{{ sessionCoins.gold }}</span></div>
+          <div class="loot-item border-x border-slate-100"><img src="/images/coin-silver.png" /><span>{{ sessionCoins.silver }}</span></div>
+          <div class="loot-item"><img src="/images/coin-copper.png" /><span>{{ sessionCoins.copper }}</span></div>
+        </div>
+        <button @click.prevent.stop="returnToRules" class="btn-close-circle"><X size="20" /></button>
+      </header>
+
+      <div v-if="gameState === 'rules'" class="flex-1 flex flex-col items-center justify-between p-6 bg-[#0ea5e9] relative animate-fade-in">
+        <button @click.prevent.stop="emit('close')" class="absolute top-4 right-4 bg-white/30 w-12 h-12 rounded-full flex items-center justify-center text-white active:scale-75 transition-all z-[300]">
+          <X size="28" stroke-width="3" />
+        </button>
+
+        <div class="flex flex-col items-center mt-6">
+          <div class="text-7xl mb-4 animate-bounce">🌊</div>
+          <h1 class="game-title text-white text-4xl uppercase font-black italic">Submarine Algebra</h1>
+        </div>
+
+        <div class="rules-panel shadow-2xl w-full bg-[#0f172a]/90 border-2 border-[#38bdf8] backdrop-blur-md">
+          <div class="rules-badge bg-[#fbbf24] text-[#020617] uppercase tracking-tighter">Manual de Inmersión</div>
+          <div class="p-6 space-y-6">
+            <div class="flex gap-4 items-start text-white">
+                <div class="bg-sky-500/20 p-2 rounded-lg shrink-0"><Target class="text-sky-300" size="24" /></div>
+                <div>
+                  <p class="font-black text-base text-sky-100">Calcula la incógnita X</p>
+                  <p class="text-xs text-slate-300 leading-snug">Observa la operación en la pizarra y busca el número que falta.</p>
+                </div>
+            </div>
+            <div class="flex gap-4 items-start text-white">
+                <div class="bg-amber-500/20 p-2 rounded-lg shrink-0"><Zap class="text-amber-300" size="24" /></div>
+                <div>
+                  <p class="font-black text-base text-amber-100">Explota las burbujas</p>
+                  <p class="text-xs text-slate-300 leading-snug">Toca la burbuja con el resultado correcto antes de que suba a la superficie.</p>
+                </div>
+            </div>
+            <div class="flex gap-4 items-start text-white">
+                <div class="bg-green-500/20 p-2 rounded-lg shrink-0"><Coins class="text-green-300" size="24" /></div>
+                <div>
+                  <p class="font-black text-base text-green-100">Gana tu Botín</p>
+                  <p class="text-xs text-slate-300 leading-snug">Suma: 🥉 | Resta: 5🥉 | Multi: 🥈 | Divi: 🥇. ¡Junta 10 aciertos para ganar!</p>
+                </div>
+            </div>
+          </div>
+        </div>
+
+        <button @click.prevent.stop="startGame" class="btn-action-primary group">
+            <span class="flex items-center">
+                ¡EMPEZAR MISIÓN! <PlayCircle class="ml-3 group-hover:rotate-12 transition-transform" size="26" />
+            </span>
+        </button>
+      </div>
+
+      <div v-else-if="gameState === 'playing'" class="game-content flex-1 flex flex-col items-center py-4">
+        <div class="equation-board">
+          <div class="equation-badge-surgical">Nivel: {{ levelName }}</div>
+          <h2 v-if="currentEquation" class="equation-text shadow-xl"><span v-html="formattedEquation"></span></h2>
+        </div>
+
+        <div class="ocean-area">
+          <div 
+            v-for="bubble in bubbles" :key="bubble.id"
+            class="bubble shadow-lg hover:scale-110 transition-transform"
+            :style="{ left: bubble.x + 'px', bottom: bubble.y + 'px', width: bubble.size + 'px', height: bubble.size + 'px', opacity: bubble.opacity }"
+            @pointerdown.prevent.stop="checkAnswer(bubble)"
+          >
+            {{ bubble.value }}
+          </div>
+        </div>
+      </div>
+
+      <div v-else class="flex-1 flex flex-col items-center justify-center p-6 bg-slate-950 text-center relative overflow-hidden uppercase italic">
+        <div class="ocean-area pointer-events-none opacity-20">
+           <div v-for="bubble in bubbles" :key="bubble.id" class="bubble" :style="{ left: bubble.x + 'px', bottom: bubble.y + 'px', width: bubble.size + 'px', height: bubble.size + 'px' }">{{ bubble.value }}</div>
+        </div>
+
+        <div class="bg-white p-8 rounded-[3rem] border-4 border-[#fbbf24] shadow-2xl flex flex-col items-center w-full max-w-[380px] z-[100] animate-fade-in">
+          <Trophy size="80" class="text-[#fbbf24] mb-4 animate-bounce drop-shadow-lg" />
+          <h2 class="text-3xl font-black text-indigo-900 mb-2">¡MISIÓN LOGRADA!</h2>
+          
+          <div class="bg-slate-50 rounded-3xl p-6 mb-8 w-full flex justify-around border-2 border-slate-100 shadow-inner">
+            <div class="flex flex-col items-center"><img src="/images/coin-gold.png" class="w-10 h-10 mb-1" /><span class="text-2xl font-black text-slate-800">+{{ sessionCoins.gold }}</span></div>
+            <div class="flex flex-col items-center border-x border-slate-200 px-4"><img src="/images/coin-silver.png" class="w-10 h-10 mb-1" /><span class="text-2xl font-black text-slate-800">+{{ sessionCoins.silver }}</span></div>
+            <div class="flex flex-col items-center"><img src="/images/coin-copper.png" class="w-10 h-10 mb-1" /><span class="text-2xl font-black text-slate-800">+{{ sessionCoins.copper }}</span></div>
+          </div>
+
+          <div class="w-full flex flex-col gap-4">
+            <button @click.prevent.stop="resetGame" class="btn-action-gold-surgical">
+              <RotateCcw size="24" class="mr-2" /> NUEVA RONDA
+            </button>
+            <button @click.prevent.stop="emit('close')" class="w-full bg-slate-100 text-slate-500 py-4 rounded-2xl font-black border-2 border-slate-200 active:translate-y-1 transition-all">
+              TERMINAR
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</template>
+
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400&display=swap');
+.master-container { position: fixed; inset: 0; z-index: 9999; display: flex; justify-content: center; align-items: center; background-color: #ffffff; overflow: hidden; }
+.app-canvas { display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; background-color: #f8fafc; transition: all 0.4s; width: 100vw; height: 100dvh; }
+.submarino-bg { background: linear-gradient(180deg, #1e3a8a 0%, #080c14 100%); }
 
-/* MODO PANTALLA COMPLETA TOTAL (Tapa el portal trasero) */
-.full-screen-mode {
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
-  z-index: 99999 !important;
-  margin: 0;
-  padding: 0;
+@media (min-width: 1025px) { .app-canvas { width: 1024px; height: 90dvh; border-radius: 45px; border: 8px solid white; box-shadow: 0 40px 100px rgba(0,0,0,0.2); } }
+@media (min-width: 600px) and (max-width: 1024px) { .app-canvas { width: 85vw; height: 95dvh; border-radius: 35px; } }
+
+.header-standard { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1.25rem; background: white; border-bottom: 2px solid #f1f5f9; z-index: 100; }
+.session-loot-capsule { display: flex; align-items: center; background: white; padding: 6px 16px; border-radius: 9999px; border: 2px solid #f1f5f9; }
+.loot-item { display: flex; align-items: center; gap: 6px; padding: 0 10px; font-weight: 900; }
+.loot-item img { width: 1.2rem; height: 1.2rem; object-fit: contain; }
+.btn-close-circle { background: #fee2e2; color: #ef4444; width: 36px; height: 36px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+
+.equation-badge-surgical { color: #ffffff; font-weight: 900; text-align: center; text-transform: uppercase; letter-spacing: 0.15em; font-size: 1rem; margin-bottom: 1rem; text-shadow: 0 4px 8px rgba(0,0,0,0.6); }
+.equation-text { background: rgba(15, 23, 42, 0.9); display: inline-flex; align-items: center; justify-content: center; min-height: 100px; padding: 15px 45px; border-radius: 2rem; color: white; font-size: 2.8rem; font-weight: 900; border: 3px solid #38bdf8; }
+
+.ocean-area { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 5; }
+.bubble { position: absolute; border-radius: 50%; background: radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.5), rgba(56, 189, 248, 0.15)); border: 2px solid rgba(255, 255, 255, 0.5); display: flex; align-items: center; justify-content: center; color: white; font-weight: 900; font-size: 2rem; cursor: pointer; z-index: 10; text-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+
+:deep(.chalk-x) { font-family: 'Caveat', cursive; color: #fbbf24; font-size: 5rem; filter: drop-shadow(0px 0px 4px rgba(251, 191, 36, 0.5)); margin: 0 10px; }
+
+.rules-panel { border-radius: 2.5rem; position: relative; margin-top: 1rem; }
+.rules-badge { position: absolute; top: -12px; left: 1.5rem; font-size: 10px; font-weight: 900; padding: 4px 12px; border-radius: 9999px; }
+
+/* BOTÓN REDUCIDO CON RELIEVE 3D */
+.btn-action-primary {
+  background: linear-gradient(to bottom, #22c55e, #16a34a);
+  color: white;
+  padding: 1rem 2.2rem;
+  border-radius: 2.5rem;
+  font-weight: 900;
+  font-size: 1.25rem;
+  font-style: italic;
+  border: none;
+  border-bottom: 8px solid #15803d;
+  box-shadow: 0 8px 18px rgba(22, 163, 74, 0.4);
+  transition: all 0.1s;
+  cursor: pointer;
   display: flex;
-  justify-content: center;
   align-items: center;
-  background-color: #020617; /* Fondo de respaldo oscuro por si falla el gradiente */
+  justify-content: center;
+  width: 90%;
+  max-width: 420px;
+}
+.btn-action-primary:active {
+  transform: translateY(4px);
+  border-bottom-width: 4px;
+  box-shadow: 0 4px 10px rgba(22, 163, 74, 0.3);
 }
 
-.submarine-game-container {
-  width: 100%; max-width: 450px; height: 100%;
-  background: linear-gradient(180deg, #1e3a8a 0%, #0f172a 100%);
-  position: relative; overflow: hidden; font-family: 'Inter', sans-serif;
-  user-select: none; 
-  border-radius: 0; /* Pantallas rectas, sin bordes curvos */
-  -webkit-tap-highlight-color: transparent;
+.btn-action-gold-surgical {
+  background: linear-gradient(to bottom, #fbbf24, #f59e0b);
+  color: #020617;
+  padding: 1rem;
+  border-radius: 1.5rem;
+  font-weight: 900;
+  font-size: 1.2rem;
+  border: none;
+  border-bottom: 8px solid #b45309;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  transition: all 0.1s;
 }
+.btn-action-gold-surgical:active { transform: translateY(4px); border-bottom-width: 2px; }
 
-.header-ui { display: flex; justify-content: space-between; align-items: center; padding: 20px 15px 10px 15px; z-index: 100; position: relative; }
-
-.status-board-micro-large {
-  display: flex; gap: 12px; background: rgba(255, 255, 255, 0.95);
-  padding: 8px 18px; border-radius: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-}
-.coin-item-large { display: flex; align-items: center; gap: 6px; }
-.img-coin-large { width: 22px; height: 22px; object-fit: contain; }
-.txt-coin-large { font-size: 14px; font-weight: 900; color: #1e293b; }
-
-.stat-box { background: rgba(255, 255, 255, 0.1); padding: 8px 15px; border-radius: 15px; text-align: center; }
-.label { font-size: 9px; color: #94a3b8; display: block; font-weight: 900; }
-.value { font-weight: 900; color: white; font-size: 1.1rem; }
-
-.exit-btn { background: none; border: none; cursor: pointer; padding: 0; outline: none; }
-.circle-x { width: 42px; height: 42px; background: white; border-radius: 50%; color: #1e40af; display: flex; align-items: center; justify-content: center; font-weight: 900; box-shadow: 0 4px 15px rgba(0,0,0,0.4); }
-
-/* X CALIGRÁFICA GIGANTE CENTRADA */
-.chalk-x-container { display: inline-flex; align-items: center; height: 100%; vertical-align: middle; }
-:deep(.chalk-x) {
-  font-family: 'Caveat', cursive; color: #ffffff; font-size: 4.8rem;
-  font-weight: 400; font-style: italic; filter: drop-shadow(0px 0px 2px #fbbf24) drop-shadow(0px 0px 1px #fbbf24);
-  line-height: 1; display: inline-block; margin: 0 6px;
-}
-
-.equation-board { text-align: center; margin-top: 10px; z-index: 50; position: relative; }
-.equation-badge { color: #38bdf8; font-size: 0.7rem; font-weight: 900; text-transform: uppercase; margin-bottom: 5px; }
-.equation-text { background: rgba(15, 23, 42, 0.8); display: inline-flex; align-items: center; justify-content: center; min-height: 95px; padding: 5px 35px; border-radius: 20px; color: white; font-size: 2.2rem; font-weight: 900; border: 2px solid #38bdf8; }
-
-.ocean-area { width: 100%; height: 65%; position: absolute; bottom: 0; }
-.bubble {
-  position: absolute;
-  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.4), rgba(56, 189, 248, 0.2));
-  border: 2px solid rgba(255, 255, 255, 0.6); border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  color: white; font-weight: 900; font-size: 1.5rem;
-  box-shadow: 0 0 15px rgba(255,255,255,0.2); cursor: pointer; transition: opacity 0.3s;
-}
-
-/* PORTADA: AZUL CLARO INTENSO CON BORDES DORADOS (Cirugía aplicada aquí) */
-.rules-overlay { 
-  position: absolute; inset: 0; 
-  background: #38bdf8; /* Azul claro intenso y vibrante */
-  border: 8px solid #fbbf24; /* Borde dorado en el fondo */
-  box-sizing: border-box; /* Previene que el borde aumente el tamaño */
-  z-index: 200; display: flex; align-items: center; justify-content: center; padding: 20px; 
-}
-
-/* RECUADRO REGLAS: AZUL ORIGINAL */
-.rules-card { 
-  background: #1e293b; /* Azul oscuro original */
-  width: 100%; padding: 30px; border-radius: 25px; text-align: center; 
-  border: 2px solid #38bdf8; /* Borde cian submarino */
-  box-shadow: 0 15px 35px rgba(0,0,0,0.4); 
-}
-.rules-icon { font-size: 3.5rem; margin-bottom: 15px; }
-.rules-title { color: white; font-weight: 900; font-size: 1.6rem; margin-bottom: 20px; }
-.rules-list { text-align: left; color: #cbd5e1; margin-bottom: 25px; font-weight: 600; font-size: 0.95rem; list-style: none; padding: 0; }
-.rules-list li { margin-bottom: 12px; }
-
-.start-btn-entrar {
-  background: #38bdf8; color: #020617; width: 100%; padding: 16px; border-radius: 15px;
-  font-weight: 900; font-size: 1.8rem; border: none; cursor: pointer;
-  box-shadow: 0 4px 15px rgba(56, 189, 248, 0.4);
-}
-
-/* PANTALLA FINAL: AZUL CLARO CON FUERZA */
-.summary-overlay-vibrant {
-  position: absolute; inset: 0;
-  background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
-  display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px;
-}
-
-/* TARJETA FINAL CON BORDES DORADOS */
-.summary-card-gold {
-  background: white; padding: 35px 25px; border-radius: 30px; text-align: center; width: 100%;
-  border: 6px solid #fbbf24; /* Borde Dorado */
-  box-shadow: 0 15px 40px rgba(0,0,0,0.3);
-}
-
-.summary-title { font-weight: 900; color: #1e3a8a; font-size: 1.8rem; margin-bottom: 5px; }
-.summary-subtitle { color: #64748b; font-size: 0.9rem; font-weight: 700; margin-bottom: 20px; }
-
-.session-recap { display: flex; justify-content: center; gap: 20px; margin-bottom: 25px; padding: 15px; background: #f1f5f9; border-radius: 20px; }
-.recap-item { display: flex; flex-direction: column; align-items: center; gap: 5px; font-weight: 900; font-size: 1.2rem; color: #1e293b; }
-.recap-icon { width: 35px; height: 35px; }
-
-.exit-btn-final { position: absolute; top: 20px; right: 20px; z-index: 1100; background: none; border: none; cursor: pointer; padding: 0; outline: none; }
-.circle-x-final { width: 48px; height: 48px; background: white; border-radius: 50%; color: #ef4444; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 1.3rem; box-shadow: 0 4px 20px rgba(0,0,0,0.6); }
-
-.final-coins { font-size: 1.2rem; font-weight: 900; color: #fbbf24; margin: 10px 0; text-shadow: 1px 1px 2px rgba(0,0,0,0.2); }
-.continue-btn-gold { background: #fbbf24; color: #020617; width: 100%; padding: 18px; border-radius: 15px; font-weight: 900; border: none; cursor: pointer; }
-
-.fade-enter-active, .fade-leave-active { transition: opacity 0.5s; }
-.fade-enter-from, .fade-leave-to { opacity: 0; }
+.game-title { font-weight: 900; text-transform: uppercase; font-style: italic; letter-spacing: -0.05em; }
+.animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 </style>

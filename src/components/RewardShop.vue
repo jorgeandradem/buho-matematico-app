@@ -1,4 +1,8 @@
 <script setup>
+/** * ARCHIVO: RewardShop.vue
+ * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.2 + BLINDAJE DE RIQUEZA GLOBAL
+ * LOGICA: Tienda de 90 productos con sistema de "Cambio Automático".
+ */
 import { ref, computed, onMounted } from 'vue';
 import { X, ShoppingBag, Settings, Save, Backpack, Lock, Loader2 } from 'lucide-vue-next';
 // 🚀 UNIFICACIÓN: Usamos el alias @ para conectar con el Banco Central exacto
@@ -20,14 +24,14 @@ const productToConfirm = ref(null);
 const showSettings = ref(false);
 const parentPhone = ref('');
 
-// --- NUEVO ESTADO DE PROCESAMIENTO (Loading) ---
+// --- ESTADO DE PROCESAMIENTO ---
 const isProcessing = ref(false);
 
 const mathChallenge = ref(null);
 const mathAnswer = ref('');
 const pendingAction = ref(null); 
 
-// --- INVENTARIO (90 PRODUCTOS) ---
+// --- INVENTARIO COMPLETO (90 PRODUCTOS PROTEGIDOS) ---
 const rawInventory = [
     // --- 🟠 NIVEL COBRE ---
     { id: 'c1', name: 'Un Abrazo de Oso', cost: 50, type: 'copper', icon: '🐻', desc: 'Un abrazo fuerte y cariñoso' },
@@ -147,13 +151,16 @@ const filteredProducts = computed(() => {
     return shuffledProducts.value.filter(p => p.type === activeTab.value);
 });
 
-const confirmBuy = (product) => {
-    let hasFunds = false;
-    if (product.type === 'gold' && store.gold >= product.cost) hasFunds = true;
-    if (product.type === 'silver' && store.silver >= product.cost) hasFunds = true;
-    if (product.type === 'copper' && store.copper >= product.cost) hasFunds = true;
+// --- 🛡️ COMPROBACIÓN DE RIQUEZA GLOBAL (EVITA NEGATIVOS) ---
+const checkFundsSurgical = (product) => {
+    // Calculamos el valor del ítem en la unidad mínima (Cobre)
+    const costInCopper = (product.type === 'gold') ? product.cost * 10000 : (product.type === 'silver') ? product.cost * 100 : product.cost;
+    // Si la riqueza total acumulada en todas las bóvedas es suficiente, se permite la compra
+    return store.totalWealthInCopper >= costInCopper;
+};
 
-    if (hasFunds) {
+const confirmBuy = (product) => {
+    if (checkFundsSurgical(product)) {
         productToConfirm.value = product;
         speak(`¿Seguro que quieres comprar ${product.name}?`);
     } else {
@@ -168,6 +175,7 @@ const executeBuy = async () => {
     isProcessing.value = true; 
 
     try {
+        // Invocamos al Banco Central para realizar el gasto con "cambio automático"
         const success = await store.spendCoins(product.type, product.cost);
 
         if (success) {
@@ -186,7 +194,7 @@ const executeBuy = async () => {
             speak("Hubo un problema con la compra. Inténtalo de nuevo.");
         }
     } catch (e) {
-        console.error("Error en la ejecución de compra:", e);
+        console.error("Error en ejecución de compra:", e);
     } finally {
         isProcessing.value = false; 
     }
@@ -207,11 +215,8 @@ const verifyParentalAction = async () => {
     if (parseInt(mathAnswer.value) === mathChallenge.value.answer) {
         if (pendingAction.value === 'refund') {
             const refundedTicket = await store.refundLastPurchase(); 
-            if (refundedTicket) {
-                speak(`Se ha devuelto el premio ${refundedTicket.name} y recuperaste las monedas.`);
-            }
+            if (refundedTicket) speak(`Se ha devuelto el premio ${refundedTicket.name} y recuperaste las monedas.`);
             else speak("No hay compras para devolver.");
-
         } else if (pendingAction.value === 'reset') {
             await store.hardReset(); 
             speak("El banco y la mochila han sido borrados por completo.");
@@ -257,7 +262,7 @@ const shareReward = () => {
     <div class="bg-indigo-600 p-4 text-white flex justify-between items-center shadow-md shrink-0">
         <div class="flex items-center gap-2">
             <ShoppingBag />
-            <h2 class="text-xl font-black uppercase">Tienda</h2>
+            <h2 class="text-xl font-black uppercase tracking-tight">Cofre de Premios</h2>
         </div>
         <div class="flex gap-2">
             <button @click="showSettings = !showSettings" class="bg-indigo-500 p-2 rounded-full hover:bg-indigo-400 transition shadow-inner">
@@ -270,7 +275,7 @@ const shareReward = () => {
     </div>
 
     <div v-if="showSettings" class="bg-indigo-800 p-4 text-white animate-fade-in shadow-inner shrink-0 z-20">
-        <p class="text-xs font-bold mb-2 text-indigo-200">📞 TELÉFONO DEL PADRE/TUTOR:</p>
+        <p class="text-xs font-bold mb-2 text-indigo-200 uppercase tracking-tighter">📞 Teléfono del Búho Mayor:</p>
         <div class="flex gap-2">
             <input v-model="parentPhone" type="tel" placeholder="Ej: 5215512345678" 
                 class="flex-1 px-3 py-2 rounded-lg text-slate-900 font-bold outline-none focus:ring-2 ring-yellow-400" />
@@ -281,7 +286,7 @@ const shareReward = () => {
         
         <hr class="border-indigo-600 my-4" />
         
-        <p class="text-[10px] font-black tracking-widest mb-2 text-orange-300 uppercase">⚠️ Zona Parental (Requiere validación)</p>
+        <p class="text-[10px] font-black tracking-widest mb-2 text-orange-300 uppercase">⚠️ Zona de Control (Padres)</p>
         
         <div v-if="!mathChallenge" class="flex gap-2">
             <button @click="triggerParentalAction('refund')" :disabled="!store.purchasedItems || store.purchasedItems.length === 0" class="flex-1 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed text-[11px] font-black py-2 rounded-lg transition">
@@ -293,14 +298,12 @@ const shareReward = () => {
         </div>
         
         <div v-else class="bg-indigo-900 p-3 rounded-lg border border-orange-400 animate-fade-in">
-            <p class="text-[10px] font-bold text-orange-300 mb-2">Para confirmar la acción, resuelve:</p>
+            <p class="text-[10px] font-bold text-orange-300 mb-2 uppercase">Resuelve para confirmar:</p>
             <div class="flex items-center gap-2">
                 <span class="font-black text-lg text-white">{{ mathChallenge.text }}</span>
-                
                 <input v-model="mathAnswer" type="number" 
-                    class="w-16 px-2 py-1 rounded-md text-slate-900 font-black text-center outline-none bg-yellow-100 border-2 border-amber-400 focus:border-amber-600 focus:ring-0 no-spinners" 
+                    class="w-16 px-2 py-1 rounded-md text-slate-900 font-black text-center outline-none bg-yellow-100 border-2 border-amber-400 focus:ring-0 no-spinners" 
                     placeholder="?" />
-                
                 <button @click="verifyParentalAction" class="bg-green-500 px-3 py-1.5 rounded-md font-black hover:bg-green-600 flex-1">OK</button>
                 <button @click="cancelParentalAction" class="bg-slate-500 px-3 py-1.5 rounded-md font-black hover:bg-slate-600">X</button>
             </div>
@@ -320,7 +323,7 @@ const shareReward = () => {
             </button>
         </div>
         <button @click="activeTab = 'vales'" :class="`w-full py-2.5 rounded-xl font-black text-sm flex items-center justify-center gap-2 transition-all ${activeTab === 'vales' ? 'bg-indigo-900 text-white shadow-inner border-2 border-indigo-400' : 'bg-indigo-800 text-indigo-300 hover:bg-indigo-500 border-2 border-transparent'}`">
-            <Backpack size="18" /> Mi Mochila de Vales ({{ store.purchasedItems?.length || 0 }})
+            <Backpack size="18" /> MI MOCHILA ({{ store.purchasedItems?.length || 0 }})
         </button>
     </div>
 
@@ -330,9 +333,9 @@ const shareReward = () => {
                 @click="confirmBuy(item)"
                 class="bg-white rounded-2xl shadow-sm border-2 border-transparent hover:border-indigo-300 p-4 flex flex-col items-center gap-3 active:scale-95 transition-all relative overflow-hidden group">
                 
-                <div v-if="(item.type === 'gold' && store.gold < item.cost) || (item.type === 'silver' && store.silver < item.cost) || (item.type === 'copper' && store.copper < item.cost)" 
-                     class="absolute inset-0 bg-white/60 backdrop-blur-[1px] flex items-center justify-center z-10">
-                     <Lock class="text-slate-400 w-8 h-8" />
+                <div v-if="!checkFundsSurgical(item)" 
+                     class="absolute inset-0 bg-white/60 backdrop-blur-[1.5px] flex items-center justify-center z-10">
+                     <Lock class="text-slate-400 w-8 h-8 opacity-60" />
                 </div>
 
                 <div class="text-5xl group-hover:scale-110 transition-transform filter drop-shadow-md">{{ item.icon }}</div>
@@ -349,8 +352,8 @@ const shareReward = () => {
         <div v-else class="pb-20">
             <div v-if="!store.purchasedItems || store.purchasedItems.length === 0" class="flex flex-col items-center justify-center mt-10 opacity-50">
                 <Backpack size="64" class="text-slate-400 mb-4" />
-                <h3 class="font-black text-xl text-slate-500 mb-2">Mochila Vacía</h3>
-                <p class="text-slate-400 text-center text-sm font-bold px-8">Aún no has comprado nada. ¡Ve a la tienda y canjea tus monedas!</p>
+                <h3 class="font-black text-xl text-slate-500 mb-2 italic">Mochila Vacía</h3>
+                <p class="text-slate-400 text-center text-sm font-bold px-8">¡Ahorra monedas ganando desafíos para canjear tus premios!</p>
             </div>
             <div v-else class="grid grid-cols-2 gap-4">
                 <button v-for="ticket in store.purchasedItems" :key="ticket.code" 
@@ -359,7 +362,7 @@ const shareReward = () => {
                     <div class="text-4xl filter drop-shadow-md">{{ ticket.icon }}</div>
                     <div class="text-center w-full bg-white p-2 rounded-xl">
                         <h3 class="font-black text-indigo-900 text-[11px] leading-tight mb-1">{{ ticket.name }}</h3>
-                        <p class="text-[9px] text-slate-400 font-mono font-bold">CÓDIGO: #{{ ticket.code }}</p>
+                        <p class="text-[9px] text-slate-400 font-mono font-bold">#{{ ticket.code }}</p>
                         <p class="text-[9px] text-slate-400 font-bold mt-0.5">{{ ticket.date }}</p>
                     </div>
                 </button>
@@ -368,22 +371,22 @@ const shareReward = () => {
     </div>
 
     <div v-if="productToConfirm" class="absolute inset-0 z-[95] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
-        <div class="bg-white rounded-3xl p-6 w-full max-w-xs text-center shadow-2xl border-4 border-indigo-500 flex flex-col items-center">
-            <h3 class="text-xl font-black text-indigo-900 mb-2 uppercase tracking-wide">¿Confirmar Compra?</h3>
-            <div class="text-6xl mb-2 filter drop-shadow-md transform rotate-3 scale-110">{{ productToConfirm.icon }}</div>
-            <h4 class="font-black text-slate-800 leading-tight mb-2 text-xl">{{ productToConfirm.name }}</h4>
-            <div class="bg-slate-100 px-4 py-2 rounded-xl mb-6 inline-block">
-                <p class="text-xs text-slate-500 font-bold uppercase mb-1">Costo del premio</p>
-                <p class="text-lg font-black text-slate-700">{{ productToConfirm.cost }} <span class="capitalize">{{ productToConfirm.type }}</span></p>
+        <div class="bg-white rounded-[2.5rem] p-6 w-full max-w-xs text-center shadow-2xl border-4 border-indigo-500 flex flex-col items-center">
+            <h3 class="text-xl font-black text-indigo-900 mb-2 uppercase italic tracking-tighter">¿Confirmar Canje?</h3>
+            <div class="text-7xl mb-2 filter drop-shadow-md transform rotate-3">{{ productToConfirm.icon }}</div>
+            <h4 class="font-black text-slate-800 leading-tight mb-4 text-xl">{{ productToConfirm.name }}</h4>
+            <div class="bg-indigo-50 px-4 py-2 rounded-xl mb-6 inline-block border border-indigo-100 shadow-inner">
+                <p class="text-[10px] text-slate-500 font-bold uppercase mb-1">Inversión requerida</p>
+                <p class="text-2xl font-black text-indigo-700">{{ productToConfirm.cost }} <span class="capitalize text-lg">{{ productToConfirm.type }}</span></p>
             </div>
             <div class="flex gap-3 w-full">
-                <button @click="productToConfirm = null" :disabled="isProcessing" class="flex-1 py-3 bg-slate-200 text-slate-600 rounded-xl font-bold hover:bg-slate-300 active:scale-95 transition-all disabled:opacity-50">Cancelar</button>
+                <button @click="productToConfirm = null" :disabled="isProcessing" class="flex-1 py-3 bg-slate-200 text-slate-600 rounded-xl font-bold hover:bg-slate-300 active:scale-95 transition-all">Cancelar</button>
                 
-                <button @click="executeBuy" :disabled="isProcessing" class="flex-1 py-3 bg-green-500 text-white rounded-xl font-black shadow-[0_4px_0_rgb(22,163,74)] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center disabled:bg-green-700 disabled:shadow-none">
+                <button @click="executeBuy" :disabled="isProcessing" class="flex-1 py-3 bg-green-500 text-white rounded-xl font-black shadow-[0_4px_0_rgb(22,163,74)] active:translate-y-1 transition-all flex items-center justify-center">
                     <span v-if="isProcessing" class="flex items-center gap-2">
-                        <Loader2 class="animate-spin" size="20" /> Procesando...
+                        <Loader2 class="animate-spin" size="20" /> Canjeando...
                     </span>
-                    <span v-else>¡Comprar!</span>
+                    <span v-else>¡LO QUIERO!</span>
                 </button>
             </div>
         </div>
@@ -407,12 +410,6 @@ const shareReward = () => {
 @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
 
 .no-spinners::-webkit-outer-spin-button,
-.no-spinners::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-.no-spinners {
-  -moz-appearance: textfield; 
-}
+.no-spinners::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.no-spinners { -moz-appearance: textfield; }
 </style>

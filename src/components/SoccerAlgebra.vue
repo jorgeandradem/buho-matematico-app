@@ -1,131 +1,36 @@
-<template>
-  <div class="device-wrapper full-screen-mode" :style="{ backgroundColor: currentBg }">
-    <div class="soccer-game-container">
-      <div class="header-ui">
-        <div class="stat-box">
-          <span class="label">RACHA</span>
-          <span class="value">{{ streak }}/10</span>
-        </div>
-        
-        <div class="status-board-micro">
-          <div class="coin-mini">
-            <img src="/images/coin-gold.png" alt="oro" class="icon-mini" />
-            <span class="val-mini">{{ goldSession }}</span>
-          </div>
-          <div class="coin-mini">
-            <img src="/images/coin-silver.png" alt="plata" class="icon-mini" />
-            <span class="val-mini">{{ silverSession }}</span>
-          </div>
-          <div class="coin-mini">
-            <img src="/images/coin-copper.png" alt="cobre" class="icon-mini" />
-            <span class="val-mini">{{ bronzeSession }}</span>
-          </div>
-        </div>
-
-        <button @click.prevent.stop="$emit('close')" class="exit-btn">
-          <div class="circle-x">✕</div>
-        </button>
-      </div>
-
-      <Transition name="fade">
-        <div v-if="showRules" class="rules-overlay">
-          <div class="rules-card">
-            <div class="rules-icon">⚽</div>
-            <h2 class="rules-title">REGLAS DEL RETO</h2>
-            <ul class="rules-list">
-              <li>🥅 Anota 10 goles para completar la racha</li>
-              <li>➕ Suma: 1 🥉 | ➖ Resta: 5 🥉</li>
-              <li>✖️ Multiplicar: 1 🥈 | ➗ Dividir: 1 🥇</li>
-              <li>⚠️ Las monedas se resetean en cada racha</li>
-            </ul>
-            <button @click.prevent.stop="startGame" class="start-btn">¡A LA CANCHA!</button>
-          </div>
-        </div>
-      </Transition>
-
-      <div class="scoreboard-container">
-        <div class="equation-display">
-          <span v-if="currentEquation" class="equation-text">
-            <span v-html="formattedEquation"></span>
-          </span>
-        </div>
-      </div>
-
-      <div class="pitch" ref="gameArea">
-        <div class="goal-area">
-          <div class="goal-net"></div>
-        </div>
-
-        <div 
-          v-for="ball in balls" 
-          :key="ball.id"
-          class="soccer-ball"
-          :class="{ 'ball-kicked': ball.kicked }"
-          :style="{ 
-            left: ball.x + 'px', 
-            bottom: ball.y + 'px',
-            transform: `scale(${ball.scale}) rotate(${ball.rotation}deg)` 
-          }"
-          @pointerdown.prevent.stop="kickBall(ball)"
-        >
-          <div class="ball-number-wrapper">
-            {{ ball.value }}
-          </div>
-        </div>
-      </div>
-
-      <Transition name="bounce">
-        <div v-if="showSummary" class="summary-overlay">
-          <button @click.prevent.stop="$emit('close')" class="exit-btn-final">
-            <div class="circle-x-final">✕</div>
-          </button>
-
-          <div class="summary-card">
-            <h1 class="summary-title">¡CAMPEÓN! 🏆</h1>
-            <p class="summary-subtitle">Monedas ganadas en esta racha:</p>
-            
-            <div class="session-recap">
-              <div class="recap-item">
-                <img src="/images/coin-gold.png" class="recap-icon" />
-                <span>{{ goldSession }}</span>
-              </div>
-              <div class="recap-item">
-                <img src="/images/coin-silver.png" class="recap-icon" />
-                <span>{{ silverSession }}</span>
-              </div>
-              <div class="recap-item">
-                <img src="/images/coin-copper.png" class="recap-icon" />
-                <span>{{ bronzeSession }}</span>
-              </div>
-            </div>
-
-            <div class="total-prize">¡Misión Cumplida!</div>
-            <button @click.prevent.stop="resetGame" class="claim-btn">NUEVA RONDA</button>
-          </div>
-        </div>
-      </Transition>
-    </div>
-  </div>
-</template>
-
 <script setup>
-import { ref, computed } from 'vue';
+/** * ARCHIVO: SoccerAlgebra.vue
+ * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.2 + BANCO CENTRAL SYNC
+ * LOGICA: Operaciones algebraicas + Física de poste + Navegación Quirúrgica
+ */
+import { ref, computed, onMounted } from 'vue';
+import { Trophy, X, Star, PlayCircle, RotateCcw, BookOpen } from 'lucide-vue-next';
+import { gsap } from 'gsap';
+import { useGamificationStore } from '@/stores/useGamificationStore'; 
 
-const emit = defineEmits(['close', 'update-coins']);
-const gameArea = ref(null);
+const emit = defineEmits(['close', 'win']);
+const store = useGamificationStore();
 
-const streak = ref(0);
+// --- 1. SISTEMA DE RECOMPENSAS EN TIEMPO REAL ---
+const sessionCoins = ref({ gold: 0, silver: 0, copper: 0 });
+const progress = ref(0); 
+
+// --- 2. ESTADO DEL JUEGO ---
+const gameState = ref('rules'); 
 const balls = ref([]);
 const currentEquation = ref(null);
-const showSummary = ref(false);
-const showRules = ref(true);
+const gameArea = ref(null);
 
-const goldSession = ref(0);
-const silverSession = ref(0);
-const bronzeSession = ref(0);
+const levelName = computed(() => {
+  if (progress.value < 3) return 'Bronce (Sumas)';
+  if (progress.value < 7) return 'Plata (Restas)';
+  return 'Oro (Tablas)';
+});
 
+// Sonidos calibrados
 const soundKick = new Audio(new URL('../assets/sounds/soccer/kick.mp3', import.meta.url).href);
 const soundGoal = new Audio(new URL('../assets/sounds/soccer/goal.mp3', import.meta.url).href);
+soundGoal.volume = 0.75; 
 const soundCoins = new Audio('/audios/coins.mp3');
 
 const formattedEquation = computed(() => {
@@ -134,38 +39,38 @@ const formattedEquation = computed(() => {
 });
 
 const currentBg = computed(() => {
-  if (streak.value < 3) return '#22c55e'; 
-  if (streak.value < 7) return '#16a34a'; 
+  if (progress.value < 3) return '#22c55e'; 
+  if (progress.value < 7) return '#16a34a'; 
   return '#15803d'; 
 });
 
+// --- 3. LÓGICA DE NAVEGACIÓN QUIRÚRGICA ---
 const startGame = () => {
-  showRules.value = false;
+  gameState.value = 'playing';
+  sessionCoins.value = { gold: 0, silver: 0, copper: 0 };
   generateChallenge();
 };
 
+const returnToRules = () => {
+  gameState.value = 'rules';
+  balls.value = [];
+};
+
+// --- 4. MOTOR DEL JUEGO (BALÓN Y FÍSICA INTACTOS) ---
 const generateChallenge = () => {
   let x, a, text, type;
-  if (streak.value >= 7) {
-    x = Math.floor(Math.random() * 9) + 1;
-    a = Math.floor(Math.random() * 9) + 1;
-    text = `${x * a} ÷ ${a} = x`;
-    type = 'div';
-  } else if (streak.value >= 4) {
-    x = Math.floor(Math.random() * 10);
-    a = Math.floor(Math.random() * 9) + 1; 
-    text = `${a} × x = ${a * x}`;
-    type = 'multi';
-  } else if (streak.value >= 2) {
-    x = Math.floor(Math.random() * 20);
-    a = Math.floor(Math.random() * 20);
-    text = `${x + a} - x = ${a}`;
-    type = 'sub';
+  if (progress.value >= 7) {
+    x = Math.floor(Math.random() * 9) + 1; a = Math.floor(Math.random() * 9) + 1;
+    text = `${x * a} ÷ ${a} = x`; type = 'div';
+  } else if (progress.value >= 4) {
+    x = Math.floor(Math.random() * 10); a = Math.floor(Math.random() * 9) + 1; 
+    text = `${a} × x = ${a * x}`; type = 'multi';
+  } else if (progress.value >= 2) {
+    x = Math.floor(Math.random() * 20); a = Math.floor(Math.random() * 20);
+    text = `${x + a} - x = ${a}`; type = 'sub';
   } else {
-    x = Math.floor(Math.random() * 20);
-    a = Math.floor(Math.random() * 20);
-    text = `x + ${a} = ${x + a}`;
-    type = 'add';
+    x = Math.floor(Math.random() * 20); a = Math.floor(Math.random() * 20);
+    text = `x + ${a} = ${x + a}`; type = 'add';
   }
   currentEquation.value = { text, answer: x, type };
   setTimeout(() => spawnBalls(x), 50);
@@ -184,264 +89,237 @@ const spawnBalls = (correctValue) => {
   options.forEach((val, i) => {
     const startX = (containerWidth / 4) * (i + 1) - 37;
     newBalls.push({
-      id: i, 
-      value: val, 
-      x: startX, 
-      originalX: startX, 
-      y: 70, 
-      scale: 1, 
-      rotation: 0, 
-      kicked: false
+      id: i, value: val, x: startX, originalX: startX, 
+      y: 70, scale: 1, rotation: 0, kicked: false
     });
   });
   balls.value = newBalls;
 };
 
-// SECUENCIA DE FÍSICAS MEJORADA
 const kickBall = (ball) => {
-  if (ball.kicked || showSummary.value || showRules.value) return;
+  if (ball.kicked || gameState.value !== 'playing') return;
   ball.kicked = true;
   soundKick.play();
   
   if (ball.value === currentEquation.value.answer) {
-    // GOL: Vuela y empuja la malla (se hace más pequeño por la perspectiva)
-    ball.y = window.innerHeight * 0.45;
-    ball.scale = 0.4; 
-    ball.rotation = 720;
-    
-    setTimeout(() => {
-      // GOL: Rebota y cae suavemente dentro del arco
-      ball.y = window.innerHeight * 0.38; 
-      ball.scale = 0.35;
-      
-      soundGoal.play();
-      if (navigator.vibrate) navigator.vibrate([50, 30, 50]);
-      
-      const opType = currentEquation.value.type;
-      if (opType === 'add') bronzeSession.value += 1;
-      else if (opType === 'sub') bronzeSession.value += 5;
-      else if (opType === 'multi') silverSession.value += 1;
-      else if (opType === 'div') goldSession.value += 1;
-      
-      streak.value++;
-      
-      setTimeout(() => {
-        if (streak.value >= 10) endGame();
-        else generateChallenge();
-      }, 500); 
-      
-    }, 400); // 400ms es el tiempo que tarda la transición CSS en volar
-    
+    const tl = gsap.timeline();
+    tl.to(ball, { y: 285, scale: 0.45, rotation: 360, duration: 0.3, ease: "power2.out" })
+      .to(ball, { y: 300, duration: 0.05, ease: "sine.inOut" })
+      .to(ball, { y: 220, scale: 0.38, rotation: 720, duration: 0.25, ease: "bounce.out",
+        onComplete: () => {
+          soundGoal.play();
+          if (navigator.vibrate) navigator.vibrate([50, 30, 50]);
+          const opType = currentEquation.value.type;
+          if (opType === 'add') sessionCoins.value.copper += 1;
+          else if (opType === 'sub') sessionCoins.value.copper += 5;
+          else if (opType === 'multi') sessionCoins.value.silver += 1;
+          else if (opType === 'div') sessionCoins.value.gold += 1;
+          progress.value++;
+          setTimeout(() => { if (progress.value >= 10) endGame(); else generateChallenge(); }, 600);
+        }
+      });
   } else {
-    // FALLA: El balón sale disparado erráticamente (arriba/izquierda/derecha)
-    const missDirection = Math.random() > 0.5 ? 80 : -80;
-    const missHeight = Math.random() > 0.5 ? 250 : 180;
-    
-    ball.y = missHeight; 
-    ball.x += missDirection; 
-    ball.scale = 0.5;
-    ball.rotation = 1080; // Gira mucho más rápido
-    if (navigator.vibrate) navigator.vibrate(200);
-    
-    // FASE 2: La gravedad actúa y el balón cae a la grama
-    setTimeout(() => { 
-      ball.y = 70; // Toca el piso de nuevo
-      ball.scale = 0.8;
-      
-      // FASE 3: El balón rueda (se desliza) de vuelta a su punto de origen
-      setTimeout(() => {
-        ball.x = ball.originalX; 
-        ball.scale = 1; 
-        ball.rotation = 0;
-        ball.kicked = false; // Ya puede volver a ser pateado
-      }, 300);
-
-    }, 400);
+    gsap.to(ball, { y: 180, x: ball.x + (Math.random() > 0.5 ? 100 : -100), scale: 0.5, rotation: 1080, duration: 0.5,
+      onComplete: () => { gsap.to(ball, { y: 70, x: ball.originalX, scale: 1, rotation: 0, duration: 0.6, onComplete: () => { ball.kicked = false; } }); }
+    });
   }
 };
 
-const endGame = () => {
-  showSummary.value = true;
-  soundCoins.play().catch(() => {});
-  emit('update-coins', { gold: goldSession.value, silver: silverSession.value, bronze: bronzeSession.value });
+// --- 5. CELEBRACIÓN FINAL Y SINCRONIZACIÓN ---
+const endGame = async () => { 
+  gameState.value = 'finished'; 
+  // INYECCIÓN AL BANCO CENTRAL v2.9.2
+  await store.addMultipleCoins({...sessionCoins.value});
+  await store.updateMissionProgress('complete_challenge', 1);
+  soundCoins.play().catch(() => {}); 
+  emit('win', { ...sessionCoins.value });
 };
 
 const resetGame = () => {
-  streak.value = 0;
-  goldSession.value = 0; silverSession.value = 0; bronzeSession.value = 0;
-  showSummary.value = false;
-  generateChallenge();
+  progress.value = 0;
+  sessionCoins.value = { gold: 0, silver: 0, copper: 0 };
+  startGame();
 };
 </script>
 
+<template>
+  <div class="master-container font-inter">
+    <main class="app-canvas shadow-smartphone transition-colors duration-1000" :style="{ backgroundColor: gameState === 'playing' ? currentBg : '#f8fafc' }">
+      
+      <header v-if="gameState === 'playing'" class="header-standard shrink-0">
+        <div class="trophy-section">
+          <Trophy size="22" class="text-yellow-500" />
+          <span class="text-xl font-black text-indigo-900">{{ progress }}/10</span>
+        </div>
+        <div class="session-loot-capsule">
+          <div class="loot-item"><img src="/images/coin-gold.png" /><span>{{ sessionCoins.gold }}</span></div>
+          <div class="loot-item border-x border-slate-100"><img src="/images/coin-silver.png" /><span>{{ sessionCoins.silver }}</span></div>
+          <div class="loot-item"><img src="/images/coin-copper.png" /><span>{{ sessionCoins.copper }}</span></div>
+        </div>
+        <button @click="returnToRules" class="btn-close-circle"><X size="20" /></button>
+      </header>
+
+      <div v-if="gameState === 'rules'" class="flex-1 flex flex-col items-center justify-between p-6 bg-slate-50 relative animate-fade-in">
+        <button @click="emit('close')" class="absolute top-4 right-4 bg-slate-200 w-10 h-10 rounded-full flex items-center justify-center text-slate-600 active:scale-75 transition-all">
+          <X size="24" stroke-width="3" />
+        </button>
+
+        <div class="flex flex-col items-center mt-6 w-full">
+          <h1 class="game-title text-4xl mb-10 italic font-black text-indigo-900">SOCCER ALGEBRA</h1>
+          
+          <div class="spherical-ball-rules-wrapper animate-float">
+            <svg viewBox="35 35 130 130" xmlns="http://www.w3.org/2000/svg" class="ball-svg-full-size">
+              <defs>
+                <radialGradient id="shadeRules" cx="40%" cy="40%" r="60%"><stop offset="0%" stop-color="#ffffff" /><stop offset="40%" stop-color="#e6e6f0" /><stop offset="100%" stop-color="#b3b3cc" /></radialGradient>
+                <filter id="shadowRules"><feOffset dx="0" dy="1" /><feGaussianBlur stdDeviation="1" result="b" /><feComposite operator="out" in="SourceGraphic" in2="b" result="i" /><feFlood flood-color="black" flood-opacity="0.2" result="c" /><feComposite operator="in" in="c" in2="i" result="s" /><feComposite operator="over" in="s" in2="SourceGraphic" /></filter>
+              </defs>
+              <circle cx="100" cy="100" r="65" fill="url(#shadeRules)" stroke="#94a3b8" stroke-width="0.5" />
+              <g filter="url(#shadowRules)">
+                <path d="M100 75 L120 90 L112 115 L88 115 L80 90 Z" fill="#2563eb" />
+                <path d="M60 70 L75 60 L80 45 Q65 45 55 60 Z" fill="#2563eb" /><path d="M140 70 L125 60 L120 45 Q135 45 145 60 Z" fill="#2563eb" /><path d="M70 130 L55 120 L50 105 Q50 125 65 135 Z" fill="#2563eb" /><path d="M130 130 L145 120 L150 105 Q150 125 135 135 Z" fill="#2563eb" /><path d="M100 165 L115 155 L85 155 Z" fill="#2563eb" />
+                <g fill="none" stroke="#94a3b8" stroke-width="1.5"><path d="M100 75 V55" /><path d="M120 90 L140 85" /><path d="M112 115 L125 135" /><path d="M88 115 L75 135" /><path d="M80 90 L60 85" /><path d="M80 45 L100 35 L120 45" /></g>
+              </g>
+              <ellipse cx="85" cy="75" rx="30" ry="20" fill="white" fill-opacity="0.3" transform="rotate(-30, 85, 75)" />
+            </svg>
+          </div>
+        </div>
+
+        <div class="rules-panel shadow-2xl w-full">
+          <div class="rules-badge uppercase tracking-widest font-black">MANUAL DEL CAMPEÓN</div>
+          <ul class="p-4 space-y-4 text-slate-600 font-bold list-none">
+            <li class="flex gap-3 text-sm">🥅 <span>Anota 10 goles para ganar la racha</span></li>
+            <li class="flex gap-3 text-sm">➕ <span>Suma: 1 🥉 | Resta: 5 🥉</span></li>
+            <li class="flex gap-3 text-sm">✖️ <span>Multiplicar: 1 🥈 | Dividir: 1 🥇</span></li>
+          </ul>
+        </div>
+
+        <button @click="startGame" class="btn-action-primary group">
+          <span class="flex items-center">
+            ¡A LA CANCHA! <PlayCircle class="ml-3 group-hover:rotate-12 transition-transform" size="28" />
+          </span>
+        </button>
+      </div>
+
+      <div v-else-if="gameState === 'playing'" class="game-content flex-1 flex flex-col items-center">
+        <div class="scoreboard-container mt-6">
+          <div class="text-white font-black text-center uppercase tracking-widest text-sm mb-4">Nivel: {{ levelName }}</div>
+          <div class="equation-display">
+            <span v-if="currentEquation" class="equation-text"><span v-html="formattedEquation"></span></span>
+          </div>
+        </div>
+
+        <div class="pitch" ref="gameArea">
+          <div class="goal-area"></div>
+          <div 
+            v-for="ball in balls" :key="ball.id"
+            class="soccer-ball-vector soccer-ball-vector-game-static"
+            :class="{ 'ball-kicked': ball.kicked }"
+            :style="{ left: ball.x + 'px', bottom: ball.y + 'px', transform: `scale(${ball.scale}) rotate(${ball.rotation}deg)` }"
+            @pointerdown.prevent.stop="kickBall(ball)"
+          >
+            <svg viewBox="35 35 130 130" xmlns="http://www.w3.org/2000/svg" class="ball-svg-full-size">
+              <defs>
+                <radialGradient :id="'shadeGame'+ball.id" cx="40%" cy="40%" r="60%">
+                  <stop offset="0%" stop-color="#ffffff" /><stop offset="40%" stop-color="#e6e6f0" /><stop offset="100%" stop-color="#b3b3cc" />
+                </radialGradient>
+                <filter :id="'shadowGame'+ball.id"><feOffset dx="0" dy="1" /><feGaussianBlur stdDeviation="1" result="offset-blur" /><feComposite operator="out" in="SourceGraphic" in2="offset-blur" result="inverse" /><feFlood flood-color="black" flood-opacity="0.2" result="color" /><feComposite operator="in" in="color" in2="inverse" result="shadow" /><feComposite operator="over" in="shadow" in2="SourceGraphic" /></filter>
+              </defs>
+              <circle cx="100" cy="100" r="65" :fill="'url(#shadeGame'+ball.id+')'" stroke="#94a3b8" stroke-width="0.5" />
+              <g :filter="'url(#shadowGame'+ball.id+')'">
+                <path d="M100 75 L120 90 L112 115 L88 115 L80 90 Z" fill="#2563eb" />
+                <path d="M60 70 L75 60 L80 45 Q65 45 55 60 Z" fill="#2563eb" /><path d="M140 70 L125 60 L120 45 Q135 45 145 60 Z" fill="#2563eb" /><path d="M70 130 L55 120 L50 105 Q50 125 65 135 Z" fill="#2563eb" /><path d="M130 130 L145 120 L150 105 Q150 125 135 135 Z" fill="#2563eb" /><path d="M100 165 L115 155 L85 155 Z" fill="#2563eb" />
+                <g fill="none" stroke="#94a3b8" stroke-width="1.5"><path d="M100 75 V55" /><path d="M120 90 L140 85" /><path d="M112 115 L125 135" /><path d="M88 115 L75 135" /><path d="M80 90 L60 85" /><path d="M80 45 L100 35 L120 45" /></g>
+              </g>
+              <ellipse cx="85" cy="75" rx="30" ry="20" fill="white" fill-opacity="0.3" transform="rotate(-30, 85, 75)" />
+            </svg>
+            <div class="ball-number-overlay-surgical">{{ ball.value }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div v-else class="flex-1 flex flex-col items-center justify-center p-6 bg-slate-950 text-center font-inter uppercase italic">
+        <div class="bg-white p-8 rounded-[3rem] shadow-2xl flex flex-col items-center w-full max-w-[380px] animate-fade-in border-4 border-amber-400">
+          <Trophy size="80" class="text-yellow-500 mb-4 animate-bounce" />
+          <h2 class="text-3xl font-black text-indigo-900 mb-2 tracking-tight">¡MISIÓN LOGRADA!</h2>
+          
+          <div class="bg-slate-50 rounded-3xl p-5 mb-8 w-full flex justify-around border-2 border-slate-100 shadow-inner">
+            <div class="flex flex-col items-center"><img src="/images/coin-gold.png" class="w-8 h-8 mb-1" /><span class="text-xl font-black text-slate-800">+{{ sessionCoins.gold }}</span></div>
+            <div class="flex flex-col items-center border-x border-slate-200 px-4"><img src="/images/coin-silver.png" class="w-8 h-8 mb-1" /><span class="text-xl font-black text-slate-800">+{{ sessionCoins.silver }}</span></div>
+            <div class="flex flex-col items-center"><img src="/images/coin-copper.png" class="w-8 h-8 mb-1" /><span class="text-xl font-black text-slate-800">+{{ sessionCoins.copper }}</span></div>
+          </div>
+
+          <div class="w-full flex flex-col gap-4">
+            <button @click="resetGame" class="btn-action-gold-surgical">
+              <RotateCcw size="20" class="mr-2" /> NUEVA RONDA
+            </button>
+            <button @click="emit('close')" class="w-full bg-slate-100 text-slate-500 py-4 rounded-2xl font-black border-2 border-slate-200 active:translate-y-1 transition-all">
+              TERMINAR
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</template>
+
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400&display=swap');
+.master-container { position: fixed; inset: 0; z-index: 9999; display: flex; justify-content: center; align-items: center; background-color: #ffffff; overflow: hidden; }
+.app-canvas { display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; transition: all 0.4s; width: 100vw; height: 100dvh; }
 
-.full-screen-mode {
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
-  z-index: 99999 !important;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  transition: background-color 0.8s ease;
-}
+@media (min-width: 1025px) { .app-canvas { width: 1024px; height: 90dvh; border-radius: 45px; border: 8px solid white; box-shadow: 0 40px 100px rgba(0,0,0,0.2); } }
 
-.soccer-game-container { 
-  width: 100%; 
-  max-width: 450px; 
-  height: 100%; 
-  position: relative; 
-  overflow: hidden; 
-  font-family: 'Inter', sans-serif; 
-  border-radius: 0; 
-  user-select: none; 
-  -webkit-tap-highlight-color: transparent; 
-}
+.header-standard { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1.25rem; background: white; border-bottom: 2px solid #f1f5f9; z-index: 100; }
+.session-loot-capsule { display: flex; align-items: center; background: white; padding: 6px 16px; border-radius: 9999px; border: 2px solid #f1f5f9; }
+.loot-item { display: flex; align-items: center; gap: 6px; padding: 0 10px; font-weight: 900; }
+.loot-item img { width: 1.2rem; height: 1.2rem; object-fit: contain; }
+.btn-close-circle { background: #fee2e2; color: #ef4444; width: 36px; height: 36px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; }
 
-.header-ui { display: flex; justify-content: space-between; align-items: center; padding: 20px 20px 10px 20px; z-index: 50; position: relative; }
+.spherical-ball-rules-wrapper { position: relative; width: 180px; height: 180px; display: flex; align-items: center; justify-content: center; }
+.ball-svg-full-size { width: 100%; height: 100%; }
 
-.status-board-micro { 
-  display: flex; 
-  align-items: center;
-  justify-content: center;
-  gap: 12px; 
-  background: #f8fafc; 
-  padding: 8px 24px; 
-  border-radius: 50px; 
-  box-shadow: 0 4px 15px rgba(0,0,0,0.15); 
-}
-.coin-mini { display: flex; align-items: center; gap: 6px; }
-.icon-mini { width: 20px; height: 20px; object-fit: contain; }
-.val-mini { font-size: 16px; font-weight: 900; color: #1e293b; }
+.equation-display { background: #1a1a1a; padding: 10px 40px; border: 4px solid #333; border-radius: 20px; min-height: 100px; display: flex; align-items: center; box-shadow: 0 8px 0 #000; }
+.equation-text { color: #fcd34d; font-size: 2.5rem; font-weight: 900; }
+:deep(.chalk-x) { font-family: 'Caveat', cursive; color: #ffffff; font-size: 5rem; filter: drop-shadow(0px 0px 2px #fbbf24); margin: 0 8px; }
 
-.stat-box { background: rgba(0,0,0,0.4); padding: 5px 10px; border-radius: 12px; color: white; text-align: center; }
-.label { font-size: 8px; display: block; font-weight: 800; text-transform: uppercase; }
-.value { font-weight: 900; font-size: 1rem; }
+.pitch { position: absolute; bottom: 0; width: 100%; height: 60%; perspective: 1000px; border-top: 3px solid rgba(255,255,255,0.6); }
+.goal-area { width: 75%; height: 150px; border: 8px solid white; border-bottom: none; margin: 0 auto; transform: rotateX(20deg); transform-origin: bottom center; background-image: linear-gradient(45deg, rgba(255,255,255,0.9) 1px, transparent 1px), linear-gradient(-45deg, rgba(255,255,255,0.9) 1px, transparent 1px); background-size: 16px 16px; }
 
-.exit-btn { background: none; border: none; cursor: pointer; padding: 0; outline: none; }
-.circle-x { width: 36px; height: 36px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #16a34a; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+.soccer-ball-vector { position: absolute; width: 85px; height: 85px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 20; }
+.ball-number-overlay-surgical { position: absolute; z-index: 10; font-weight: 900; font-size: 2.1rem; color: #1e3a8a; background: rgba(255,255,255,0.8); width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #22c55e; }
 
-.chalk-x-container { display: inline-flex; align-items: center; height: 100%; vertical-align: middle; }
-:deep(.chalk-x) {
-  font-family: 'Caveat', cursive; color: #ffffff; font-size: 4.5rem;
-  font-weight: 400; font-style: italic; filter: drop-shadow(0px 0px 2px #fbbf24) drop-shadow(0px 0px 1px #fbbf24);
-  line-height: 1; display: inline-block; margin: 0 4px;
-}
+.rules-panel { width: 95%; background: white; padding: 1.5rem; border-radius: 2.5rem; border: 2px solid #e2e8f0; position: relative; margin-top: 1rem; }
+.rules-badge { position: absolute; top: -12px; left: 1.5rem; background: #4f46e5; color: white; font-size: 10px; font-weight: 900; padding: 4px 12px; border-radius: 9999px; }
 
-.scoreboard-container { display: flex; justify-content: center; padding: 0 20px; margin-top: 15px; }
-.equation-display { background: #1a1a1a; padding: 5px 35px; border: 4px solid #333; border-radius: 16px; box-shadow: 0 8px 0 #000; min-height: 90px; display: flex; align-items: center; }
-.equation-text { color: #fcd34d; font-size: 2.2rem; font-weight: 900; letter-spacing: 2px; display: flex; align-items: center; justify-content: center; width: 100%; }
-
-.pitch { 
-  position: absolute; 
-  bottom: 0; 
-  width: 100%; 
-  height: 60%; 
-  perspective: 1000px; 
-  background-image: repeating-linear-gradient(
-    to bottom,
-    transparent,
-    transparent 40px,
-    rgba(0, 0, 0, 0.05) 40px,
-    rgba(0, 0, 0, 0.05) 80px
-  );
-  border-top: 3px solid rgba(255,255,255,0.6); 
-}
-
-.goal-area { 
-  width: 75%; 
-  height: 140px; 
-  border: 8px solid white; 
-  border-bottom: none; 
-  margin: 0 auto; 
-  position: relative; 
-  
-  background-image:
-    linear-gradient(45deg, rgba(255,255,255,0.7) 1px, transparent 1px),
-    linear-gradient(-45deg, rgba(255,255,255,0.7) 1px, transparent 1px);
-  background-size: 16px 16px;
-  
-  transform: rotateX(20deg);
-  transform-origin: bottom center;
-  box-shadow: inset 0 40px 60px rgba(0,0,0,0.5);
-  border-radius: 4px 4px 0 0;
-}
-
-.goal-area::after {
-  content: '';
-  position: absolute;
-  bottom: 0; left: 0; right: 0;
-  height: 2px;
-  background: rgba(255,255,255,0.4);
-}
-
-.soccer-ball { 
-  position: absolute; 
-  width: 75px; 
-  height: 75px; 
-  background: #ffffff; 
-  border-radius: 50%; 
-  display: flex; 
-  align-items: center; 
-  justify-content: center; 
-  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path fill="%232563eb" d="M50 16l14 10-5 16H41l-5-16zM15 42l16 5 5 15-11 11-15-10zM85 42l-16 5-5 15 11 11 15-10zM50 86l14-10-5-16H41l-5 16z"/><path fill="none" stroke="%2394a3b8" stroke-width="1.5" d="M50 16V0M64 26l18-12M36 26L18 14M41 42l-10 6M59 42l10 6M41 68l-10-6M59 68l10-6"/></svg>');
-  background-size: cover;
-  box-shadow: inset -10px -12px 25px rgba(0,0,0,0.5), inset 5px 5px 15px rgba(255,255,255,1), 0 8px 15px rgba(0,0,0,0.3);
-  /* Transición fluida para que los rebotes se vean como física real */
-  transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1); 
-  cursor: pointer; 
-  border: 2px solid #2563eb;
-}
-
-.ball-number-wrapper {
-  background: rgba(255, 255, 255, 0.95);
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
+/* BOTÓN 3D RELIEVE HOMOLOGADO */
+.btn-action-primary {
+  background: linear-gradient(to bottom, #22c55e, #16a34a);
+  color: white;
+  padding: 1.2rem 2.5rem;
+  border-radius: 2.5rem;
+  font-weight: 900;
+  font-size: 1.5rem;
+  font-style: italic;
+  border: none;
+  border-bottom: 12px solid #15803d;
+  box-shadow: 0 12px 25px rgba(22, 163, 74, 0.4);
+  transition: all 0.1s;
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 900; 
-  font-size: 1.6rem; 
-  color: #1e3a8a; 
-  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-  z-index: 2;
-  border: 2px solid #e2e8f0;
+  width: 90%;
+  max-width: 450px;
+  margin-bottom: 2rem;
 }
+.btn-action-primary:active { transform: translateY(8px); border-bottom-width: 4px; box-shadow: 0 4px 10px rgba(22, 163, 74, 0.3); }
 
-.ball-kicked { pointer-events: none; }
+.btn-action-gold-surgical { background: #fbbf24; color: #020617; border-radius: 1.5rem; font-weight: 900; font-size: 1.1rem; border: none; border-bottom: 8px solid #b45309; display: flex; align-items: center; justify-content: center; transition: all 0.1s; padding: 1rem; width: 100%; }
+.btn-action-gold-surgical:active { transform: translateY(4px); border-bottom-width: 2px; }
 
-.rules-overlay { position: absolute; inset: 0; background: rgba(15, 23, 42, 0.95); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 20px; }
-.rules-card { background: #1e293b; width: 100%; padding: 30px; border-radius: 25px; text-align: center; border: 2px solid #22c55e; }
-.rules-icon { font-size: 3.5rem; margin-bottom: 15px; }
-.rules-title { color: white; font-weight: 900; font-size: 1.6rem; margin-bottom: 20px; }
-.rules-list { text-align: left; color: #cbd5e1; margin-bottom: 25px; font-weight: 600; font-size: 0.95rem; list-style: none; }
-.rules-list li { margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
-.start-btn { background: #22c55e; color: white; width: 100%; padding: 16px; border-radius: 15px; font-weight: 900; border: none; font-size: 1.1rem; cursor: pointer; }
-
-.summary-overlay { position: absolute; inset: 0; background: rgba(15, 23, 42, 0.95); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; }
-.summary-card { background: white; width: 100%; padding: 40px 20px; border-radius: 32px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
-.summary-title { font-weight: 900; color: #16a34a; font-size: 2.2rem; margin-bottom: 5px; }
-.summary-subtitle { color: #64748b; font-size: 0.9rem; font-weight: 700; margin-bottom: 20px; }
-
-.session-recap { display: flex; justify-content: center; gap: 20px; margin-bottom: 25px; padding: 15px; background: #f8fafc; border-radius: 20px; }
-.recap-item { display: flex; flex-direction: column; align-items: center; gap: 5px; font-weight: 900; font-size: 1.2rem; color: #1e293b; }
-.recap-icon { width: 40px; height: 40px; }
-
-.exit-btn-final { position: absolute; top: 20px; right: 20px; z-index: 1100; background: none; border: none; cursor: pointer; padding: 0; outline: none;}
-.circle-x-final { width: 48px; height: 48px; background: white; border-radius: 50%; color: #ef4444; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 1.3rem; box-shadow: 0 4px 20px rgba(0,0,0,0.6); }
-
-.total-prize { font-size: 1.2rem; font-weight: 900; color: #f59e0b; margin: 10px 0; }
-.claim-btn { background: #16a34a; color: white; width: 100%; padding: 18px; border-radius: 20px; font-weight: 900; font-size: 1.2rem; border: none; box-shadow: 0 6px 0 #14532d; cursor: pointer; }
-
-.fade-enter-active, .fade-leave-active { transition: opacity 0.5s; }
-.fade-enter-from, .fade-leave-to { opacity: 0; }
+.game-title { font-weight: 900; text-transform: uppercase; font-style: italic; letter-spacing: -0.05em; }
+.animate-float { animation: float 3s ease-in-out infinite; }
+.animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
+@keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 </style>

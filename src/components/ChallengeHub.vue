@@ -1,9 +1,14 @@
 <script setup>
+/**
+ * NOTA INFORMATIVA: PORTAL DE DESAFÍOS (CHALLENGE HUB)
+ * Gestión de los 12 retos especiales con navegación paginada.
+ * Política de Cero Scroll v2.9.3
+ */
 import { ref, computed } from 'vue';
 import { 
   X as CloseIcon, Zap, Trophy, Brain, Search, Puzzle, 
   Rocket, Plane, Anchor, Globe, ChevronLeft, ChevronRight,
-  Scale, PieChart, Waves, Dribbble // Importamos nuevos iconos
+  Scale, PieChart, Waves, Dribbble 
 } from 'lucide-vue-next';
 
 // --- IMPORTACIÓN DE JUEGOS ---
@@ -17,17 +22,15 @@ import TreasureHunt from '../views/TreasureHunt.vue';
 import WorldTourChallenge from './WorldTourChallenge.vue';
 import ScaleMaster from './ScaleMaster.vue'; 
 import FractionArchitect from './FractionArchitect.vue';
-import SubmarineAlgebra from './SubmarineAlgebra.vue'; // Nuevo
-import SoccerAlgebra from './SoccerAlgebra.vue'; // Nuevo
+import SubmarineAlgebra from './SubmarineAlgebra.vue'; 
+import SoccerAlgebra from './SoccerAlgebra.vue'; 
 
 const emit = defineEmits(['close', 'update-coins']);
 const activeGame = ref(null); 
 const currentPage = ref(0); 
 
-// Mantenemos 4 juegos por página para máxima legibilidad
 const gamesPerPage = 4; 
 
-// --- LISTA DE JUEGOS ACTUALIZADA (v2.9.0) ---
 const games = [
   { id: 'quiz', name: 'Desafío Contra Reloj', icon: Zap, color: 'bg-orange-500', desc: '60 segundos para ganar Plata' },
   { id: 'memory', name: 'Memoria Pro', icon: Brain, color: 'bg-indigo-500', desc: 'Une parejas y gana Oro' },
@@ -39,12 +42,10 @@ const games = [
   { id: 'world-tour', name: 'Expedición Mundial', icon: Globe, color: 'bg-emerald-600', desc: 'Resuelve el misterio y viaja' },
   { id: 'scale', name: 'Scale Master', icon: Scale, color: 'bg-cyan-600', desc: 'Equilibra el álgebra con pesas' },
   { id: 'pizza', name: 'Arquitecto de Fracciones', icon: PieChart, color: 'bg-red-500', desc: 'Prepara pedidos y domina partes' },
-  // NUEVOS RETOS
   { id: 'submarine', name: 'Burbujas de Álgebra', icon: Waves, color: 'bg-blue-600', desc: 'Explota el valor de X bajo el mar' },
   { id: 'soccer', name: 'Estadio de Ecuaciones', icon: Dribbble, color: 'bg-lime-600', desc: 'Anota goles resolviendo incógnitas' }
 ];
 
-// --- LÓGICA DE PAGINACIÓN ---
 const totalPages = computed(() => Math.ceil(games.length / gamesPerPage));
 
 const paginatedGames = computed(() => {
@@ -58,90 +59,234 @@ const prevPage = () => { if (currentPage.value > 0) currentPage.value--; };
 const openGame = (gameId) => { activeGame.value = gameId; };
 const closeGame = () => { activeGame.value = null; };
 
-// Manejador de monedas global
 const handleCoins = (amount) => {
   emit('update-coins', amount);
 };
 </script>
 
 <template>
-  <div class="absolute inset-0 z-[150] bg-indigo-900/95 backdrop-blur-md flex flex-col p-4 animate-fade-in font-['Inter']">
-    
-    <header class="flex justify-between items-center mb-6 shrink-0">
-      <div class="flex items-center gap-3 text-white px-2">
-        <Trophy class="text-yellow-400" :size="32" />
-        <div>
-          <h2 class="text-2xl font-black uppercase tracking-tighter text-white">Portal de Desafíos</h2>
-          <p class="text-indigo-200 text-[10px] font-bold uppercase italic">Página {{ currentPage + 1 }} de {{ totalPages }}</p>
-        </div>
-      </div>
-      <button @click="emit('close')" class="bg-white/10 p-3 rounded-full text-white active:scale-90 transition-all shadow-lg">
-        <CloseIcon :size="28" />
-      </button>
-    </header>
-
-    <div v-if="!activeGame" class="flex-1 flex flex-col justify-between overflow-hidden pb-4">
-      <div class="grid grid-cols-1 gap-4 overflow-y-auto px-1 scrollbar-hide">
-        <button v-for="game in paginatedGames" :key="game.id" @click="openGame(game.id)"
-          class="bg-white rounded-3xl p-1 shadow-xl active:translate-y-1 transition-all group border-b-4 border-slate-200">
-          <div class="bg-slate-50 rounded-2xl p-4 flex items-center gap-4">
-            <div :class="`w-16 h-16 rounded-full ${game.color} flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform`">
-              <component :is="game.icon" :size="32" fill="currentColor" />
-            </div>
-            <div class="text-left">
-              <h3 class="font-black text-slate-800 text-lg leading-tight uppercase">{{ game.name }}</h3>
-              <p class="text-slate-500 text-[10px] font-bold mt-1 uppercase tracking-tighter">{{ game.desc }}</p>
-            </div>
-          </div>
-        </button>
-      </div>
-
-      <footer class="flex justify-between items-center pt-6 gap-4 shrink-0">
-        <button @click="prevPage" :disabled="currentPage === 0"
-          :class="`flex-1 py-4 rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2 transition-all ${currentPage === 0 ? 'bg-slate-800 text-slate-600 opacity-50' : 'bg-indigo-600 text-white shadow-lg active:translate-y-1'}`">
-          <ChevronLeft :size="20" /> REGRESAR
-        </button>
-
-        <button @click="nextPage" :disabled="currentPage >= totalPages - 1"
-          :class="`flex-1 py-4 rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2 transition-all ${currentPage >= totalPages - 1 ? 'bg-slate-800 text-slate-600 opacity-50' : 'bg-indigo-600 text-white shadow-lg active:translate-y-1'}`">
-          AVANZAR <ChevronRight :size="20" />
-        </button>
-      </footer>
-    </div>
-
-    <div v-else class="flex-1 relative overflow-hidden bg-black rounded-3xl shadow-2xl">
-      <QuizModule v-if="activeGame === 'quiz'" @close="closeGame" />
-      <MemoryChallenge v-if="activeGame === 'memory'" @close="closeGame" />
-      <NumberSearch v-if="activeGame === 'search'" @close="closeGame" />
-      <PuzzleChallenge v-if="activeGame === 'puzzle'" @close="closeGame" />
-      <RunnerChallenge v-if="activeGame === 'runner'" @close="closeGame" />
-      <QuickFly v-if="activeGame === 'fly'" @close="closeGame" />
-      <TreasureHunt v-if="activeGame === 'treasure'" @close="closeGame" />
-      <WorldTourChallenge v-if="activeGame === 'world-tour'" @close="closeGame" />
-      <ScaleMaster v-if="activeGame === 'scale'" @close="closeGame" />
-      <FractionArchitect v-if="activeGame === 'pizza'" @close="closeGame" />
+  <div class="master-hub">
+    <div class="hub-canvas">
       
-      <SubmarineAlgebra v-if="activeGame === 'submarine'" @close="closeGame" @update-coins="handleCoins" />
-      <SoccerAlgebra v-if="activeGame === 'soccer'" @close="closeGame" @update-coins="handleCoins" />
+      <header class="header-hub shrink-0">
+        <div class="flex items-center gap-3 text-white">
+          <div class="bg-yellow-400 p-2 rounded-2xl shadow-lg">
+            <Trophy class="text-indigo-900" :size="28" />
+          </div>
+          <div>
+            <h2 class="title-text">Portal de Desafíos</h2>
+            <p class="subtitle-text">Página {{ currentPage + 1 }} de {{ totalPages }}</p>
+          </div>
+        </div>
+        <button @click="emit('close')" class="btn-close-hub">
+          <CloseIcon :size="24" />
+        </button>
+      </header>
+
+      <div v-if="!activeGame" class="view-paginator">
+        <div class="grid-games">
+          <button v-for="game in paginatedGames" :key="game.id" @click="openGame(game.id)"
+            class="game-card group">
+            <div class="card-inner">
+              <div :class="`icon-box ${game.color}`">
+                <component :is="game.icon" :size="28" fill="currentColor" />
+              </div>
+              <div class="text-left flex-1 min-w-0">
+                <h3 class="game-name truncate">{{ game.name }}</h3>
+                <p class="game-desc truncate">{{ game.desc }}</p>
+              </div>
+            </div>
+          </button>
+        </div>
+
+        <footer class="footer-hub shrink-0">
+          <button @click="prevPage" :disabled="currentPage === 0"
+            :class="['btn-nav', currentPage === 0 ? 'disabled' : 'active']">
+            <ChevronLeft :size="20" /> REGRESAR
+          </button>
+
+          <button @click="nextPage" :disabled="currentPage >= totalPages - 1"
+            :class="['btn-nav', currentPage >= totalPages - 1 ? 'disabled' : 'active']">
+            AVANZAR <ChevronRight :size="20" />
+          </button>
+        </footer>
+      </div>
+
+      <div v-else class="game-container-slot">
+        <QuizModule v-if="activeGame === 'quiz'" @close="closeGame" />
+        <MemoryChallenge v-if="activeGame === 'memory'" @close="closeGame" />
+        <NumberSearch v-if="activeGame === 'search'" @close="closeGame" />
+        <PuzzleChallenge v-if="activeGame === 'puzzle'" @close="closeGame" />
+        <RunnerChallenge v-if="activeGame === 'runner'" @close="closeGame" />
+        <QuickFly v-if="activeGame === 'fly'" @close="closeGame" />
+        <TreasureHunt v-if="activeGame === 'treasure'" @close="closeGame" />
+        <WorldTourChallenge v-if="activeGame === 'world-tour'" @close="closeGame" />
+        <ScaleMaster v-if="activeGame === 'scale'" @close="closeGame" />
+        <FractionArchitect v-if="activeGame === 'pizza'" @close="closeGame" />
+        
+        <SubmarineAlgebra v-if="activeGame === 'submarine'" @close="closeGame" @update-coins="handleCoins" />
+        <SoccerAlgebra v-if="activeGame === 'soccer'" @close="closeGame" @update-coins="handleCoins" />
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;
-}
-.scrollbar-hide {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+/* LEY DE HIERRO v2.9.3 - CERO SCROLL SMARTPHONE */
+
+.master-hub {
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  background-color: #f1f5f9;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  touch-action: none !important;
 }
 
-.animate-fade-in {
-  animation: fadeIn 0.3s ease-out;
+.hub-canvas {
+  display: grid;
+  grid-template-rows: auto 1fr; /* Header arriba, contenido ocupa el resto */
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(to bottom right, #312e81, #4f46e5);
+  padding: 1.25rem;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+  touch-action: none !important;
+  width: 100vw;
+  height: 100dvh;
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
+/* TABLETS */
+@media (min-width: 600px) and (max-width: 1024px) {
+  .hub-canvas { width: 85vw; height: 92dvh; border-radius: 35px; padding: 2rem; }
+}
+
+/* PC: 1024px */
+@media (min-width: 1025px) {
+  .hub-canvas { width: 1024px; height: 90dvh; border-radius: 45px; padding: 2.5rem; }
+}
+
+.header-hub {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.title-text {
+  font-size: clamp(1.2rem, 4vw, 2.2rem);
+  font-weight: 900;
+  color: white;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.subtitle-text {
+  color: #c7d2fe;
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.view-paginator {
+  display: grid;
+  grid-template-rows: 1fr auto; /* Juegos ocupan todo, footer abajo */
+  height: 100%;
+  overflow: hidden;
+}
+
+/* AJUSTE QUIRÚRGICO DE CARDS PARA EVITAR SCROLL */
+.grid-games {
+  display: flex;
+  flex-direction: column;
+  justify-content: center; /* Centra las cards verticalmente si sobra espacio */
+  gap: 0.75rem; /* Gap reducido para smartphones */
+  padding-bottom: 1rem;
+}
+
+.game-card {
+  background: white;
+  border-radius: 1.5rem;
+  padding: 0.2rem;
+  border-bottom: 4px solid #e2e8f0;
+  flex: 1; /* Permite que las cards se estiren o encojan según el alto disponible */
+  max-height: 110px; /* Evita que crezcan demasiado en pantallas grandes */
+  min-height: 80px;  /* Asegura un tamaño mínimo táctil */
+}
+
+.card-inner {
+  background: #f8fafc;
+  border-radius: 1.3rem;
+  padding: 0.75rem 1rem;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.icon-box {
+  width: 3.2rem;
+  height: 3.2rem;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  flex-shrink: 0;
+}
+
+.game-name { font-size: 1rem; font-weight: 900; color: #1e293b; text-transform: uppercase; }
+.game-desc { font-size: 0.6rem; font-weight: 700; color: #64748b; text-transform: uppercase; }
+
+.footer-hub {
+  display: flex;
+  gap: 1rem;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+
+.btn-nav {
+  flex: 1;
+  padding: 1rem;
+  border-radius: 1.25rem;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+
+.btn-nav.active { background: #4f46e5; color: white; box-shadow: 0 5px 0 #312e81; }
+.btn-nav.active:active { transform: translateY(3px); box-shadow: 0 2px 0 #312e81; }
+.btn-nav.disabled { background: #1e1b4b; color: #4338ca; opacity: 0.5; }
+
+.btn-close-hub {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.75rem;
+  border-radius: 9999px;
+  color: white;
+}
+
+.game-container-slot {
+  flex: 1;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 2rem;
+  background: black;
+}
+
+/* Soporte para pantallas de tablets/PC con más aire */
+@media (min-height: 800px) {
+  .grid-games { gap: 1.25rem; }
+  .game-card { max-height: 130px; }
+  .icon-box { width: 4rem; height: 4rem; }
 }
 </style>

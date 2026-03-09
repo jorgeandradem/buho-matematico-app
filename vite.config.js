@@ -9,8 +9,10 @@ export default defineConfig({
     vue(),
     vueDevTools(),
     VitePWA({
-      // 🛠️ Mantenemos 'prompt' para que el usuario vea tu componente ReloadPrompt.vue
-      registerType: 'prompt', 
+      // 🚀 ESTRATEGIA DE AUTO-ACTUALIZACIÓN
+      // Cambiado de 'prompt' a 'autoUpdate' para que el Service Worker se actualice solo.
+      registerType: 'autoUpdate', 
+      
       injectRegister: 'auto',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
       manifest: {
@@ -19,6 +21,8 @@ export default defineConfig({
         description: 'Mentoría Matemática con IA para todas las edades',
         theme_color: '#4f46e5',
         background_color: '#4f46e5',
+        display: 'standalone', // Obligatorio para que iOS lo trate como App
+        orientation: 'portrait',
         icons: [
           {
             src: 'pwa-192x192.png',
@@ -39,20 +43,23 @@ export default defineConfig({
         ]
       },
       workbox: {
-        // 🔥 REFUERZO DE LIMPIEZA: Borra versiones viejas de la caché automáticamente
+        // 🔥 Limpia automáticamente versiones antiguas de la caché
         cleanupOutdatedCaches: true,
-        // 🚀 PERMISOS DE REINICIO: Permite que el nuevo Service Worker se active de inmediato
+        
+        // 🚀 Estas dos líneas permiten la activación inmediata
+        // El Service Worker nuevo no esperará a que se cierren las pestañas
         skipWaiting: true, 
         clientsClaim: true,
-        // 🛡️ SEGURIDAD PARA FIREBASE: Evita que el Service Worker interfiera con las rutas de Auth de Firebase
+
+        // 🛡️ Evita conflictos con las rutas de autenticación de Firebase
         navigateFallbackDenylist: [/^\/__/],
-        // Definimos qué archivos se guardan para modo offline
+        
         globPatterns: ['**/*.{js,css,html,ico,png,svg,json}'],
-        // Aumentamos el límite de tamaño para evitar que archivos grandes se queden fuera de la caché
-        maximumFileSizeToCacheInBytes: 4000000 
+        
+        // Límite de 5MB para soportar los recursos de los juegos (Soccer, Submarine, etc.)
+        maximumFileSizeToCacheInBytes: 5000000 
       },
       devOptions: {
-        // IMPORTANTE: Mantenlo en true para poder probar el banner en localhost
         enabled: true,
         type: 'module'
       }
@@ -60,7 +67,6 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      // Alias estándar para importar con @/
       '@': fileURLToPath(new URL('./src', import.meta.url))
     },
   },

@@ -8,7 +8,7 @@ import {
   sendPasswordResetEmail 
 } from "firebase/auth";
 import { doc, setDoc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
-import { X, ChevronLeft, Info, ShieldCheck, Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-vue-next';
+import { X, ChevronLeft, Info, Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-vue-next';
 import OwlImage from './OwlImage.vue';
 import SimpleConfetti from './SimpleConfetti.vue';
 import userIcon from '@/assets/icono.png'; 
@@ -27,13 +27,10 @@ const showRecovery = ref(false);
 const recoveryMode = ref('email'); 
 const showPassword = ref(false); 
 
-// --- CORRECCIÓN DE ORDEN: Login por defecto ---
 const authMode = ref('login'); 
-
 const isLoading = ref(false); 
 const emailClue = ref(""); 
 const usernameClue = ref("");
-
 const customError = ref("");
 const showSuccessCheck = ref(false); 
 
@@ -45,9 +42,6 @@ const form = reactive({ username: '', email: '', password: '' });
 
 watch(form, () => { customError.value = ""; });
 
-/**
- * REGLA DE RESET AUTOMÁTICO
- */
 const closeAndReset = () => {
   showModal.value = false;
   activeSubView.value = 'auth';
@@ -61,18 +55,18 @@ const closeAndReset = () => {
   recoveryMode.value = 'email';
 };
 
-const handleLegalCheckboxClick = (e) => {
-  if (isExistingUser.value || hasReadLegal.value) return; 
-  e.preventDefault();
-  activeSubView.value = 'legal';
-};
-
 const handleLegalAcceptedFromInside = () => {
   acceptedTerms.value = true;
   hasReadLegal.value = true; 
   activeSubView.value = 'auth';
   showSuccessCheck.value = true;
   setTimeout(() => { showSuccessCheck.value = false; }, 3000);
+};
+
+const handleLegalCheckboxClick = (e) => {
+  if (isExistingUser.value || hasReadLegal.value) return; 
+  e.preventDefault();
+  activeSubView.value = 'legal';
 };
 
 const SESSION_LIMIT = 3 * 24 * 60 * 60 * 1000;
@@ -180,10 +174,6 @@ const handleAuth = async () => {
   } catch (error) {
     if (error.code === 'auth/invalid-credential') {
         customError.value = "⛔ Los datos son incorrectos. Revisa tu correo o contraseña.";
-    } else if (error.code === 'auth/user-not-found') {
-        customError.value = "⛔ Este correo no está registrado en el nido.";
-    } else if (error.code === 'auth/email-already-in-use') {
-        customError.value = "⛔ Este correo ya está siendo usado por otro alumno.";
     } else {
         customError.value = "⛔ Error: " + error.message;
     }
@@ -191,62 +181,66 @@ const handleAuth = async () => {
 };
 
 onMounted(async () => {
-  const APP_VERSION = "2.8.2";
+  const APP_VERSION = "2.8.9";
   const savedVersion = localStorage.getItem('buho_app_version');
 
   if (savedVersion !== APP_VERSION) {
     localStorage.setItem('buho_app_version', APP_VERSION);
     localStorage.removeItem('buho_last_login'); 
-    
     if ('caches' in window) {
       try {
         const cacheNames = await caches.keys();
         await Promise.all(cacheNames.map(name => caches.delete(name)));
-      } catch (e) {
-        console.log("Caché ya limpia");
-      }
+      } catch (e) { console.log("Caché limpia"); }
     }
-    
     window.location.reload(true);
     return; 
   }
-
   setTimeout(() => { showOwl.value = true; }, 100);
   setTimeout(() => { showButton.value = true; }, 800);
 });
 </script>
 
 <template>
-  <div class="h-[100dvh] w-full bg-white flex justify-center overflow-hidden font-sans select-none text-indigo-900">
-    <div class="w-full max-w-[500px] h-full flex flex-col bg-gradient-to-br from-indigo-500 to-purple-600 shadow-[0_0_80px_rgba(0,0,0,0.2)] border-x border-slate-100 relative overflow-hidden">
+  <div class="master-container">
+    <main class="app-canvas">
       
       <SimpleConfetti :isActive="true" />
       
-      <div class="absolute top-4 left-4 flex items-center gap-3 z-50">
-          <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center border-2 border-indigo-200 overflow-hidden shadow-lg">
-              <img :src="userIcon" alt="Usuario" class="w-full h-full object-cover" />
+      <div class="header-mentor">
+          <div class="mentor-avatar">
+              <img :src="userIcon" alt="Usuario" />
           </div>
-          <div class="block text-white text-left">
+          <div class="mentor-info text-white">
               <h3 class="font-bold text-sm leading-tight drop-shadow-md">Jorge Andrade</h3>
-              <p class="text-[10px] font-medium tracking-wide opacity-90">Mentor Digital & IA</p>
+              <p class="text-[10px] font-medium opacity-90">Mentor Digital & IA</p>
           </div>
       </div>
 
-      <div class="flex-1 flex flex-col items-center justify-center p-6 relative z-10 text-center">
-        <h1 class="text-5xl sm:text-6xl font-black text-white mb-2 tracking-tight drop-shadow-lg animate-pop-in">
-          Búho <span class="block text-yellow-300 text-6xl sm:text-7xl mt-1">Matemático</span>
+      <div class="main-hero-area">
+        <h1 class="main-title animate-pop-in">
+          Búho <span class="block text-yellow-300">Matemático</span>
         </h1>
-        <div v-if="showOwl" class="w-48 h-48 sm:w-60 sm:h-60 mb-8 relative animate-pop-in">
-            <OwlImage customClass="w-full h-full object-contain drop-shadow-2xl relative z-10" />
+        
+        <div v-if="showOwl" class="owl-hero-container animate-pop-in">
+            <OwlImage customClass="owl-img-responsive" />
         </div>
-        <button v-if="showButton" @click="handleStartButton" class="group relative bg-yellow-400 hover:bg-yellow-300 text-indigo-900 font-black text-2xl py-4 px-12 rounded-full shadow-[0_8px_0_rgb(180,83,9)] active:translate-y-2 transition-all">
+
+        <button v-if="showButton" @click="handleStartButton" class="btn-empezar group relative bg-yellow-400 hover:bg-yellow-300 text-indigo-900 font-black py-4 rounded-full shadow-[0_8px_0_rgb(180,83,9)] active:translate-y-2 transition-all">
           <span class="relative z-10 uppercase">¡Empezar!</span>
           <div class="absolute inset-0 rounded-full bg-white/40 animate-ping-slow pointer-events-none"></div>
         </button>
       </div>
 
+      <footer class="footer-anclado">
+          <div class="flex flex-col items-center gap-1 text-white">
+              <p class="text-sm font-bold drop-shadow-sm">@Copyright 2026</p>
+              <p class="text-xs font-medium opacity-100 drop-shadow-sm">Búho Mate v2.9.0</p>
+          </div>
+      </footer>
+
       <div v-if="showModal" class="absolute inset-0 bg-indigo-900/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white w-full max-w-md rounded-[2.5rem] overflow-hidden shadow-2xl border-4 border-yellow-400 relative flex flex-col max-h-[85vh] animate-pop-in">
+        <div class="bg-white w-full max-w-md rounded-[2.5rem] overflow-hidden shadow-2xl border-4 border-yellow-400 relative flex flex-col max-h-[85dvh] animate-pop-in">
           
           <div class="p-4 border-b flex justify-between items-center bg-slate-50 shrink-0">
               <button v-if="activeSubView !== 'auth'" @click="activeSubView = 'auth'" class="flex items-center gap-1 text-indigo-600 font-black text-xs uppercase bg-white px-3 py-1 rounded-full shadow-sm border border-slate-100">
@@ -256,13 +250,12 @@ onMounted(async () => {
               <h2 class="text-sm font-black text-indigo-900 uppercase tracking-widest text-center flex-1 px-2">
                   {{ activeSubView === 'auth' ? (authMode === 'register' ? 'Nuevo Alumno' : 'Entrar al Nido') : (activeSubView === 'guide' ? 'Guía de Uso' : 'Marco Legal') }}
               </h2>
-              
               <button @click="closeAndReset" class="bg-indigo-50 text-indigo-900 hover:bg-red-50 hover:text-red-600 p-2 rounded-full transition-all shadow-md active:scale-90">
                 <X :size="26" stroke-width="3.5" />
               </button>
           </div>
 
-          <div class="flex-1 overflow-y-auto p-6 scrollbar-thin">
+          <div class="flex-1 overflow-y-auto p-6 scroll-interno">
               <div v-if="activeSubView === 'auth'">
                   <template v-if="!showRecovery">
                     <div class="space-y-4" @keyup.enter="handleAuth">
@@ -279,44 +272,30 @@ onMounted(async () => {
                         <input :type="showPassword ? 'text' : 'password'" v-model="form.password" placeholder="Mínimo 6 letras" class="w-full p-3 bg-slate-50 border-2 border-slate-100 rounded-xl focus:border-indigo-500 outline-none pr-12 transition-all" />
                         <button @click="showPassword = !showPassword" type="button" class="absolute right-3 bottom-3 text-slate-400"><component :is="showPassword ? EyeOff : Eye" :size="20"/></button>
                       </div>
-
                       <div v-if="authMode === 'register' || acceptedTerms" 
                            class="relative flex items-start gap-3 p-3 rounded-2xl border transition-all duration-300"
                            :class="hasReadLegal ? 'bg-green-50 border-green-200' : 'bg-indigo-50 border-indigo-100'">
-                          
                           <CheckCircle v-if="showSuccessCheck" class="absolute -top-3 -right-3 text-green-500 animate-bounce fill-white" :size="30" />
-
-                          <input 
-                            type="checkbox" 
-                            v-model="acceptedTerms" 
-                            :disabled="hasReadLegal" 
-                            @click="handleLegalCheckboxClick"
-                            class="mt-1 w-5 h-5 accent-indigo-600 cursor-pointer disabled:cursor-default" 
-                          />
+                          <input type="checkbox" v-model="acceptedTerms" :disabled="hasReadLegal" @click="handleLegalCheckboxClick" class="mt-1 w-5 h-5 accent-indigo-600 cursor-pointer" />
                           <p class="text-[11px] leading-tight font-medium" :class="hasReadLegal ? 'text-green-800' : 'text-slate-600'">
                             <span v-if="hasReadLegal" class="block font-black uppercase text-[9px] mb-1">¡Marco Legal Aceptado! 🦉</span>
                             He leído y acepto el <span @click="activeSubView = 'legal'" class="text-indigo-600 font-bold underline cursor-pointer">Marco Legal y Privacidad</span>.
                           </p>
                       </div>
                     </div>
-
                     <div v-if="customError" class="mt-4 p-3 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2 animate-fade-in">
                         <AlertCircle class="text-red-500 shrink-0" :size="18" />
                         <p class="text-[11px] font-bold text-red-700 leading-tight">{{ customError }}</p>
                     </div>
-
                     <button @click="handleAuth" :disabled="isLoading" class="w-full mt-6 bg-indigo-600 hover:bg-indigo-700 text-white font-black py-4 rounded-2xl shadow-lg active:scale-95 disabled:opacity-50 transition-all uppercase tracking-[0.2em]">
                       <span v-if="!isLoading">{{ authMode === 'register' ? 'Crear Cuenta' : 'Entrar' }}</span>
                       <span v-else>Cargando... ⏳</span>
                     </button>
-                    
                     <div class="mt-6 flex flex-col items-center gap-4">
-                      <div class="flex flex-col items-center gap-2">
-                          <button @click="activeSubView = 'guide'" class="flex items-center gap-2 text-indigo-600 font-black text-[10px] uppercase tracking-widest bg-indigo-50 px-5 py-2 rounded-full border border-indigo-100 hover:bg-indigo-100 transition-all"><Info :size="14"/> Guía de Uso</button>
-                          <button v-if="authMode === 'login'" @click="showRecovery = true" class="text-orange-700 font-black underline text-[10px] uppercase tracking-tighter italic">¿Olvidaste algo?</button>
-                      </div>
+                      <button @click="activeSubView = 'guide'" class="flex items-center gap-2 text-indigo-600 font-black text-[10px] uppercase tracking-widest bg-indigo-50 px-5 py-2 rounded-full border border-indigo-100 hover:bg-indigo-100 transition-all"><Info :size="14"/> Guía de Uso</button>
+                      <button v-if="authMode === 'login'" @click="showRecovery = true" class="text-orange-700 font-black underline text-[10px] uppercase tracking-tighter italic">¿Olvidaste algo?</button>
                       <div class="w-full p-4 bg-green-50 border-2 border-green-500 rounded-2xl shadow-sm mt-2 text-center">
-                        <p class="text-sm sm:text-base text-green-800 font-black uppercase tracking-tight">
+                        <p class="text-sm text-green-800 font-black uppercase tracking-tight">
                           {{ authMode === 'register' ? '¿Ya tienes cuenta?' : '¿Eres nuevo?' }}
                           <button @click="authMode = authMode === 'register' ? 'login' : 'register'; customError = ''" class="text-indigo-700 font-black underline ml-1 uppercase">{{ authMode === 'register' ? 'ENTRA' : 'SUSCRÍBETE' }}</button>
                         </p>
@@ -328,56 +307,162 @@ onMounted(async () => {
                     <div class="animate-fade-in text-center">
                         <div class="flex bg-slate-100 p-1.5 rounded-2xl mb-6 text-sm font-black uppercase tracking-widest">
                           <button @click="recoveryMode = 'email'; emailClue = ''; usernameClue = ''; customError = ''" 
-                                  :class="`flex-1 py-3 rounded-xl transition-all ${recoveryMode === 'email' ? 'bg-white shadow-md text-indigo-600' : 'text-slate-400'}`">
-                            Correo
-                          </button>
+                                  :class="`flex-1 py-3 rounded-xl transition-all ${recoveryMode === 'email' ? 'bg-white shadow-md text-indigo-600' : 'text-slate-400'}`">Correo</button>
                           <button @click="recoveryMode = 'username'; emailClue = ''; usernameClue = ''; customError = ''" 
-                                  :class="`flex-1 py-3 rounded-xl transition-all ${recoveryMode === 'username' ? 'bg-white shadow-md text-indigo-600' : 'text-slate-400'}`">
-                            Nombre
-                          </button>
+                                  :class="`flex-1 py-3 rounded-xl transition-all ${recoveryMode === 'username' ? 'bg-white shadow-md text-indigo-600' : 'text-slate-400'}`">Nombre</button>
                         </div>
-
-                        <input v-if="recoveryMode === 'email'" v-model="form.username" placeholder="Nombre del Alumno" class="w-full p-4 border-2 border-orange-200 rounded-2xl outline-none mb-4 text-center font-bold text-indigo-900 placeholder:text-slate-300 focus:border-orange-400 transition-all" />
-                        <input v-else v-model="form.email" placeholder="Tu Correo Electrónico" class="w-full p-4 border-2 border-orange-200 rounded-2xl outline-none mb-4 text-center font-bold text-indigo-900 placeholder:text-slate-300 focus:border-orange-400 transition-all" />
-                        
+                        <input v-if="recoveryMode === 'email'" v-model="form.username" placeholder="Nombre del Alumno" class="w-full p-4 border-2 border-orange-200 rounded-2xl outline-none mb-4 text-center font-bold text-indigo-900 focus:border-orange-400 transition-all" />
+                        <input v-else v-model="form.email" placeholder="Tu Correo Electrónico" class="w-full p-4 border-2 border-orange-200 rounded-2xl outline-none mb-4 text-center font-bold text-indigo-900 focus:border-orange-400 transition-all" />
                         <div v-if="emailClue || usernameClue" class="bg-indigo-50 p-5 rounded-[2rem] mb-4 border-2 border-indigo-100 animate-pop-in">
-                            <p class="text-[10px] text-indigo-400 font-black uppercase mb-1 tracking-widest">{{ emailClue ? 'Pista de Correo:' : 'Tu Nombre:' }}</p>
+                            <p class="text-[10px] text-indigo-400 font-black uppercase mb-1">{{ emailClue ? 'Pista de Correo:' : 'Tu Nombre:' }}</p>
                             <p class="text-xl font-black text-indigo-900 tracking-tight">{{ emailClue || usernameClue }}</p>
                         </div>
-                        
-                        <p v-if="customError" class="text-xs font-bold text-red-600 mb-4 animate-pulse">{{ customError }}</p>
-
-                        <button @click="recoveryMode === 'email' ? findEmailClue() : findUsernameClue()" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-black py-4 rounded-2xl shadow-lg uppercase text-sm tracking-widest active:scale-95 transition-all">Mostrar Ayuda 🦉</button>
-                        <button @click="handleForgotPassword" v-if="recoveryMode === 'username'" class="w-full mt-4 text-indigo-600 underline text-xs font-black uppercase tracking-tighter">Enviar Enlace de Contraseña</button>
-                        <button @click="showRecovery = false; customError = ''" class="w-full text-orange-700 font-black text-xs mt-8 uppercase tracking-[0.2em] underline decoration-2">Volver Atrás</button>
+                        <button @click="recoveryMode === 'email' ? findEmailClue() : findUsernameClue()" class="w-full bg-orange-500 text-white font-black py-4 rounded-2xl shadow-lg uppercase text-sm active:scale-95 transition-all">Mostrar Ayuda 🦉</button>
+                        <button @click="showRecovery = false; customError = ''" class="w-full text-orange-700 font-black text-xs mt-8 uppercase underline decoration-2">Volver Atrás</button>
                     </div>
                   </template>
               </div>
 
-              <div v-if="activeSubView === 'guide'" class="animate-fade-in"><GuideView /><button @click="activeSubView = 'auth'" class="w-full sticky bottom-0 bg-yellow-400 text-indigo-900 font-black py-4 rounded-2xl shadow-lg uppercase text-xs tracking-widest active:scale-95">¡Entendido! Vamos a jugar</button></div>
-              <div v-if="activeSubView === 'legal'" class="animate-fade-in h-full"><LegalView :currentStatus="acceptedTerms" @accepted="handleLegalAcceptedFromInside" /></div>
+              <div v-if="activeSubView === 'guide'" class="animate-fade-in">
+                <GuideView />
+                <button @click="activeSubView = 'auth'" class="w-full sticky bottom-0 bg-yellow-400 text-indigo-900 font-black py-4 rounded-2xl shadow-lg uppercase text-xs tracking-widest active:scale-95">¡Entendido!</button>
+              </div>
+              <div v-if="activeSubView === 'legal'" class="animate-fade-in h-full">
+                <LegalView :currentStatus="acceptedTerms" @accepted="handleLegalAcceptedFromInside" />
+              </div>
           </div>
         </div>
       </div>
 
-      <div class="p-4 text-center relative z-10 flex flex-col items-center mb-2">
-          <div class="flex flex-col items-center gap-1 text-white">
-              <p class="text-sm sm:text-base font-bold drop-shadow-sm">@Copyright 2026</p>
-              <p class="text-xs sm:text-sm font-medium opacity-100 drop-shadow-sm">Búho Mate v2.8.9</p>
-          </div>
-      </div>
-    </div>
+    </main>
   </div>
 </template>
+
 <style scoped>
+/* LEY DE ADAPTACIÓN PROGRESIVA v2.9.2 - AJUSTE VERTICAL Y BLINDAJE TÁCTIL */
+
+.master-container {
+  height: 100dvh;
+  width: 100vw;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #f1f5f9;
+  overflow: hidden;
+  position: fixed;
+  top: 0;
+  left: 0;
+  touch-action: none;
+}
+
+.app-canvas {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between; 
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(to bottom right, #6366f1, #a855f7);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  user-select: none;
+  touch-action: none;
+  -webkit-user-drag: none;
+  -webkit-tap-highlight-color: transparent;
+  
+  width: 100vw;
+  height: 100dvh;
+}
+
+/* ÁREA DE CONTENIDO CENTRAL ELÁSTICA */
+.main-hero-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 1rem;
+  min-height: 0;
+}
+
+/* FUENTES ORIGINALES PARA SMARTPHONE */
+.main-title {
+  font-size: 3rem; /* Restaurado a su valor original para Smartphone */
+  font-weight: 900;
+  color: white;
+  line-height: 1;
+  text-align: center;
+  transition: font-size 0.4s ease;
+}
+
+.owl-hero-container {
+  width: 100%;
+  max-width: 260px; /* Tamaño optimizado para móvil */
+  max-height: 35vh;
+  display: flex;
+  justify-content: center;
+  transition: all 0.4s ease;
+  filter: drop-shadow(0 20px 40px rgba(0,0,0,0.3));
+  margin: 1.5rem 0;
+}
+
+.owl-img-responsive { width: 100%; height: 100%; object-fit: contain; }
+
+/* BOTÓN EMPEZAR ORIGINAL PARA SMARTPHONE */
+.btn-empezar { 
+  width: 85%; 
+  max-width: 280px; /* Ancho original */
+  font-size: 1.5rem; /* Tamaño de fuente original */
+}
+
+.footer-anclado {
+  width: 100%;
+  padding: 1rem;
+  flex-shrink: 0;
+  text-align: center;
+  background: rgba(0,0,0,0.05);
+}
+
+/* PC: ADAPTACIÓN QUIRÚRGICA MAXIMIZADA (1024px) */
+@media (min-width: 1025px) {
+  .app-canvas {
+    width: 1024px; 
+    height: 90dvh;
+    border-radius: 40px;
+    box-shadow: 0 40px 100px rgba(0,0,0,0.2);
+    border: 4px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .owl-hero-container {
+    max-width: 450px !important; 
+    max-height: 35vh;
+  }
+  
+  /* Fuentes grandes exclusivas para PC */
+  .main-title { font-size: 5.5rem !important; }
+  
+  .btn-empezar { 
+    max-width: 320px;
+    font-size: 2rem !important;
+  }
+}
+
+/* TABLETS */
+@media (min-width: 600px) and (max-width: 1024px) {
+  .app-canvas { width: 80vw; height: 92dvh; border-radius: 30px; }
+  .main-title { font-size: 4rem; }
+}
+
+/* HEADER INFO */
+.header-mentor { position: absolute; top: 1.5rem; left: 1.5rem; display: flex; align-items: center; gap: 0.75rem; z-index: 50; }
+.mentor-avatar { width: 2.5rem; height: 2.5rem; border-radius: 50%; overflow: hidden; border: 2px solid white; }
+.mentor-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+.scroll-interno::-webkit-scrollbar { width: 4px; }
+.scroll-interno::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
+/* ANIMACIONES */
 .animate-pop-in { animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
 @keyframes popIn { from { opacity: 0; transform: scale(0.9) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
-.animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-.animate-pulse-slow { animation: pulseSlow 4s infinite ease-in-out; }
-@keyframes pulseSlow { 0%, 100% { opacity: 0.3; transform: scale(1); } 50% { opacity: 0.5; transform: scale(1.05); } }
 .animate-ping-slow { animation: pingSlow 2s cubic-bezier(0, 0, 0.2, 1) infinite; }
 @keyframes pingSlow { 75%, 100% { transform: scale(1.5); opacity: 0; } }
-.scrollbar-thin::-webkit-scrollbar { width: 4px; }
-.scrollbar-thin::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
 </style>

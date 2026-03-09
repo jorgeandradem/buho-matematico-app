@@ -1,9 +1,12 @@
 <script setup>
+/** * ARCHIVO: NumberSearch.vue
+ * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.2 + REGLAS DIDÁCTICAS
+ * LOGICA: Sopa de números (Resultados algebraicos) + Navegación Quirúrgica
+ */
 import { ref, onMounted } from 'vue';
-import { X as CloseIcon, Search, Trophy, AlertCircle, Sparkles, Coins } from 'lucide-vue-next';
+import { X as CloseIcon, Trophy, AlertCircle, Sparkles, Search, PlayCircle, BookOpen } from 'lucide-vue-next';
 import SimpleConfetti from './SimpleConfetti.vue';
 import CoinRain from './CoinRain.vue';
-import OwlImage from './OwlImage.vue';
 import { useGamificationStore } from '../stores/useGamificationStore';
 import { speak } from '../utils/voice';
 import { playOwlHoot, playCoinSound } from '../utils/sound';
@@ -12,20 +15,64 @@ const emit = defineEmits(['close', 'win']);
 const store = useGamificationStore();
 
 // --- ESTADO DEL JUEGO ---
+const gameState = ref('rules'); // 'rules' | 'playing' | 'finished'
 const grid = ref([]);
 const challenges = ref([]);
 const currentSelection = ref([]);
-const gameFinished = ref(false);
 const showCoinRain = ref(false);
 const perfectGame = ref(true);
 const confirmedCells = ref(new Set());
+const isAudioUnlocked = ref(false);
+
+// --- SISTEMA DE RECOMPENSAS EN TIEMPO REAL ---
+const sessionCoins = ref({ gold: 0, silver: 0, copper: 0 });
+
+// --- MOTOR DE AUDIO ---
+const playCorrectSound = () => {
+    const audio = new Audio('/audios/correct1.mp3');
+    audio.volume = 1.0;
+    audio.play().catch(e => console.warn("Audio bloqueado:", e));
+};
+
+const speakLoud = (text, isExclamation = false) => {
+    if (!('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel(); 
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.volume = 1.0;
+    utterance.lang = 'es-ES';
+    if (isExclamation) { utterance.rate = 1.4; utterance.pitch = 1.5; }
+    else { utterance.rate = 1.1; utterance.pitch = 1.0; }
+    window.speechSynthesis.speak(utterance);
+};
+
+const unlockAudio = () => {
+    if (isAudioUnlocked.value) return;
+    speakLoud(""); 
+    isAudioUnlocked.value = true;
+};
+
+// --- NAVEGACIÓN QUIRÚRGICA ---
+const startGame = () => {
+    gameState.value = 'playing';
+    initGame();
+};
+
+const returnToRules = () => {
+    gameState.value = 'rules';
+    currentSelection.value = [];
+};
+
+const exitToPortal = () => {
+    sessionCoins.value = { gold: 0, silver: 0, copper: 0 };
+    emit('close');
+};
 
 const initGame = () => {
-    gameFinished.value = false;
     showCoinRain.value = false;
     currentSelection.value = [];
     perfectGame.value = true;
     confirmedCells.value.clear();
+    sessionCoins.value = { gold: 0, silver: 0, copper: 0 };
     
     const newChallenges = [];
     const ops = ['+', '-', '×']; 
@@ -36,7 +83,7 @@ const initGame = () => {
         let res = op === '+' ? a + b : (op === '-' ? (a+10) - b : a * b);
         const text = `${op === '-' ? a+10 : a}${op}${b}`;
         if (!newChallenges.find(c => c.text === text)) {
-            newChallenges.push({ text, result: res.toString(), found: false });
+            newChallenges.push({ text, result: res.toString(), found: false, opType: op });
         }
     }
     challenges.value = newChallenges;
@@ -82,11 +129,12 @@ const initGame = () => {
             gridReady = true;
         }
     }
-    speak("¡Sopa de números activada!");
+    speakLoud("¡Sopa de números activada!");
 };
 
 const handleCellClick = (cell) => {
-    if (gameFinished.value || currentSelection.value.includes(cell)) return;
+    if (gameState.value !== 'playing' || currentSelection.value.includes(cell)) return;
+    unlockAudio();
     
     cell.status = 'selected';
     currentSelection.value.push(cell);
@@ -99,11 +147,19 @@ const handleCellClick = (cell) => {
             c.status = 'correct';
             confirmedCells.value.add(c.id);
         });
+        playCorrectSound();
+
+        if (match.opType === '+') sessionCoins.value.copper++;
+        else if (match.opType === '-') sessionCoins.value.silver++;
+        else if (match.opType === '×') sessionCoins.value.gold++;
+        
         currentSelection.value = [];
         if (challenges.value.every(ch => ch.found)) triggerWin();
     } else if (!challenges.value.some(ch => ch.result.startsWith(typedValue) && !ch.found)) {
         perfectGame.value = false;
         currentSelection.value.forEach(c => c.status = 'error');
+        speakLoud("No", true);
+
         setTimeout(() => {
             currentSelection.value.forEach(c => { 
                 c.status = confirmedCells.value.has(c.id) ? 'correct' : 'neutral'; 
@@ -114,124 +170,199 @@ const handleCellClick = (cell) => {
 };
 
 const triggerWin = async () => {
-    gameFinished.value = true;
+    gameState.value = 'finished';
     showCoinRain.value = true;
     playCoinSound();
     playOwlHoot();
-    const prize = perfectGame.value ? 10 : 5;
-    await store.addCoins('silver', prize);
-    emit('win', { type: 'silver', count: prize });
-};
+    
+    if (!perfectGame.value) {
+        sessionCoins.value.gold = Math.max(1, Math.floor(sessionCoins.value.gold / 2));
+        sessionCoins.value.silver = Math.max(1, Math.floor(sessionCoins.value.silver / 2));
+        sessionCoins.value.copper = Math.max(1, Math.floor(sessionCoins.value.copper / 2));
+    }
 
-onMounted(() => {
-    document.body.style.overflow = 'hidden';
-    initGame();
-});
+    try {
+        if (sessionCoins.value.gold > 0) await store.addCoins('gold', sessionCoins.value.gold);
+        if (sessionCoins.value.silver > 0) await store.addCoins('silver', sessionCoins.value.silver);
+        if (sessionCoins.value.copper > 0) await store.addCoins('copper', sessionCoins.value.copper);
+        emit('win', { ...sessionCoins.value });
+    } catch (e) { console.error(e); }
+};
 </script>
 
 <template>
-  <div class="fixed inset-0 z-[200] bg-white flex justify-center overflow-hidden select-none overscroll-none touch-none w-full h-[100dvh]">
-    
-    <div class="w-full max-w-[480px] h-full bg-slate-50 flex flex-col items-center relative shadow-2xl overflow-hidden mx-auto">
-        
-        <CoinRain v-if="showCoinRain" type="silver" :count="50" class="z-[400]" />
+  <div class="master-container">
+    <main class="app-canvas !bg-slate-50 shadow-smartphone">
+        <CoinRain v-if="showCoinRain" type="gold" :count="30" class="z-[400]" />
 
-        <header class="w-full flex items-center justify-between px-4 py-2 shrink-0 bg-white border-b border-slate-100 z-10">
-          <div class="flex items-center gap-3">
-            <div class="flex items-center gap-1.5 text-indigo-900 font-black text-sm uppercase tracking-tighter italic">
-                <Search size="18" class="text-indigo-500" /> SOPA
+        <header v-if="gameState === 'playing'" class="header-sopa shrink-0">
+            <div class="trophy-counter">
+                <Trophy size="18" class="text-green-600" />
+                <span class="font-black text-base text-green-700">
+                    {{ challenges.filter(c => c.found).length }}/12
+                </span>
             </div>
-            
-            <button @click="initGame" 
-              class="text-indigo-600 font-black text-[9px] uppercase tracking-widest px-3 py-1.5 rounded-full border border-indigo-100 bg-indigo-50 shadow-sm active:scale-95 transition-all">
-              Nueva
-            </button>
-          </div>
-
-          <button @click="$emit('close')" 
-                  class="bg-slate-100/50 hover:bg-slate-200 text-slate-500 p-1.5 rounded-full active:scale-90 transition-all shadow-sm">
-              <CloseIcon :size="20" />
-          </button>
+            <div class="session-loot-capsule">
+                <div class="loot-indicator"><img src="/images/coin-gold.png" /><span>{{ sessionCoins.gold }}</span></div>
+                <div class="loot-indicator border-x border-slate-100"><img src="/images/coin-silver.png" /><span>{{ sessionCoins.silver }}</span></div>
+                <div class="loot-indicator"><img src="/images/coin-copper.png" /><span>{{ sessionCoins.copper }}</span></div>
+            </div>
+            <button @click="returnToRules" class="btn-close-sopa"><CloseIcon :size="20" /></button>
         </header>
 
-        <main class="flex-1 flex flex-col items-center justify-start p-3 overflow-hidden w-full gap-3">
+        <div class="game-content flex-1 flex flex-col items-center justify-between py-4 overflow-hidden relative">
             
-            <div class="w-full grid grid-cols-4 gap-1.5 px-1 shrink-0">
-                <div v-for="ch in challenges" :key="ch.text" 
-                    :class="['py-2 rounded-lg border text-center transition-all', 
-                             ch.found ? 'bg-green-100 border-green-200 opacity-30 scale-90' : 'bg-white border-indigo-50 shadow-sm']">
-                    <p :class="['text-xl font-black leading-none italic tracking-tighter', ch.found ? 'text-green-700 line-through' : 'text-indigo-900']">
-                        {{ ch.text }}
-                    </p>
-                </div>
-            </div>
+            <div v-if="gameState === 'rules'" class="flex-1 flex flex-col items-center justify-between p-6 w-full animate-fade-in">
+                <button @click="exitToPortal" class="absolute top-4 right-4 bg-slate-200/50 w-10 h-10 rounded-full flex items-center justify-center text-slate-600 active:scale-75 transition-all">
+                    <CloseIcon size="24" stroke-width="3" />
+                </button>
 
-            <div class="relative w-full max-w-[320px] aspect-square bg-white rounded-[2rem] p-1 shadow-2xl border-4 border-white ring-4 ring-indigo-50/50 overflow-hidden shrink-0 my-1">
-                <div class="grid grid-cols-6 grid-rows-6 h-full w-full gap-0 border border-slate-100">
-                    <button v-for="cell in grid" :key="cell.id" @click="handleCellClick(cell)"
-                        :class="['h-full w-full flex items-center justify-center relative border-[0.5px] border-slate-50 text-2xl font-black transition-all italic',
-                            cell.status === 'neutral' ? 'bg-white text-slate-400' : '',
-                            cell.status === 'selected' ? 'bg-yellow-300 text-yellow-900 z-10 scale-110 shadow-lg rounded-lg' : '',
-                            cell.status === 'correct' ? 'bg-green-500/20 text-green-700' : '',
-                            cell.status === 'error' ? 'bg-red-500/20 text-red-700 animate-shake' : '']">
-                        
-                        <div v-if="cell.isOverlapping && cell.status === 'neutral'" 
-                             class="absolute inset-1 border border-indigo-200/40 rounded-full bg-indigo-50/30"></div>
-                        
-                        <span class="relative z-10">{{ cell.val }}</span>
-                    </button>
+                <div class="flex flex-col items-center mt-6">
+                    <Search size="60" class="text-indigo-600 animate-bounce mb-2" />
+                    <h1 class="game-title text-3xl">NÚMERO OCULTO</h1>
                 </div>
-            </div>
 
-            <div class="w-full max-w-[380px] bg-white p-4 rounded-3xl border-2 border-indigo-100 shadow-md relative shrink-0">
-                <div class="absolute -top-3 left-6 bg-indigo-600 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-sm">
-                    REGLAS
-                </div>
-                <div class="flex flex-col gap-2.5 mt-1">
-                    <div class="flex items-center gap-3">
-                        <Sparkles size="18" class="text-indigo-500 shrink-0" />
-                        <p class="text-[13px] font-bold text-slate-700 leading-tight">Busca 12 resultados en horizontal o vertical.</p>
-                    </div>
-                    <div class="flex items-center justify-between px-1">
-                        <div class="flex items-center gap-3">
-                            <Coins size="18" class="text-yellow-500" />
-                            <p class="text-[13px] font-bold text-slate-700">Perfecto: <span class="text-indigo-600 font-black text-base">10 Plata</span></p>
+                <div class="rules-panel-sopa shadow-xl w-full">
+                    <div class="rules-badge">MANUAL DEL INVESTIGADOR</div>
+                    <div class="flex flex-col gap-5 p-2">
+                        <div class="flex gap-4 items-start">
+                            <div class="bg-indigo-100 p-2 rounded-xl"><BookOpen class="text-indigo-600" size="20" /></div>
+                            <p class="text-sm font-bold text-slate-600">Resuelve las operaciones de arriba y busca su **resultado** en la cuadrícula.</p>
                         </div>
-                        <div class="flex items-center gap-3">
-                            <AlertCircle size="18" class="text-red-500" />
-                            <p class="text-[13px] font-bold text-slate-700">Error: <span class="text-indigo-500 font-black text-base">5 Plata</span></p>
+                        <div class="flex gap-4 items-start">
+                            <div class="bg-green-100 p-2 rounded-xl"><Search class="text-green-600" size="20" /></div>
+                            <p class="text-sm font-bold text-slate-600">Selecciona los números en orden (horizontal o vertical) para tacharlos.</p>
+                        </div>
+                        <div class="flex gap-4 items-start">
+                            <div class="bg-amber-100 p-2 rounded-xl"><Sparkles class="text-amber-600" size="20" /></div>
+                            <p class="text-sm font-bold text-slate-600">¡Suma: 🥉 | Resta: 🥈 | Multi: 🥇! No falles para duplicar tu premio.</p>
                         </div>
                     </div>
                 </div>
-            </div>
-        </main>
 
-        <Transition name="pop">
-          <div v-if="gameFinished" class="absolute inset-0 z-[300] bg-white flex flex-col items-center justify-center p-6 text-center animate-fade-in uppercase">
-            <SimpleConfetti />
-            <Trophy class="w-16 h-16 text-amber-500 mb-4 drop-shadow-2xl" />
-            <h2 class="text-2xl font-black text-indigo-900 mb-2 leading-none italic">¡Sopa Resuelta!</h2>
-            
-            <div class="bg-indigo-50 border-4 border-indigo-100 rounded-[2.5rem] p-6 mb-6 shadow-inner w-full max-w-[200px]">
-               <div class="flex items-center justify-center gap-3">
-                  <img src="/images/coin-silver.png" class="w-10 h-10" />
-                  <span class="text-5xl font-black text-indigo-900 italic tracking-tighter">+{{ perfectGame ? 10 : 5 }}</span>
-               </div>
+                <button @click="startGame" class="btn-action-primary w-full py-5 text-xl uppercase italic">
+                    ¡BUSCAR NÚMEROS! <PlayCircle class="ml-2" />
+                </button>
             </div>
 
-            <button @click="initGame" class="w-full max-w-[220px] bg-indigo-600 text-white font-black py-4 rounded-2xl shadow-xl border-b-4 border-indigo-800 active:translate-y-1 transition-all text-sm mb-4">OTRO DESAFÍO</button>
-            <button @click="$emit('close')" class="text-slate-400 font-black text-[10px] tracking-widest py-2">VOLVER AL PORTAL</button>
-          </div>
-        </Transition>
-    </div>
+            <template v-else-if="gameState === 'playing'">
+                <div class="w-full grid grid-cols-4 gap-1.5 px-4 shrink-0 mt-2">
+                    <div v-for="ch in challenges" :key="ch.text" :class="['challenge-pill', ch.found ? 'pill-found' : 'pill-active']">
+                        <p class="text-lg font-black italic tracking-tighter">{{ ch.text }}</p>
+                    </div>
+                </div>
+
+                <div class="sopa-grid-container shadow-2xl shrink-0">
+                    <div class="grid grid-cols-6 grid-rows-6 h-full w-full">
+                        <button v-for="cell in grid" :key="cell.id" @click="handleCellClick(cell)"
+                            :class="['cell-btn', 
+                                cell.status === 'neutral' ? 'cell-neutral' : '',
+                                cell.status === 'selected' ? 'cell-selected' : '',
+                                cell.status === 'correct' ? 'cell-correct' : '',
+                                cell.status === 'error' ? 'cell-error' : '']">
+                            <span>{{ cell.val }}</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="h-4"></div>
+            </template>
+
+            <Transition name="pop">
+              <div v-if="gameState === 'finished'" class="victory-overlay animate-fade-in uppercase">
+                <SimpleConfetti />
+                <Trophy class="w-20 h-20 text-amber-500 mb-4 drop-shadow-2xl animate-bounce" />
+                <h2 class="victory-title">¡Botín Asegurado!</h2>
+                <div class="prize-card">
+                   <div class="flex justify-around items-center w-full">
+                      <div class="prize-item" :class="sessionCoins.gold > 0 ? 'opacity-100' : 'opacity-20'"><img src="/images/coin-gold.png" /><span>+{{ sessionCoins.gold }}</span></div>
+                      <div class="prize-item" :class="sessionCoins.silver > 0 ? 'opacity-100' : 'opacity-20'"><img src="/images/coin-silver.png" /><span>+{{ sessionCoins.silver }}</span></div>
+                      <div class="prize-item" :class="sessionCoins.copper > 0 ? 'opacity-100' : 'opacity-20'"><img src="/images/coin-copper.png" /><span>+{{ sessionCoins.copper }}</span></div>
+                   </div>
+                </div>
+                <div class="flex flex-col gap-4 w-full max-w-[280px]">
+                    <button @click="startGame" class="btn-victory-main py-4 uppercase font-black tracking-widest italic">OTRO DESAFÍO</button>
+                    <button @click="exitToPortal" class="btn-victory-back py-4 uppercase font-bold text-xs tracking-widest">SALIR AL PORTAL</button>
+                </div>
+              </div>
+            </Transition>
+        </div>
+    </main>
   </div>
 </template>
 
 <style scoped>
-.animate-shake { animation: shake 0.2s ease-in-out infinite; }
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400&family=Inter:wght@400;700;900&display=swap');
+
+/* LEY DE HIERRO v2.9.2 */
+
+.master-container {
+    position: fixed; inset: 0; z-index: 9999;
+    display: flex; justify-content: center; align-items: center;
+    background-color: #ffffff; overflow: hidden;
+    touch-action: none !important; font-family: 'Inter', sans-serif !important;
+}
+
+.app-canvas {
+    display: flex; flex-direction: column; justify-content: space-between;
+    position: relative; overflow: hidden; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    user-select: none; width: 100vw; height: 100dvh;
+}
+
+@media (min-width: 1025px) { .app-canvas { width: 1024px; height: 90dvh; border-radius: 45px; border: 8px solid white; box-shadow: 0 40px 100px rgba(0,0,0,0.2); } }
+@media (min-width: 600px) and (max-width: 1024px) { .app-canvas { width: 85vw; height: 95dvh; border-radius: 35px; } }
+
+.header-sopa {
+    width: 100%; display: flex; align-items: center; justify-content: space-between;
+    padding: 0.75rem 1.25rem; background: white; border-bottom: 2px solid #f1f5f9; z-index: 50;
+}
+
+.session-loot-capsule {
+    display: flex; align-items: center; background: white; padding: 6px 16px;
+    border-radius: 9999px; border: 2px solid #f1f5f9;
+}
+
+.loot-indicator { display: flex; align-items: center; gap: 6px; padding: 0 10px; }
+.loot-indicator img { width: 1.15rem; height: 1.15rem; object-fit: contain; }
+.loot-indicator span { font-weight: 900; color: #1e293b; font-size: 0.9rem; }
+
+.btn-close-sopa { background: #fee2e2; color: #ef4444; width: 36px; height: 36px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; }
+
+.sopa-grid-container { width: 92%; max-width: 380px; aspect-ratio: 1/1; background: white; border-radius: 2rem; padding: 6px; border: 4px solid white; outline: 4px solid #f1f5f9; }
+.cell-btn { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 1.75rem; font-weight: 900; font-style: italic; border: 0.5px solid #f1f5f9; }
+.cell-neutral { color: #cbd5e1; }
+.cell-selected { background: #fde047; color: #854d0e; border-radius: 8px; transform: scale(1.05); }
+.cell-correct { background: #dcfce7; color: #15803d; }
+.cell-error { background: #fee2e2; color: #b91c1c; animation: shake 0.2s ease-in-out 2; }
+
+.challenge-pill { padding: 6px; border-radius: 10px; border: 2px solid #e0e7ff; text-align: center; }
+.pill-found { background: #f0fdf4; border-color: #bbf7d0; opacity: 0.4; color: #166534; transform: scale(0.9); }
+.pill-active { background: white; color: #312e81; }
+
+.rules-panel-sopa { width: 92%; background: white; padding: 1.5rem; border-radius: 2rem; border: 2px solid #e2e8f0; position: relative; }
+.rules-badge { position: absolute; top: -12px; left: 1.5rem; background: #4f46e5; color: white; font-size: 10px; font-weight: 900; padding: 4px 12px; border-radius: 9999px; }
+
+.btn-action-primary { background: #4f46e5; color: white; border-radius: 2rem; font-weight: 900; box-shadow: 0 6px 0 #312e81; transition: all 0.1s; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.btn-action-primary:active { transform: translateY(5px); box-shadow: 0 1px 0 #312e81; }
+
+.victory-overlay {
+    position: absolute; inset: 0; z-index: 300; background: white;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 2rem; text-align: center;
+}
+.victory-title { font-size: 2.5rem; font-weight: 900; color: #312e81; font-style: italic; line-height: 1; margin-bottom: 1.5rem; }
+.prize-card { background: #f5f3ff; border: 4px solid #ede9fe; border-radius: 3rem; padding: 2rem; width: 100%; max-width: 280px; margin-bottom: 2rem; }
+.prize-item { display: flex; flex-direction: column; align-items: center; }
+.prize-item img { width: 2.5rem; height: 2.5rem; margin-bottom: 4px; }
+.prize-item span { font-size: 1.5rem; font-weight: 900; color: #4338ca; }
+
+.btn-victory-main { width: 100%; background: #f59e0b; color: white; font-weight: 900; border-radius: 1.25rem; box-shadow: 0 6px 0 #b45309; }
+.btn-victory-back { width: 100%; background: #94a3b8; color: white; font-weight: 900; border-radius: 1.25rem; }
+
+.game-title { font-weight: 900; color: #312e81; text-transform: uppercase; font-style: italic; letter-spacing: -0.05em; }
+.animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
 @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
 .pop-enter-active { animation: pop-in 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
-@keyframes pop-in { from { opacity: 0; transform: scale(0.95) translateY(20px); } to { opacity: 1; transform: scale(1) translateY(0); } }
-.animate-fade-in { animation: fadeIn 0.5s ease-out; }
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes pop-in { from { opacity: 0; transform: scale(0.9) translateY(15px); } to { opacity: 1; transform: scale(1) translateY(0); } }
 </style>

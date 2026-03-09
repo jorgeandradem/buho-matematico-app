@@ -1,21 +1,27 @@
 <script setup>
+/** * ARCHIVO: ScaleMaster.vue
+ * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.2 + BOTÓN 3D RELIEVE
+ * LOGICA: Desafío de equilibrio físico + Recompensas por nivelación.
+ */
 import { ref, computed, watch, onMounted } from 'vue';
-import { X as CloseIcon, Coins, Star } from 'lucide-vue-next';
+import { X, Trophy, Scale, CheckCircle2, AlertCircle, PlayCircle, Coins, TrendingUp, TrendingDown, BookOpen } from 'lucide-vue-next';
 import { gsap } from 'gsap'; 
 import { useGamificationStore } from '@/stores/useGamificationStore'; 
 
 const emit = defineEmits(['close']);
-const gamificationStore = useGamificationStore();
+const store = useGamificationStore();
 
-// --- ESTADO ---
+// --- 1. ESTADOS DE FLUJO ---
+const gameState = ref('rules'); 
 const currentLevel = ref(1);
 const totalLevels = 10;
 const isVictory = ref(false); 
-const showFinalCelebration = ref(false); 
 const targetWeight = ref(0); 
 const rightWeights = ref([]); 
 
-// 🚀 MÉTODO PARA CARGAR IMÁGENES COMPATIBLE CON VERCEL
+// --- SISTEMA DE RECOMPENSAS EN TIEMPO REAL ---
+const sessionCoins = ref({ gold: 0, silver: 0, copper: 0 });
+
 const getAssetUrl = (name) => {
   return new URL(`../assets/scale-master/${name}`, import.meta.url).href;
 };
@@ -26,6 +32,7 @@ const inventory = computed(() => {
 
 const playSound = (name) => {
   const audio = new Audio(`/audios/${name}.mp3`);
+  audio.volume = 0.9;
   audio.play().catch(() => {});
 };
 
@@ -41,56 +48,54 @@ const totalRight = computed(() => {
     .reduce((a, b) => a + b.value, 0);
 });
 
+// --- 2. LÓGICA DE BALANCEO Y BURBUJA ---
 const currentRotation = ref(0);
+const weightOffset = computed(() => totalRight.value - targetWeight.value);
+const bubbleX = ref(0); 
 
 watch(totalRight, (newTotal) => {
   const diff = newTotal - targetWeight.value;
+  
   const targetRot = Math.max(Math.min(diff * 2.5, 18), -18);
-  gsap.to(currentRotation, {
-    value: targetRot,
-    duration: 0.8,
-    ease: "back.out(1.7)", 
-    onUpdate: () => currentRotation.value = currentRotation.value
-  });
-});
+  gsap.to(currentRotation, { value: targetRot, duration: 0.8, ease: "back.out(1.7)" });
 
-const isGoldMode = computed(() => currentLevel.value >= 7);
+  let newBubbleX = Math.max(Math.min(diff * 1.5, 50), -50);
+  gsap.to(bubbleX, { value: newBubbleX, duration: 0.6, ease: "power2.out" });
 
-// 🚀 RUTAS CORREGIDAS PARA PRODUCCIÓN
-const weightImage = computed(() => 
-  isGoldMode.value 
-    ? getAssetUrl('weight-gold.png') 
-    : getAssetUrl('weight-iron.png')
-);
-
-const resetGame = () => {
-  currentLevel.value = 1;
-  targetWeight.value = generateRandomWeight();
-  rightWeights.value = [];
-  isVictory.value = false;
-  showFinalCelebration.value = false;
-};
-
-watch(totalRight, (newTotal) => {
   if (newTotal === targetWeight.value && !isVictory.value && newTotal > 0) {
     isVictory.value = true; 
-    if (currentLevel.value < totalLevels) playSound('correct1');
+    playSound('correct1');
+    
+    if (currentLevel.value < 7) sessionCoins.value.copper++;
+    else sessionCoins.value.silver++;
 
     setTimeout(() => {
-      if (currentLevel.value >= totalLevels) {
-        showFinalCelebration.value = true;
-        gamificationStore.addCoins('copper', 10); 
-        gamificationStore.updateMissionProgress('complete_challenge', 1); 
-        gamificationStore.bubbleMessage = "¡Excelente equilibrio! He guardado tus monedas en la bóveda. 🦉💰";
-        triggerCoinRain();
-        playSound('finish1'); 
-        playSound('coins');   
-      } else {
-        autoNextLevel();
-      }
+      if (currentLevel.value >= totalLevels) finishGame();
+      else autoNextLevel();
     }, 1200); 
   }
 });
+
+const isGoldMode = computed(() => currentLevel.value >= 7);
+const weightImage = computed(() => isGoldMode.value ? getAssetUrl('weight-gold.png') : getAssetUrl('weight-iron.png'));
+
+// --- 3. LÓGICA DE NAVEGACIÓN ---
+const startGame = () => {
+  gameState.value = 'playing';
+  currentLevel.value = 1;
+  sessionCoins.value = { gold: 0, silver: 0, copper: 0 };
+  targetWeight.value = generateRandomWeight();
+  rightWeights.value = [];
+  isVictory.value = false;
+};
+
+const closeScaleMaster = () => {
+    if (gameState.value === 'rules') {
+        emit('close'); 
+    } else {
+        gameState.value = 'rules';
+    }
+};
 
 const autoNextLevel = () => {
   currentLevel.value++;
@@ -99,21 +104,29 @@ const autoNextLevel = () => {
   isVictory.value = false;
 };
 
+const finishGame = async () => {
+  gameState.value = 'finished';
+  if (sessionCoins.value.silver > 0) await store.addCoins('silver', sessionCoins.value.silver);
+  if (sessionCoins.value.copper > 0) await store.addCoins('copper', sessionCoins.value.copper);
+  await store.updateMissionProgress('complete_challenge', 1);
+  playSound('finish1'); playSound('coins'); triggerCoinRain();
+};
+
 const triggerCoinRain = () => {
-  const container = document.querySelector('.game-viewport');
+  const container = document.querySelector('.app-canvas');
   if (!container) return;
-  for (let i = 0; i < 50; i++) {
+  for (let i = 0; i < 40; i++) {
     const coin = document.createElement('div');
-    coin.innerHTML = '🪙';
-    coin.className = 'absolute text-4xl z-[999] pointer-events-none drop-shadow-2xl';
+    coin.innerHTML = isGoldMode.value ? '🟡' : '🥉';
+    coin.className = 'absolute text-3xl z-[999] pointer-events-none';
     coin.style.left = Math.random() * 90 + 5 + '%';
-    coin.style.top = '-60px';
+    coin.style.top = '-50px';
     container.appendChild(coin);
     gsap.to(coin, {
       y: container.offsetHeight + 100,
-      x: (Math.random() - 0.5) * 200,
-      rotation: Math.random() * 1080,
-      duration: Math.random() * 2.5 + 1.5,
+      x: (Math.random() - 0.5) * 150,
+      rotation: Math.random() * 720,
+      duration: Math.random() * 2 + 1,
       ease: "power1.in",
       onComplete: () => coin.remove()
     });
@@ -121,14 +134,11 @@ const triggerCoinRain = () => {
 };
 
 const addWeight = (val, event) => {
-  if (isVictory.value || showFinalCelebration.value || rightWeights.value.length >= 15) return;
+  if (isVictory.value || gameState.value !== 'playing' || rightWeights.value.length >= 15) return;
   playSound('whoosh');
   const rect = event.currentTarget.getBoundingClientRect();
   const flyer = event.currentTarget.cloneNode(true);
-  Object.assign(flyer.style, { 
-    position: 'fixed', left: `${rect.left}px`, top: `${rect.top}px`, 
-    width: `${rect.width}px`, zIndex: '5000', pointerEvents: 'none' 
-  });
+  Object.assign(flyer.style, { position: 'fixed', left: `${rect.left}px`, top: `${rect.top}px`, width: `${rect.width}px`, zIndex: '5000', pointerEvents: 'none' });
   document.body.appendChild(flyer);
   const targetArea = document.querySelector('.plate-target-area').getBoundingClientRect();
   gsap.to(flyer, {
@@ -137,107 +147,185 @@ const addWeight = (val, event) => {
     scale: 0.7, duration: 0.5, ease: "power2.out",
     onComplete: () => {
       document.body.removeChild(flyer);
-      rightWeights.value.push({ 
-        id: Math.random().toString(36).substr(2, 9), 
-        value: val, isRemoving: false 
-      });
+      rightWeights.value.push({ id: Math.random().toString(36).substr(2, 9), value: val, isRemoving: false });
       playSound('correct1');
     }
   });
 };
 
 const triggerRemove = (id, event) => {
-  if (isVictory.value || showFinalCelebration.value) return;
+  if (isVictory.value || gameState.value !== 'playing') return;
   const weightObj = rightWeights.value.find(w => w.id === id);
   if (!weightObj || weightObj.isRemoving) return;
   weightObj.isRemoving = true; 
   playSound('wrong1');
-  gsap.to(event.currentTarget, {
-    y: 1000, opacity: 0, scale: 0, duration: 0.25, ease: "power4.in",
-    onComplete: () => { 
-      rightWeights.value = rightWeights.value.filter(w => w.id !== id); 
-    }
-  });
+  const element = event.currentTarget;
+  element.classList.add('filter-red');
+  gsap.to(element, { y: 500, opacity: 0, scale: 0, duration: 0.25, ease: "power4.in", onComplete: () => { rightWeights.value = rightWeights.value.filter(w => w.id !== id); } });
 };
 </script>
 
 <template>
-  <div class="fixed inset-0 bg-[#FDF6E3] flex flex-col items-center overflow-hidden z-[200] game-viewport">
-    <header class="w-full p-6 flex justify-between items-center z-[210]">
-      <div class="bg-amber-100 px-6 py-2 rounded-full border-2 border-amber-300 shadow-md">
-        <Star class="text-orange-500 fill-orange-500 mr-2 inline" :size="20" />
-        <span class="text-amber-900 font-black text-lg uppercase italic">RETO {{ currentLevel }} / {{ totalLevels }}</span>
-      </div>
-      <button @click="emit('close')" class="bg-red-500 w-14 h-14 rounded-full flex items-center justify-center text-white border-4 border-white shadow-xl hover:scale-110 active:scale-90 transition-all">
-        <CloseIcon :size="32" stroke-width="3" />
-      </button>
-    </header>
-
-    <div class="relative w-full flex-1 flex flex-col items-center justify-center -mt-10 px-4">
-      <img :src="getAssetUrl('scale-base.png')" class="absolute w-[380px] bottom-32 z-10 pointer-events-none" />
+  <div class="master-container font-inter">
+    <main class="app-canvas shadow-smartphone !bg-slate-50">
       
-      <div class="relative w-full max-w-2xl flex justify-between items-end pointer-events-none transition-transform duration-100"
-           :style="{ transform: `rotate(${currentRotation}deg)` }">
+      <header v-if="gameState === 'playing'" class="header-standard shrink-0">
+        <div class="trophy-section">
+          <Trophy size="22" class="text-yellow-500" />
+          <span class="text-xl font-black text-indigo-900">{{ currentLevel }}/10</span>
+        </div>
+        <div class="session-loot-capsule">
+          <div class="loot-item"><img src="/images/coin-gold.png" /><span>{{ sessionCoins.gold }}</span></div>
+          <div class="loot-item border-x border-slate-100"><img src="/images/coin-silver.png" /><span>{{ sessionCoins.silver }}</span></div>
+          <div class="loot-item"><img src="/images/coin-copper.png" /><span>{{ sessionCoins.copper }}</span></div>
+        </div>
+        <button @click="closeScaleMaster" class="btn-close-circle"><X size="20" /></button>
+      </header>
+
+      <div v-if="gameState === 'rules'" class="flex-1 flex flex-col items-center justify-between p-6 bg-slate-50 relative animate-fade-in">
+        <button @click="emit('close')" class="absolute top-4 right-4 bg-slate-200/50 w-10 h-10 rounded-full flex items-center justify-center text-slate-600 active:scale-75 transition-all z-50">
+          <X size="24" stroke-width="3" />
+        </button>
+
+        <div class="w-24 h-24 bg-indigo-100 rounded-full flex items-center justify-center mt-8 animate-bounce shadow-inner">
+          <Scale size="50" class="text-indigo-600" />
+        </div>
+        <h1 class="game-title text-4xl italic uppercase font-black text-indigo-900">Scale Master</h1>
         
-        <div class="relative w-48 flex flex-col items-center origin-top" :style="{ transform: `rotate(${-currentRotation}deg)` }">
-          <div class="relative z-30 -mb-4 flex items-center justify-center">
-            <img :src="weightImage" class="w-24 drop-shadow-md" />
-            <div v-if="!isGoldMode" class="absolute w-12 h-12 bg-white rounded-full border-2 border-slate-300 shadow-inner"></div>
-            <span class="absolute inset-0 flex items-center justify-center font-black text-3xl text-slate-900 z-40">
-              {{ targetWeight }}
-            </span>
+        <div class="rules-panel-large shadow-2xl">
+          <div class="rules-badge">MANUAL DEL EQUILIBRIO</div>
+          <div class="rules-grid-content">
+            <div class="rule-row"><CheckCircle2 class="text-green-500" size="24" /><p class="text-sm font-bold">Iguala el peso objetivo colocando pesas en el plato derecho.</p></div>
+            <div class="rule-row"><AlertCircle class="text-indigo-500" size="24" /><p class="text-sm font-bold">Si te pasas del peso, toca una pesa en el plato para eliminarla.</p></div>
+            <div class="rule-row"><Coins class="text-amber-500" size="24" /><p class="text-sm font-bold">Niveles 7 al 10 activan el **Modo Oro** con mejores premios.</p></div>
           </div>
-          <img :src="getAssetUrl('scale-plate.png')" class="w-full z-10" />
         </div>
-
-        <div class="relative w-48 flex flex-col items-center origin-top plate-target-area" :style="{ transform: `rotate(${-currentRotation}deg)` }">
-          <div class="absolute bottom-10 w-full flex flex-wrap-reverse justify-center gap-2 p-2 z-30 pointer-events-auto">
-             <button v-for="w in rightWeights" :key="w.id" @click.stop="triggerRemove(w.id, $event)"
-                     :class="{ 'filter-red': w.isRemoving }" class="relative hover:scale-110 active:scale-90 transition-all cursor-pointer flex items-center justify-center">
-                <img :src="weightImage" class="w-14 drop-shadow-sm" />
-                <div v-if="!isGoldMode" class="absolute w-7 h-7 bg-white rounded-full border border-slate-200"></div>
-                <span class="absolute inset-0 flex items-center justify-center font-black text-slate-900 text-[10px] z-40">{{ w.value }}</span>
-             </button>
-          </div>
-          <img :src="getAssetUrl('scale-plate.png')" class="w-full z-10" />
-        </div>
-      </div>
-    </div>
-
-    <div class="w-full max-w-lg bg-white/60 backdrop-blur-xl p-10 rounded-t-[50px] border-t-4 border-white shadow-2xl z-[220]">
-      <div class="flex justify-around items-center">
-        <button v-for="w in inventory" :key="w" @click="addWeight(w, $event)" class="relative active:scale-50 transition-all flex items-center justify-center hover:scale-110">
-          <img :src="weightImage" class="w-16 drop-shadow-xl" />
-          <div v-if="!isGoldMode" class="absolute w-9 h-9 bg-white rounded-full border border-slate-200"></div>
-          <span class="absolute inset-0 flex items-center justify-center font-black text-slate-800 text-xl z-40">{{ w }}</span>
+        
+        <button @click="startGame" class="btn-action-primary group">
+          <span class="flex items-center">
+            ¡AL SUPERMERCADO! <PlayCircle class="ml-3 group-hover:rotate-12 transition-transform" size="28" />
+          </span>
         </button>
       </div>
-    </div>
 
-    <div v-if="isVictory && !showFinalCelebration" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[400] pointer-events-none">
-        <div class="bg-green-500 text-white px-10 py-4 rounded-3xl font-black text-4xl shadow-2xl animate-bounce-in uppercase italic">¡LOGRADO!</div>
-    </div>
+      <div v-else-if="gameState === 'playing'" class="game-content flex-1 flex flex-col items-center p-2 relative">
+        <div class="w-full flex flex-col items-center z-[250] py-4 bg-white/40 backdrop-blur-sm border-b border-slate-200">
+          <svg width="200" height="34" viewBox="0 0 200 34" class="drop-shadow-md">
+            <rect x="2" y="2" width="196" height="30" rx="15" fill="white" fill-opacity="0.2" stroke="black" stroke-width="2" />
+            <ellipse :cx="100 + bubbleX" cy="17" rx="9" ry="9" fill="#22c55e" stroke="white" stroke-width="2" class="bubble-glow" />
+            <line x1="100" y1="5" x2="100" y2="29" stroke="black" stroke-width="1.5" stroke-dasharray="3 2" opacity="0.3" />
+          </svg>
+          <div class="mt-2 px-6 py-1 rounded-full border-2 border-white shadow-md transition-all duration-300"
+               :class="weightOffset === 0 ? 'bg-green-500 text-white scale-110 font-black' : (weightOffset < 0 ? 'bg-indigo-600 text-white' : 'bg-amber-500 text-white')">
+            <span class="font-black text-xs uppercase italic tracking-widest">
+              {{ weightOffset === 0 ? 'EQUILIBRIO LOGRADO' : (weightOffset < 0 ? 'Faltan ' + Math.abs(weightOffset) : 'Sobran +' + weightOffset) }}
+            </span>
+          </div>
+        </div>
 
-    <div v-if="showFinalCelebration" class="absolute inset-0 z-[700] bg-indigo-900/90 backdrop-blur-xl flex items-center justify-center p-6 animate-in">
-      <button @click="resetGame" class="absolute top-8 right-8 bg-white/20 hover:bg-white/40 w-12 h-12 rounded-full flex items-center justify-center text-white border-2 border-white/50 z-[710] transition-all">
-        <CloseIcon :size="28" stroke-width="3" />
-      </button>
-      <div class="bg-white rounded-[60px] p-16 flex flex-col items-center shadow-2xl border-8 border-amber-400 text-center relative">
-        <div class="bg-amber-100 p-8 rounded-full mb-8 shadow-inner"><Coins class="text-amber-600" :size="100" /></div>
-        <h2 class="text-5xl font-black text-slate-800 mb-4 uppercase leading-none">¡MAESTRO DE LA BALANZA!</h2>
-        <p class="text-slate-500 font-bold mb-12 text-xl italic px-4">Has completado los 10 desafíos con éxito.</p>
-        <button @click="emit('close')" class="bg-amber-500 text-white px-20 py-6 rounded-full font-black text-2xl uppercase shadow-[0_10px_0_rgb(180,130,0)] active:translate-y-2 active:shadow-none transition-all">FINALIZAR</button>
+        <div class="relative w-full flex-1 flex flex-col items-center justify-center -mt-4">
+          <img :src="getAssetUrl('scale-base.png')" class="absolute w-[260px] bottom-28 z-[10] pointer-events-none opacity-80" />
+          <div class="relative w-full flex justify-between items-end transition-transform duration-100 px-4" :style="{ transform: `rotate(${currentRotation}deg)` }">
+            <div class="relative w-36 flex flex-col items-center origin-top z-[20]" :style="{ transform: `rotate(${-currentRotation}deg)` }">
+              <div class="relative z-[100] -mb-4 flex items-center justify-center scale-110">
+                <img :src="weightImage" class="w-16 drop-shadow-md" />
+                <span class="absolute inset-0 flex items-center justify-center font-black text-2xl text-slate-900 italic">{{ targetWeight }}</span>
+              </div>
+              <img :src="getAssetUrl('scale-plate.png')" class="w-full z-[15]" />
+            </div>
+            <div class="relative w-36 flex flex-col items-center origin-top plate-target-area z-[20]" :style="{ transform: `rotate(${-currentRotation}deg)` }">
+              <img :src="getAssetUrl('scale-plate.png')" class="absolute bottom-0 w-full z-[15]" />
+              <div class="absolute bottom-10 w-full flex flex-wrap-reverse justify-center gap-0.5 p-1 z-[400]">
+                 <button v-for="w in rightWeights" :key="w.id" @click.stop="triggerRemove(w.id, $event)"
+                         class="relative weight-on-plate hover:scale-110 active:scale-90 transition-all flex items-center justify-center cursor-pointer z-[410]">
+                    <img :src="weightImage" class="w-10 drop-shadow-sm" />
+                    <span class="absolute inset-0 flex items-center justify-center font-black text-slate-950 text-[10px] z-[420] pointer-events-none">{{ w.value }}</span>
+                 </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="w-full bg-white/90 backdrop-blur-md p-6 rounded-t-[40px] border-t-4 border-slate-100 shadow-2xl flex justify-around items-center z-[500]">
+          <button v-for="w in inventory" :key="w" @click="addWeight(w, $event)" class="relative active:scale-75 transition-all flex items-center justify-center hover:scale-110">
+            <img :src="weightImage" class="w-14 drop-shadow-lg" />
+            <span class="absolute inset-0 flex items-center justify-center font-black text-slate-800 text-lg z-40">{{ w }}</span>
+          </button>
+        </div>
       </div>
-    </div>
+
+      <div v-else class="flex-1 flex flex-col items-center justify-center p-6 bg-indigo-950 text-center font-inter uppercase">
+          <div class="bg-white/10 p-8 rounded-[60px] border-4 border-amber-400 backdrop-blur-sm flex flex-col items-center w-full max-w-sm animate-fade-in">
+            <div class="w-24 h-24 bg-amber-400 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl shadow-amber-500/20"><Trophy size="50" class="text-indigo-950" /></div>
+            <h2 class="text-3xl font-black text-white mb-4 italic tracking-tight">¡ESCALA DOMINADA!</h2>
+            <div class="prize-card-large w-full bg-white/10 rounded-3xl p-6 mb-8 text-center border border-white/20">
+              <p class="text-[10px] text-white/70 uppercase font-bold tracking-widest mb-3">Tu Botín</p>
+              <div class="flex justify-around items-center">
+                  <div class="flex flex-col items-center"><img src="/images/coin-silver.png" class="w-10 h-10" /><span class="text-xl font-black text-white">+{{ sessionCoins.silver }}</span></div>
+                  <div class="flex flex-col items-center"><img src="/images/coin-copper.png" class="w-10 h-10" /><span class="text-xl font-black text-white">+{{ sessionCoins.copper }}</span></div>
+              </div>
+            </div>
+            <div class="w-full flex flex-col gap-3">
+              <button @click="emit('close')" class="btn-action-finish">SALIR AL PORTAL</button>
+              <button @click="startGame" class="w-full bg-white/10 text-white py-4 rounded-3xl font-black text-lg border-2 border-white/20 active:translate-y-1">VOLVER A JUGAR</button>
+            </div>
+          </div>
+      </div>
+    </main>
   </div>
 </template>
 
 <style scoped>
-.filter-red { filter: brightness(0.4) sepia(1) hue-rotate(-50deg) saturate(10); pointer-events: none; }
-.plate-target-area { min-height: 180px; }
-.animate-bounce-in { animation: bounceIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
-@keyframes bounceIn { from { opacity: 0; transform: scale(0.5); } to { opacity: 1; transform: scale(1.1); } }
-.animate-in { animation: fadeIn 0.5s ease-out forwards; }
-@keyframes fadeIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
-.origin-top { transition: transform 0.1s linear; }
+.master-container { position: fixed; inset: 0; z-index: 9999; display: flex; justify-content: center; align-items: center; background-color: #ffffff; overflow: hidden; }
+.app-canvas { display: flex; flex-direction: column; position: relative; overflow: hidden; background-color: #f8fafc; transition: all 0.4s; width: 100vw; height: 100dvh; }
+@media (min-width: 1025px) { .app-canvas { width: 1024px; height: 90dvh; border-radius: 45px; box-shadow: 0 40px 100px rgba(0,0,0,0.2); border: 8px solid white; } }
+
+.header-standard { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1.25rem; background: white; border-bottom: 2px solid #f1f5f9; }
+.session-loot-capsule { display: flex; align-items: center; background: white; padding: 6px 14px; border-radius: 9999px; border: 2px solid #f1f5f9; }
+.loot-item { display: flex; align-items: center; gap: 4px; padding: 0 8px; font-weight: 900; }
+.loot-item img { width: 1.1rem; height: 1.1rem; object-fit: contain; }
+.btn-close-circle { background: #fee2e2; color: #ef4444; width: 36px; height: 36px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; }
+
+.rules-panel-large { width: 95%; background: white; padding: 2.2rem 1.5rem; border-radius: 2.5rem; border: 2px solid #e2e8f0; position: relative; }
+.rules-badge { position: absolute; top: -12px; left: 1.5rem; background: #4f46e5; color: white; font-size: 10px; font-weight: 900; padding: 4px 12px; border-radius: 9999px; }
+.rule-row { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.4rem; text-align: left; }
+
+/* BOTÓN REDISEÑADO CON RELIEVE 3D */
+.btn-action-primary {
+  background: linear-gradient(to bottom, #22c55e, #16a34a);
+  color: white;
+  padding: 1.4rem 2.8rem;
+  border-radius: 2.5rem;
+  font-weight: 900;
+  font-size: 1.5rem;
+  font-style: italic;
+  border: none;
+  border-bottom: 12px solid #15803d; /* Relieve físico */
+  box-shadow: 0 12px 25px rgba(22, 163, 74, 0.4);
+  transition: all 0.1s;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 90%;
+  max-width: 450px;
+  margin-bottom: 2rem;
+}
+
+.btn-action-primary:active {
+  transform: translateY(8px); /* El botón se hunde */
+  border-bottom: 4px solid #15803d; /* Se comprime la base */
+  box-shadow: 0 4px 10px rgba(22, 163, 74, 0.3);
+}
+
+.btn-action-finish { background: #f59e0b; color: white; width: 100%; padding: 1.2rem; border-radius: 1.5rem; font-weight: 900; font-size: 22px; border: none; border-bottom: 8px solid #b45309; transition: transform 0.1s; }
+.btn-action-finish:active { transform: translateY(4px); border-bottom: 2px solid #b45309; }
+
+.bubble-glow { filter: drop-shadow(0 0 6px rgba(34, 197, 94, 0.6)); }
+.filter-red img { filter: brightness(0.5) sepia(1) hue-rotate(-50deg) saturate(15) !important; transform: scale(1.1); }
+.weight-on-plate { transform-origin: center; }
+.game-title { font-weight: 900; color: #312e81; text-transform: uppercase; font-style: italic; letter-spacing: -0.05em; }
+
+.animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 </style>

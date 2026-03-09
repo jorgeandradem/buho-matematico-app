@@ -1,5 +1,12 @@
+/** * ARCHIVO: firebaseConfig.js
+ * NOTA INTERNA: CONFIGURACIÓN MAESTRA v2.9.2 + MULTI-TAB SYNC
+ * LOGICA: Persistencia Offline Avanzada + Blindaje Multi-dispositivo
+ */
 import { initializeApp } from "firebase/app";
-import { getFirestore, enableIndexedDbPersistence } from "firebase/firestore";
+import { 
+  getFirestore, 
+  enableMultiTabIndexedDbPersistence // 🚀 MEJORA: Soporte para múltiples pestañas/ventanas
+} from "firebase/firestore";
 import { getAuth, setPersistence, browserLocalPersistence } from "firebase/auth";
 
 const firebaseConfig = {
@@ -17,31 +24,32 @@ const app = initializeApp(firebaseConfig);
 // 2. Inicializamos la Base de Datos
 export const db = getFirestore(app);
 
-// --- 🛡️ ACTIVACIÓN DEL MODO TANQUE (PERSISTENCIA OFFLINE) ---
-// Esto permite que el Búho guarde datos aunque no haya internet
-enableIndexedDbPersistence(db).catch((err) => {
+// --- 🛡️ ACTIVACIÓN DEL MODO TANQUE PRO (MULTI-TAB PERSISTENCE) ---
+// Esto permite que el Búho mantenga la sincronización perfecta 
+// incluso si el alumno abre varias ventanas del juego.
+enableMultiTabIndexedDbPersistence(db).catch((err) => {
     if (err.code == 'failed-precondition') {
-        // Probablemente hay múltiples pestañas abiertas al mismo tiempo
-        console.warn("La persistencia falló: Múltiples pestañas de la App abiertas.");
+        // Este error es raro en modo multi-tab, pero se mantiene por seguridad.
+        console.warn("⚠️ Persistencia: Conflicto de precondición (Base de datos bloqueada)");
     } else if (err.code == 'unimplemented') {
-        // El navegador es muy antiguo y no soporta esta función
-        console.warn("El navegador no soporta persistencia offline (IndexedDB).");
+        // Navegadores muy antiguos que no soportan IndexedDB
+        console.warn("⚠️ Persistencia: El navegador no soporta guardado offline.");
     }
 });
 
 // 3. Configuración Avanzada de Autenticación
 export const auth = getAuth(app);
 
-// --- CONFIGURACIÓN DEL GATILLO DE CORREO Y SESIÓN ---
+// --- CONFIGURACIÓN DE SESIÓN ETERNA ---
 
 // A. Idioma: Obligamos a Firebase a enviar los correos en Español
 auth.useDeviceLanguage(); 
 
-// B. Persistencia: Esto hace que la sesión sea "Eterna" (3 días o más)
+// B. Persistencia LOCAL: Mantiene la sesión iniciada aunque se cierre el navegador.
 setPersistence(auth, browserLocalPersistence)
   .then(() => {
-    console.log("🔒 Persistencia de sesión configurada: LOCAL");
+    console.log("🔒 Banco Central: Sesión Blindada en LocalStorage");
   })
   .catch((error) => {
-    console.error("Error en persistencia:", error);
+    console.error("❌ Error en persistencia de Auth:", error);
   });

@@ -1,6 +1,10 @@
 <script setup>
-import { ref, onMounted } from 'vue';
-import { X as CloseIcon, RefreshCw, Trophy, Coins, Sparkles } from 'lucide-vue-next';
+/** * ARCHIVO: QuickFly.vue
+ * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.2 + REGLAS DIDÁCTICAS
+ * LOGICA: Desafío de cálculo mental rápido + Navegación Blindada
+ */
+import { ref, onMounted, computed } from 'vue';
+import { X as CloseIcon, Trophy, Coins, Sparkles, MousePointer2, PlayCircle, BookOpen } from 'lucide-vue-next';
 import CoinRain from './CoinRain.vue';
 import { useGamificationStore } from '../stores/useGamificationStore';
 import { speak } from '../utils/voice';
@@ -13,34 +17,70 @@ const props = defineProps({
 const emit = defineEmits(['back', 'close']); 
 const gamificationStore = useGamificationStore();
 
+// --- 1. ESTADO DEL JUEGO ---
+const gameState = ref('rules'); // 'rules' | 'playing' | 'finished'
 const QUESTIONS_COUNT = 10; 
 
 const currentQuestionIndex = ref(0);
 const score = ref(0);
 const showCoinRain = ref(false);
-const isFinished = ref(false);
 const currentQuestion = ref(null);
 const options = ref([]);
 const feedbackMessage = ref('');
 const feedbackColor = ref('');
 
-// Nuevo estado para rastrear la operación actual del reto mixto
+const sessionCoins = ref({ gold: 0, silver: 0, copper: 0 });
 const activeOp = ref('add');
+const isAudioUnlocked = ref(false);
 
-// Determina qué moneda entregar según la operación
-const getCurrencyType = (op) => {
-  if (op === 'add') return 'copper'; // Sumar = Cobre
-  if (op === 'sub') return 'silver'; // Restar = Plata
-  return 'gold'; // Multiplicar/Dividir = Oro
+// --- 2. LÓGICA DE NAVEGACIÓN QUIRÚRGICA ---
+const startGame = () => {
+    gameState.value = 'playing';
+    resetGame();
 };
+
+const closeQuickFly = () => {
+    if (gameState.value === 'rules') {
+        emit('close');
+    } else {
+        gameState.value = 'rules';
+    }
+};
+
+// --- 3. MOTOR DEL JUEGO ---
+const speakLoud = (text) => {
+    if (!('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel(); 
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.volume = 1.0; 
+    utterance.rate = 1.2;
+    utterance.lang = 'es-ES';
+    window.speechSynthesis.speak(utterance);
+};
+
+const unlockAudio = () => {
+    if (isAudioUnlocked.value) return;
+    speakLoud(""); 
+    isAudioUnlocked.value = true;
+};
+
+const getCurrencyType = (op) => {
+  if (op === 'add') return 'copper';
+  if (op === 'sub') return 'silver';
+  return 'gold';
+};
+
+const opColorClass = computed(() => {
+  if (activeOp.value === 'add') return 'text-blue-600 border-blue-200 bg-blue-50';
+  if (activeOp.value === 'sub') return 'text-red-600 border-red-200 bg-red-50';
+  if (activeOp.value === 'mult') return 'text-green-600 border-green-200 bg-green-50';
+  return 'text-yellow-600 border-yellow-200 bg-yellow-50';
+});
 
 const generateQuestion = () => {
     let num1, num2, answer, symbol;
-    
-    // Lógica de Reto Mixto: Selecciona operación al azar (Todas las tablas)
     const ops = ['add', 'sub', 'mult', 'div'];
     activeOp.value = ops[Math.floor(Math.random() * ops.length)];
-    
     const table = props.tableNumber === 'random' ? Math.floor(Math.random() * 9) + 2 : parseInt(props.tableNumber);
     
     if (activeOp.value === 'add') {
@@ -63,16 +103,17 @@ const generateQuestion = () => {
 };
 
 const selectOption = async (selected) => {
-    if (isFinished.value) return;
+    if (gameState.value !== 'playing') return;
+    unlockAudio(); 
 
     if (selected === currentQuestion.value.answer) {
         score.value++;
         feedbackMessage.value = "¡Bien!";
         feedbackColor.value = "text-green-500";
-        
-        // Asignación de moneda dinámica por operación
-        await gamificationStore.addCoins(getCurrencyType(activeOp.value), 1);
-        
+        speakLoud("¡Bien!");
+
+        const type = getCurrencyType(activeOp.value);
+        sessionCoins.value[type]++;
         if (currentQuestionIndex.value < QUESTIONS_COUNT - 1) {
             currentQuestionIndex.value++;
             setTimeout(() => { feedbackMessage.value = ""; generateQuestion(); }, 500);
@@ -82,121 +123,192 @@ const selectOption = async (selected) => {
     } else {
         feedbackMessage.value = "¡Ups!";
         feedbackColor.value = "text-red-500";
-        if (navigator.vibrate) navigator.vibrate(200);
+        speakLoud("Ups");
         setTimeout(() => feedbackMessage.value = "", 800);
     }
 };
 
 const finishGame = async () => {
-    isFinished.value = true;
+    gameState.value = 'finished';
     showCoinRain.value = true;
-    // Bono final en la moneda de la última operación resuelta
-    await gamificationStore.addCoins(getCurrencyType(activeOp.value), 5);
-    speak(`¡Excelente velocidad! Desafío terminado.`);
+    const bonusType = getCurrencyType(activeOp.value);
+    sessionCoins.value[bonusType] += 5;
+
+    if (sessionCoins.value.gold > 0) await gamificationStore.addCoins('gold', sessionCoins.value.gold);
+    if (sessionCoins.value.silver > 0) await gamificationStore.addCoins('silver', sessionCoins.value.silver);
+    if (sessionCoins.value.copper > 0) await gamificationStore.addCoins('copper', sessionCoins.value.copper);
+    
+    speakLoud(`¡Reto completado!`);
 };
 
 const resetGame = () => {
-    isFinished.value = false;
     currentQuestionIndex.value = 0;
     score.value = 0;
     showCoinRain.value = false;
+    sessionCoins.value = { gold: 0, silver: 0, copper: 0 }; 
     generateQuestion();
 };
 
-const handleBack = () => {
-  emit('back');
-  emit('close');
-};
-
-onMounted(() => {
-    generateQuestion();
-    speak("¡Iniciando Reto Mixto!");
-});
+onMounted(() => { if (gameState.value === 'playing') generateQuestion(); });
 </script>
 
 <template>
-  <div class="h-[100dvh] w-full bg-white flex justify-center overflow-hidden font-sans select-none text-slate-900">
-    <div class="w-full max-w-[500px] h-full flex flex-col bg-slate-50 relative shadow-2xl border-x border-slate-100 overflow-hidden mx-auto animate-fade-in">
-    
-        <div v-if="showCoinRain" class="z-[400]">
-            <CoinRain :type="getCurrencyType(activeOp)" :count="40" />
-        </div>
+  <div class="master-container font-inter">
+    <main class="app-canvas !bg-white shadow-smartphone">
+      
+      <div v-if="showCoinRain" class="absolute inset-0 z-[400] pointer-events-none">
+          <CoinRain :type="getCurrencyType(activeOp)" :count="40" />
+      </div>
 
-        <header class="w-full flex items-center justify-between px-4 py-3 shrink-0 bg-white border-b border-slate-100 z-10 transition-colors duration-300">
-            <div class="flex items-center gap-4">
-                <div class="flex flex-col text-left">
-                    <span class="text-[10px] font-bold text-indigo-400 uppercase tracking-widest leading-none">Reto Mixto</span>
-                    <span class="text-lg font-black text-indigo-900 leading-none mt-0.5">{{ currentQuestionIndex + 1 }} / {{ QUESTIONS_COUNT }}</span>
-                </div>
-                
-                <div class="flex items-center gap-2 bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-100">
-                    <Trophy class="w-4 h-4 text-yellow-500" />
-                    <span class="font-mono font-bold text-lg text-indigo-900">{{ score }}</span>
-                </div>
-            </div>
+      <header v-if="gameState !== 'rules'" class="header-fly shrink-0">
+          <div class="flex items-center gap-2 bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-100">
+              <Trophy size="18" class="text-yellow-500" />
+              <span class="font-black text-sm text-indigo-900">{{ currentQuestionIndex + 1 }}/10</span>
+          </div>
 
-            <button @click="handleBack" 
-                    class="bg-slate-100/50 hover:bg-slate-200/70 border border-slate-200 text-slate-500 p-2 rounded-full transition-all active:scale-90 shadow-sm">
-                <CloseIcon :size="22" />
-            </button>
-        </header>
+          <div class="session-loot-capsule">
+              <div class="coin-stat"><img src="/images/coin-gold.png" /><span>{{ sessionCoins.gold }}</span></div>
+              <div class="coin-stat border-x border-slate-100"><img src="/images/coin-silver.png" /><span>{{ sessionCoins.silver }}</span></div>
+              <div class="coin-stat"><img src="/images/coin-copper.png" /><span>{{ sessionCoins.copper }}</span></div>
+          </div>
 
-        <main class="flex-1 flex flex-col items-center justify-start p-6 relative bg-white pt-6">
-            
-            <div v-if="!isFinished" class="w-full flex flex-col items-center gap-2 animate-fade-in">
-                
-                <div class="flex items-center justify-center gap-4 text-5xl font-black text-slate-700 drop-shadow-sm py-2 animate-bounce-short">
-                    <span>{{ currentQuestion?.num1 }}</span>
-                    <span :class="`${activeOp === 'add' ? 'text-blue-500' : activeOp === 'sub' ? 'text-red-500' : activeOp === 'mult' ? 'text-green-500' : 'text-yellow-500'}`">
-                        {{ currentQuestion?.symbol }}
-                    </span>
-                    <span>{{ currentQuestion?.num2 }}</span>
-                </div>
+          <button @click="closeQuickFly" class="btn-close-fly">
+              <CloseIcon :size="20" />
+          </button>
+      </header>
 
-                <div class="h-8 flex items-center justify-center">
-                    <span v-if="feedbackMessage" :class="`text-xl font-black ${feedbackColor} animate-ping-once uppercase italic`">
-                        {{ feedbackMessage }}
-                    </span>
-                </div>
+      <div class="game-content flex-1 flex flex-col items-center justify-between py-4 overflow-hidden relative">
+          
+          <div v-if="gameState === 'rules'" class="flex-1 flex flex-col items-center justify-between p-6 w-full animate-fade-in z-50">
+              <button @click="closeQuickFly" class="absolute top-4 right-4 bg-slate-100 w-10 h-10 rounded-full flex items-center justify-center text-slate-600 active:scale-75 transition-all">
+                  <CloseIcon size="24" stroke-width="3" />
+              </button>
 
-                <div class="grid grid-cols-1 gap-2.5 w-full max-w-[300px]">
-                    <button v-for="opt in options" :key="opt" @click="selectOption(opt)"
-                        class="bg-white border-b-4 border-slate-200 hover:border-blue-400 active:translate-y-1 active:border-b-0 text-slate-700 text-4xl font-black py-4 rounded-2xl shadow-md transition-all flex justify-center items-center">
-                        {{ opt }}
-                    </button>
-                </div>
+              <div class="flex flex-col items-center mt-6">
+                  <Sparkles size="60" class="text-indigo-600 animate-bounce mb-2" />
+                  <h1 class="game-title text-3xl">TABLAS RÁPIDAS</h1>
+              </div>
 
-                <div class="mt-6 text-center px-4 w-full">
-                    <div class="flex items-center justify-center gap-1.5 mb-1">
-                        <Sparkles size="14" class="text-indigo-500" />
-                        <span class="text-[11px] font-black text-indigo-800 uppercase tracking-widest">REGLAS DEL DESAFÍO</span>
-                    </div>
-                    <p class="text-[11px] font-bold text-slate-600 leading-tight uppercase">
-                        Suma = <span class="text-orange-600">Cobre</span> | Resta = <span class="text-slate-500">Plata</span> | Mult/Div = <span class="text-amber-500">Oro</span>
-                    </p>
-                </div>
-            </div>
+              <div class="rules-panel-fly shadow-xl w-full">
+                  <div class="rules-badge">MANUAL DEL PILOTO</div>
+                  <div class="flex flex-col gap-5 p-2">
+                      <div class="flex gap-4 items-start">
+                          <div class="bg-indigo-100 p-2 rounded-xl"><BookOpen class="text-indigo-600" size="20" /></div>
+                          <p class="text-sm font-bold text-slate-600">Observa la operación que aparece en la pantalla central.</p>
+                      </div>
+                      <div class="flex gap-4 items-start">
+                          <div class="bg-green-100 p-2 rounded-xl"><MousePointer2 class="text-green-600" size="20" /></div>
+                          <p class="text-sm font-bold text-slate-600">Elige la respuesta correcta entre las opciones lo más rápido posible.</p>
+                      </div>
+                      <div class="flex gap-4 items-start">
+                          <div class="bg-amber-100 p-2 rounded-xl"><Coins class="text-amber-600" size="20" /></div>
+                          <p class="text-sm font-bold text-slate-600">¡Suma: 🥉 | Resta: 🥈 | Mult/Div: 🥇! Gana un **Bono de +5** al terminar.</p>
+                      </div>
+                  </div>
+              </div>
 
-            <div v-else class="flex flex-col items-center gap-6 animate-fade-in text-center p-8 bg-white rounded-[3rem] shadow-2xl w-[90%] border-4 border-orange-100 my-auto">
-                <h2 class="text-4xl font-black text-slate-800 uppercase tracking-tighter italic">¡Felicidades!</h2>
-                <div class="bg-gradient-to-br from-orange-100 to-orange-50 p-8 rounded-full border-4 border-orange-200 shadow-inner">
-                    <Coins class="w-16 h-16 text-orange-600" />
-                </div>
-                <p class="text-5xl font-black text-slate-800 italic uppercase">{{ score + 5 }} Cobres</p>
-                <div class="flex flex-col gap-3 w-full mt-4">
-                    <button @click="resetGame" class="w-full py-5 bg-blue-600 text-white font-black rounded-2xl shadow-lg active:translate-y-1 transition-all uppercase text-sm tracking-widest">OTRA CARRERA</button>
-                    <button @click="handleBack" class="w-full py-4 bg-slate-100 text-slate-500 font-black rounded-2xl hover:bg-slate-200 uppercase text-xs">SALIR</button>
-                </div>
-            </div>
-        </main>
-    </div>
+              <button @click="startGame" class="btn-action-primary w-full py-5 text-xl uppercase italic shadow-[0_6px_0_rgb(30,58,138)]">
+                  ¡INICIAR VUELO! <PlayCircle class="ml-2" />
+              </button>
+          </div>
+
+          <template v-else-if="gameState === 'playing'">
+              <h1 class="title-fly shrink-0">Vuelo en Curso</h1>
+
+              <div class="question-container-fly">
+                  <div :class="['op-box-fly shadow-lg', opColorClass]">
+                      <span>{{ currentQuestion?.num1 }}</span>
+                      <span class="text-3xl opacity-50">{{ currentQuestion?.symbol }}</span>
+                      <span>{{ currentQuestion?.num2 }}</span>
+                  </div>
+
+                  <div class="feedback-area">
+                      <span v-if="feedbackMessage" :class="[feedbackColor, 'feedback-text animate-ping-once']">
+                          {{ feedbackMessage }}
+                      </span>
+                  </div>
+
+                  <div class="grid grid-cols-1 gap-3 w-full px-8">
+                      <button v-for="opt in options" :key="opt" @click="selectOption(opt)" class="btn-option-fly shadow-md active:shadow-none">
+                          {{ opt }}
+                      </button>
+                  </div>
+              </div>
+              <div class="h-10"></div>
+          </template>
+
+          <div v-else class="flex-1 flex flex-col items-center justify-center p-6 bg-slate-50 w-full animate-fade-in uppercase">
+              <Trophy class="w-20 h-20 text-yellow-500 mb-4 drop-shadow-2xl animate-bounce" />
+              <h2 class="victory-title">¡Misión Cumplida!</h2>
+              
+              <div class="prize-card-fly">
+                  <div class="flex justify-around items-center w-full">
+                      <div class="loot-item-final"><img src="/images/coin-gold.png" /><span>+{{ sessionCoins.gold }}</span></div>
+                      <div class="loot-item-final border-x border-slate-200 px-6"><img src="/images/coin-silver.png" /><span>+{{ sessionCoins.silver }}</span></div>
+                      <div class="loot-item-final"><img src="/images/coin-copper.png" /><span>+{{ sessionCoins.copper }}</span></div>
+                  </div>
+              </div>
+
+              <div class="flex flex-col gap-4 w-full max-w-[280px]">
+                  <button @click="startGame" class="btn-victory-primary py-4 uppercase font-black tracking-widest italic">OTRA CARRERA</button>
+                  <button @click="emit('close')" class="btn-victory-secondary py-4 uppercase font-bold text-xs tracking-widest">SALIR AL PORTAL</button>
+              </div>
+          </div>
+
+      </div>
+    </main>
   </div>
 </template>
 
 <style scoped>
-.animate-bounce-short { animation: bounceShort 0.6s ease-in-out infinite alternate; }
-@keyframes bounceShort { from { transform: translateY(0); } to { transform: translateY(-8px); } }
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400&family=Inter:wght@400;700;900&display=swap');
+
+.master-container { position: fixed; inset: 0; z-index: 9999; display: flex; justify-content: center; align-items: center; background-color: #ffffff; overflow: hidden; touch-action: none !important; font-family: 'Inter', sans-serif !important; }
+.app-canvas { display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); user-select: none; width: 100vw; height: 100dvh; }
+
+@media (min-width: 1025px) { .app-canvas { width: 1024px; height: 90dvh; border-radius: 45px; border: 8px solid white; box-shadow: 0 40px 100px rgba(0,0,0,0.2); } }
+@media (min-width: 600px) and (max-width: 1024px) { .app-canvas { width: 85vw; height: 95dvh; border-radius: 35px; } }
+
+.header-fly { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1.25rem; background: white; border-bottom: 2px solid #f1f5f9; z-index: 50; }
+
+.session-loot-capsule {
+    display: flex; align-items: center; background: white; padding: 6px 16px;
+    border-radius: 9999px; border: 2px solid #f1f5f9; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.coin-stat { display: flex; align-items: center; gap: 0.4rem; padding: 0 8px; }
+.coin-stat img { width: 1.2rem; height: 1.2rem; object-fit: contain; }
+.coin-stat span { font-weight: 900; font-size: 0.85rem; color: #1e293b; }
+
+.btn-close-fly { background: #fee2e2; color: #ef4444; width: 36px; height: 36px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; }
+
+.title-fly { font-size: 1.5rem; font-weight: 900; color: #312e81; text-transform: uppercase; font-style: italic; margin-bottom: 0.5rem; }
+
+.question-container-fly { width: 100%; max-width: 400px; display: flex; flex-direction: column; align-items: center; }
+.op-box-fly { display: flex; align-items: center; justify-content: center; gap: 1rem; width: 90%; padding: 1.5rem; border-radius: 2.5rem; border-width: 6px; font-size: 4rem; font-weight: 900; }
+
+.btn-option-fly { width: 100%; background: white; border-bottom: 6px solid #e2e8f0; font-size: 3rem; font-weight: 900; padding: 0.75rem; border-radius: 2rem; transition: transform 0.1s; color: #1e293b; }
+.btn-option-fly:active { transform: translateY(4px); border-bottom-width: 2px; }
+
+.rules-panel-fly { width: 92%; max-width: 400px; background: white; padding: 1.5rem; border-radius: 2rem; border: 2px solid #e2e8f0; position: relative; }
+.rules-badge { position: absolute; top: -12px; left: 1.5rem; background: #4f46e5; color: white; font-size: 10px; font-weight: 900; padding: 4px 12px; border-radius: 9999px; }
+
+.btn-action-primary { background: #4f46e5; color: white; border-radius: 2rem; font-weight: 900; transition: all 0.1s; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.btn-action-primary:active { transform: translateY(5px); }
+
+.victory-title { font-size: 2.5rem; font-weight: 900; color: #312e81; font-style: italic; line-height: 1; margin-bottom: 1.5rem; text-align: center; }
+.prize-card-fly { background: white; border: 4px solid #f1f5f9; border-radius: 3rem; padding: 2rem; width: 100%; max-width: 320px; margin-bottom: 2rem; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+.loot-item-final { display: flex; flex-direction: column; align-items: center; }
+.loot-item-final img { width: 2.5rem; height: 2.5rem; margin-bottom: 4px; }
+.loot-item-final span { font-size: 1.5rem; font-weight: 900; color: #1e293b; }
+
+.btn-victory-primary { width: 100%; background: #f59e0b; color: white; font-weight: 900; border-radius: 1.25rem; box-shadow: 0 6px 0 #b45309; }
+.btn-victory-secondary { width: 100%; background: #94a3b8; color: white; border-radius: 1.25rem; }
+
+.game-title { font-weight: 900; color: #312e81; text-transform: uppercase; font-style: italic; letter-spacing: -0.05em; }
 .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
-@keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
-.scrollbar-hide::-webkit-scrollbar { display: none; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+.feedback-area { height: 2rem; margin: 0.5rem 0; }
+.feedback-text { font-size: 1.5rem; font-weight: 900; text-transform: uppercase; }
 </style>
