@@ -1,13 +1,17 @@
 /** * ARCHIVO: useGamificationStore.js
- * NOTA INTERNA: BANCO CENTRAL v2.9.2 - SISTEMA ANTIFRAUDE Y MULTI-DISPOSITIVO
- * LOGICA: Conversión bidireccional (Dar cambio) + Transacciones Atómicas Firebase.
+ * NOTA INTERNA: BANCO CENTRAL v2.9.5 - SISTEMA ANTIFRAUDE + BAJA POR CREDENCIALES (FIX ERROR MSG)
+ * LOGICA: Conversión bidireccional + Transacciones Atómicas + Validación Forzada.
  */
 import { defineStore } from 'pinia';
 import { missionsData } from '../data/missions'; 
 
 // --- IMPORTACIONES FIREBASE ---
 import { auth, db } from '../firebaseConfig';
-import { doc, runTransaction } from "firebase/firestore";
+import { doc, runTransaction, deleteDoc } from "firebase/firestore";
+import { 
+  deleteUser, 
+  signInWithEmailAndPassword 
+} from "firebase/auth";
 
 const STORAGE_KEY = 'buho-matematico-tesoro-v1';
 
@@ -46,10 +50,6 @@ export const useGamificationStore = defineStore('gamification', {
   }),
 
   getters: {
-    /**
-     * RIQUEZA TOTAL: Convierte todo el capital a la unidad mínima (Cobre).
-     * 1 Oro = 10,000 Cobre | 1 Plata = 100 Cobre
-     */
     totalWealthInCopper: (state) => {
       return state.copper + (state.silver * 100) + (state.gold * 10000);
     },
@@ -61,22 +61,18 @@ export const useGamificationStore = defineStore('gamification', {
     setCoinsFromCloud(stats) {
       if (!stats || this.isSyncing) return; 
       
-      // Calculamos lo ganado localmente que aún no se ha subido
       const copperDelta = this.copper - this.lastSyncedCopper;
       const silverDelta = this.silver - this.lastSyncedSilver;
       const goldDelta   = this.gold   - this.lastSyncedGold;
 
-      // Fusionamos: Nube + Ganancias Locales Pendientes
       this.gold = (stats.gold || 0) + goldDelta;
       this.silver = (stats.silver || 0) + silverDelta;
       this.copper = (stats.copper || 0) + (stats.puntos || 0) + copperDelta;
 
-      // Actualizamos marcas de referencia sincronizada
       this.lastSyncedGold = stats.gold || 0;
       this.lastSyncedSilver = stats.silver || 0;
       this.lastSyncedCopper = (stats.copper || 0) + (stats.puntos || 0);
 
-      // Metadatos de progreso
       this.currentStreak = stats.racha || 0;
       this.lastPlayedDate = stats.lastPlayedDate || null;
       this.purchasedItems = stats.purchasedItems || [];
@@ -85,11 +81,10 @@ export const useGamificationStore = defineStore('gamification', {
       this.completedIslands = stats.completedIslands || [];
       this.worldTourLevel = stats.worldTourLevel || 0;
       
-      this.processConversions(); // Balancear tras la carga
+      this.processConversions();
       this.saveToStorage();
     },
 
-    // --- ☁️ SINCRONIZACIÓN ATÓMICA (MULTI-DISPOSITIVO) ---
     async syncAllToCloud() {
         if (this.syncTimeout) clearTimeout(this.syncTimeout);
 
@@ -101,7 +96,6 @@ export const useGamificationStore = defineStore('gamification', {
             try {
                 const userRef = doc(db, "users", user.uid);
                 
-                // Usamos Transacciones para evitar colisiones entre tablets/móviles
                 await runTransaction(db, async (transaction) => {
                     const sfDoc = await transaction.get(userRef);
                     if (!sfDoc.exists()) return;
@@ -133,7 +127,7 @@ export const useGamificationStore = defineStore('gamification', {
         }, 2000);
     },
 
-    // --- 💰 GESTIÓN DE RIQUEZA (ANTIFRAUDE) ---
+    // --- 💰 GESTIÓN DE RIQUEZA ---
 
     addMultipleCoins(rewards) {
       if (!rewards) return;
@@ -174,14 +168,9 @@ export const useGamificationStore = defineStore('gamification', {
       this.syncAllToCloud(); 
     },
 
-    /**
-     * GASTO INTELIGENTE: Si el niño tiene riqueza total suficiente,
-     * el banco "rompe" monedas superiores para pagar (Dar Cambio).
-     */
     async spendCoins(type, amount) {
       const cost = Math.max(0, parseInt(amount) || 0);
       const coinType = (type === 'bronze') ? 'copper' : type;
-
       const costInCopper = (coinType === 'gold') ? cost * 10000 : (coinType === 'silver') ? cost * 100 : cost;
 
       if (this.totalWealthInCopper < costInCopper) {
@@ -190,24 +179,17 @@ export const useGamificationStore = defineStore('gamification', {
       }
 
       this[coinType] -= cost;
-      this.processConversions(); // Aquí se repara el saldo usando monedas superiores
-      
+      this.processConversions(); 
       this.updateMissionProgress('buy_shop', 1); 
       this.saveToStorage();
       this.syncAllToCloud(); 
       return true;
     },
 
-    /**
-     * MOTOR DE CONVERSIÓN BIDIRECCIONAL
-     * 
-     */
     processConversions() {
-      // 1. ASCENSO: 100 Cobre -> 1 Plata | 100 Plata -> 1 Oro
       while (this.copper >= 100) { this.copper -= 100; this.silver += 1; }
       while (this.silver >= 100) { this.silver -= 100; this.gold += 1; }
 
-      // 2. DESCENSO (DAR CAMBIO): Si hay negativos, bajamos una moneda superior
       while (this.silver < 0 && this.gold > 0) {
           this.gold -= 1;
           this.silver += 100;
@@ -217,13 +199,11 @@ export const useGamificationStore = defineStore('gamification', {
           this.copper += 100;
       }
 
-      // 3. BLINDAJE FINAL: Forzar a 0 si algo falló (Seguridad extrema)
       if (this.copper < 0) this.copper = 0;
       if (this.silver < 0) this.silver = 0;
       if (this.gold < 0) this.gold = 0;
     },
 
-    // --- 🔥 LÓGICA DE RACHA ---
     checkDailyStreak() {
         const now = new Date();
         const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -249,6 +229,37 @@ export const useGamificationStore = defineStore('gamification', {
             this.saveToStorage();
             this.syncAllToCloud();
         }
+    },
+
+    // --- 🚨 PROCESO DE BAJA PERMANENTE (v2.9.5: FIX PROTOCOLO ERROR) ---
+    async deleteAccountPermanently(email, password) {
+      try {
+          // 1. Validar identidad (Sesión fresca)
+          const userCredential = await signInWithEmailAndPassword(auth, email, password);
+          const user = userCredential.user;
+
+          // 2. Borrar rastro en Firestore
+          await deleteDoc(doc(db, "users", user.uid));
+          
+          // 3. Borrar cuenta de Firebase Auth
+          await deleteUser(user);
+          
+          // 4. Limpiar rastro local
+          this.$reset();
+          localStorage.removeItem(STORAGE_KEY);
+          localStorage.removeItem('buho_last_login');
+          
+          return { success: true };
+      } catch (error) {
+          console.error("Error en baja:", error.code);
+          // Manejo específico de cuenta inexistente o datos erróneos
+          if (error.code === 'auth/invalid-credential' || 
+              error.code === 'auth/user-not-found' || 
+              error.code === 'auth/wrong-password') {
+              return { success: false, error: 'not-found' }; 
+          }
+          return { success: false, error: 'unknown' };
+      }
     },
 
     completeWorldTourChallenge(rewardType, rewardAmount) {
