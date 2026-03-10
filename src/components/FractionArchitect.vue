@@ -1,11 +1,11 @@
 <script setup>
 /** * ARCHIVO: FractionArchitect.vue
- * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.2 + BOTONES 3D RELIEVE + 3 REGLAS
+ * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.2 + BOTÓN 3D AZUL + ICONO QUIRÚRGICO
  * LOGICA: 3 Niveles Progresivos (Aprendiz, Chef, Maestro) con inyección atómica.
  */
 
 import { ref, computed, watch, onMounted } from 'vue';
-import { X, Trophy, Star, ChefHat, CheckCircle2, PlayCircle, Pizza, Info, Plus, Minus, Coins, RotateCcw, Utensils } from 'lucide-vue-next';
+import { X, Trophy, Star, ChefHat, CheckCircle2, PlayCircle, Pizza, Info, Plus, Minus, Coins, RotateCcw, Utensils, ChevronRight } from 'lucide-vue-next';
 import { gsap } from 'gsap'; 
 import { useGamificationStore } from '@/stores/useGamificationStore';
 import CoinRain from './CoinRain.vue';
@@ -173,7 +173,7 @@ onMounted(() => generateNewOrder());
 
 <template>
   <div class="master-container font-inter">
-    <main class="app-canvas shadow-smartphone">
+    <main class="app-canvas shadow-smartphone !bg-slate-50">
       
       <header v-if="gameState === 'playing'" class="header-standard shrink-0">
         <div class="trophy-section">
@@ -193,13 +193,13 @@ onMounted(() => generateNewOrder());
           <X size="24" stroke-width="3" />
         </button>
 
-        <div class="flex flex-col items-center mt-6">
-          <ChefHat size="60" class="text-orange-600 animate-bounce mb-2" />
-          <h1 class="game-title text-4xl uppercase font-black italic text-indigo-950">Pizza Architect</h1>
+        <div class="flex flex-col items-center mt-6 text-center">
+          <ChefHat size="60" class="text-indigo-600 animate-bounce mb-2" />
+          <h1 class="game-title text-4xl uppercase font-black italic text-indigo-950 tracking-tighter">Pizza Architect</h1>
         </div>
 
         <div class="rules-panel shadow-2xl w-full">
-          <div class="rules-badge uppercase tracking-widest font-black">Manual del Chef</div>
+          <div class="rules-badge uppercase font-black tracking-widest">Manual del Chef</div>
           <div class="p-5 space-y-6">
             <div class="flex gap-4 items-start">
               <div class="bg-orange-100 p-2 rounded-lg shrink-0"><Pizza class="text-orange-600" size="24" /></div>
@@ -212,23 +212,29 @@ onMounted(() => generateNewOrder());
               <div class="bg-blue-100 p-2 rounded-lg shrink-0"><Utensils class="text-blue-600" size="24" /></div>
               <div>
                 <p class="text-[15px] font-black text-slate-800">Equivalencias</p>
-                <p class="text-xs font-medium text-slate-500 leading-snug">¡Cuidado! A veces cortamos la pizza en más trozos de los que pide la fracción base.</p>
+                <p class="text-xs font-medium text-slate-500 leading-snug">¡Cuidado! A veces cortamos la pizza en más trozos de los necesarios.</p>
               </div>
             </div>
             <div class="flex gap-4 items-start">
               <div class="bg-green-100 p-2 rounded-lg shrink-0"><Coins class="text-green-600" size="24" /></div>
               <div>
                 <p class="text-[15px] font-black text-slate-800">Gana Botín Real</p>
-                <p class="text-xs font-medium text-slate-500 leading-snug">Cada pizza perfecta suma monedas directamente a tu sesión actual.</p>
+                <p class="text-xs font-medium text-slate-500 leading-snug">Cada pizza perfecta suma monedas directamente a tu botín.</p>
               </div>
             </div>
           </div>
         </div>
 
-        <button @click="startGame" class="btn-action-primary group">
-            <span class="flex items-center">
-                ¡EMPEZAR A COCINAR! <PlayCircle class="ml-3 group-hover:rotate-12 transition-transform" size="26" />
-            </span>
+        <button @click="startGame" 
+                class="w-[90%] max-w-[420px] bg-gradient-to-b from-[#3B82F6] to-[#1D4ED8] 
+                       text-white font-black italic text-xl uppercase rounded-[2rem] 
+                       border-b-[8px] border-[#1E3A8A] shadow-lg shadow-[#1D4ED8]/40 
+                       active:translate-y-[4px] active:border-b-[4px] transition-all 
+                       flex items-center justify-center py-4 group mb-4">
+            ¡EMPEZAR A COCINAR! 
+            <div class="ml-3 bg-white p-1 rounded-full flex items-center justify-center shadow-inner">
+                <ChevronRight class="text-[#1D4ED8]" size="20" stroke-width="4" />
+            </div>
         </button>
       </div>
 
@@ -281,20 +287,23 @@ onMounted(() => generateNewOrder());
         </div>
       </div>
 
-      <div v-else class="flex-1 flex flex-col items-center justify-center p-6 bg-indigo-900 text-center text-white uppercase italic">
+      <div v-else class="flex-1 flex flex-col items-center justify-center p-6 bg-indigo-900 text-center text-white uppercase italic relative overflow-hidden">
         <CoinRain type="gold" />
         <Trophy size="100" class="text-amber-400 mb-6 animate-bounce" />
-        <h2 class="text-4xl font-black mb-10 tracking-tighter">¡CHEF SUPREMO!</h2>
+        <h2 class="text-4xl font-black mb-10 tracking-tighter">¡Chef Supremo!</h2>
         
-        <div class="prize-card-large w-full bg-white/10 p-8 rounded-[3rem] flex justify-around mb-12 border border-white/20">
+        <div class="prize-card-large w-[90%] max-w-sm bg-white/10 p-8 rounded-[3rem] flex justify-around mb-12 border border-white/20 backdrop-blur-sm">
            <div class="flex flex-col items-center"><img src="/images/coin-gold.png" class="w-12 h-12 mb-1" /><span class="text-2xl font-black">+{{ sessionCoins.gold }}</span></div>
            <div class="flex flex-col items-center border-x border-white/10 px-6"><img src="/images/coin-silver.png" class="w-12 h-12 mb-1" /><span class="text-2xl font-black">+{{ sessionCoins.silver }}</span></div>
            <div class="flex flex-col items-center"><img src="/images/coin-copper.png" class="w-12 h-12 mb-1" /><span class="text-2xl font-black">+{{ sessionCoins.copper }}</span></div>
         </div>
         
-        <div class="w-full space-y-4">
-          <button @click="emit('close')" class="btn-action-finish">TERMINAR</button>
-          <button @click="startGame" class="w-full bg-white/10 py-4 rounded-2xl font-black text-lg border-2 border-white/20 active:translate-y-1 transition-all">REPETIR RETO</button>
+        <div class="w-full max-w-[280px] flex flex-col gap-4">
+          <button @click="emit('close')" 
+                  class="w-full py-4 rounded-[2rem] text-2xl font-black italic uppercase text-white bg-gradient-to-b from-[#3B82F6] to-[#1D4ED8] border-b-[8px] border-[#1E3A8A] shadow-lg active:translate-y-[4px] active:border-b-[4px] transition-all">
+            TERMINAR
+          </button>
+          <button @click="startGame" class="text-white/40 py-1 font-black text-sm hover:text-white tracking-widest">REPETIR RETO</button>
         </div>
       </div>
 
@@ -303,54 +312,20 @@ onMounted(() => generateNewOrder());
 </template>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
-.master-container { position: fixed; inset: 0; z-index: 9999; display: flex; justify-content: center; align-items: center; background-color: #ffffff; overflow: hidden; touch-action: none !important; font-family: 'Inter', sans-serif !important; }
+.master-container { position: fixed; inset: 0; z-index: 9999; display: flex; justify-content: center; align-items: center; background-color: #ffffff; overflow: hidden; touch-action: none !important; }
 .app-canvas { display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; background-color: #f8fafc; transition: all 0.4s; width: 100vw; height: 100dvh; }
 @media (min-width: 1025px) { .app-canvas { width: 1024px; height: 90dvh; border-radius: 45px; box-shadow: 0 40px 100px rgba(0,0,0,0.2); border: 8px solid white; } }
-@media (min-width: 600px) and (max-width: 1024px) { .app-canvas { width: 85vw; height: 95dvh; border-radius: 35px; } }
+
 .header-standard { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1.25rem; background: white; border-bottom: 2px solid #f1f5f9; }
 .session-loot-capsule { display: flex; align-items: center; background: white; padding: 6px 16px; border-radius: 9999px; border: 2px solid #f1f5f9; }
 .loot-item { display: flex; align-items: center; gap: 6px; padding: 0 10px; font-weight: 900; }
-.loot-item img { width: 1.2rem; height: 1.2rem; object-fit: contain; }
-.loot-item span { font-weight: 900; color: #312e81; font-size: 1rem; }
+.loot-item img { width: 1.2rem; height: 1.2rem; }
 .btn-close-circle { background: #fee2e2; color: #ef4444; width: 36px; height: 36px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; }
 
 .rules-panel { background: white; border-radius: 2.5rem; border: 2px solid #e2e8f0; position: relative; }
 .rules-badge { position: absolute; top: -12px; left: 1.5rem; background: #4f46e5; color: white; font-size: 10px; font-weight: 900; padding: 4px 12px; border-radius: 9999px; }
 
-/* BOTÓN REDUCIDO QUIRÚRGICAMENTE Y CON RELIEVE 3D */
-.btn-action-primary {
-  background: linear-gradient(to bottom, #22c55e, #16a34a);
-  color: white;
-  padding: 1rem 2.2rem; /* Tamaño reducido de 1.4/2.8 a 1/2.2 */
-  border-radius: 2rem;
-  font-weight: 900;
-  font-size: 1.25rem; /* Tamaño de fuente reducido de 1.5 a 1.25 */
-  font-style: italic;
-  border: none;
-  border-bottom: 8px solid #15803d; /* Relieve reducido ligeramente */
-  box-shadow: 0 8px 18px rgba(22, 163, 74, 0.4);
-  transition: all 0.1s;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 90%;
-  max-width: 420px;
-}
-.btn-action-primary:active {
-  transform: translateY(4px); /* Se hunde menos al pulsar */
-  border-bottom: 4px solid #15803d;
-  box-shadow: 0 4px 10px rgba(22, 163, 74, 0.3);
-}
-
-.btn-action-finish { 
-  background: #f59e0b; color: white; width: 100%; padding: 1.2rem; 
-  border-radius: 1.5rem; font-weight: 900; font-size: 22px; 
-  border: none; border-bottom: 10px solid #b45309; 
-  transition: transform 0.1s; 
-}
-.btn-action-finish:active { transform: translateY(6px); border-bottom-width: 4px; }
+/* Eliminado .btn-action-primary y .btn-action-finish de estilos para usar Tailwind directo */
 
 .game-title { font-weight: 900; color: #312e81; text-transform: uppercase; font-style: italic; letter-spacing: -0.05em; }
 .animate-pop-in { animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }

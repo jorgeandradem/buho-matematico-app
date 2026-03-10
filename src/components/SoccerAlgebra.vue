@@ -1,10 +1,10 @@
 <script setup>
 /** * ARCHIVO: SoccerAlgebra.vue
- * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.2 + BANCO CENTRAL SYNC
+ * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.2 + BOTÓN 3D AZUL + ICONO QUIRÚRGICO
  * LOGICA: Operaciones algebraicas + Física de poste + Navegación Quirúrgica
  */
 import { ref, computed, onMounted } from 'vue';
-import { Trophy, X, Star, PlayCircle, RotateCcw, BookOpen } from 'lucide-vue-next';
+import { Trophy, X, Star, PlayCircle, RotateCcw, BookOpen, ChevronRight } from 'lucide-vue-next';
 import { gsap } from 'gsap';
 import { useGamificationStore } from '@/stores/useGamificationStore'; 
 
@@ -56,7 +56,7 @@ const returnToRules = () => {
   balls.value = [];
 };
 
-// --- 4. MOTOR DEL JUEGO (BALÓN Y FÍSICA INTACTOS) ---
+// --- 4. MOTOR DEL JUEGO ---
 const generateChallenge = () => {
   let x, a, text, type;
   if (progress.value >= 7) {
@@ -125,10 +125,8 @@ const kickBall = (ball) => {
   }
 };
 
-// --- 5. CELEBRACIÓN FINAL Y SINCRONIZACIÓN ---
 const endGame = async () => { 
   gameState.value = 'finished'; 
-  // INYECCIÓN AL BANCO CENTRAL v2.9.2
   await store.addMultipleCoins({...sessionCoins.value});
   await store.updateMissionProgress('complete_challenge', 1);
   soundCoins.play().catch(() => {}); 
@@ -185,24 +183,29 @@ const resetGame = () => {
         </div>
 
         <div class="rules-panel shadow-2xl w-full">
-          <div class="rules-badge uppercase tracking-widest font-black">MANUAL DEL CAMPEÓN</div>
-          <ul class="p-4 space-y-4 text-slate-600 font-bold list-none">
-            <li class="flex gap-3 text-sm">🥅 <span>Anota 10 goles para ganar la racha</span></li>
-            <li class="flex gap-3 text-sm">➕ <span>Suma: 1 🥉 | Resta: 5 🥉</span></li>
-            <li class="flex gap-3 text-sm">✖️ <span>Multiplicar: 1 🥈 | Dividir: 1 🥇</span></li>
+          <div class="rules-badge uppercase font-black tracking-widest">MANUAL DEL CAMPEÓN</div>
+          <ul class="p-4 space-y-4 text-slate-700 font-bold list-none">
+            <li class="flex gap-3 text-sm">🥅 <span>Anota 10 goles para ganar la racha.</span></li>
+            <li class="flex gap-3 text-sm text-indigo-700">➕ <span>Suma: 🥉 | Resta: 🥈 | Mult/Div: 🥇</span></li>
           </ul>
         </div>
 
-        <button @click="startGame" class="btn-action-primary group">
-          <span class="flex items-center">
-            ¡A LA CANCHA! <PlayCircle class="ml-3 group-hover:rotate-12 transition-transform" size="28" />
-          </span>
+        <button @click="startGame" 
+                class="w-[90%] max-w-[420px] bg-gradient-to-b from-[#3B82F6] to-[#1D4ED8] 
+                       text-white font-black italic text-xl uppercase rounded-[2rem] 
+                       border-b-[8px] border-[#1E3A8A] shadow-lg shadow-[#1D4ED8]/40 
+                       active:translate-y-[4px] active:border-b-[4px] transition-all 
+                       flex items-center justify-center py-4 group mb-4">
+            ¡A LA CANCHA! 
+            <div class="ml-3 bg-white p-1 rounded-full flex items-center justify-center shadow-inner">
+                <ChevronRight class="text-[#1D4ED8]" size="20" stroke-width="4" />
+            </div>
         </button>
       </div>
 
-      <div v-else-if="gameState === 'playing'" class="game-content flex-1 flex flex-col items-center">
-        <div class="scoreboard-container mt-6">
-          <div class="text-white font-black text-center uppercase tracking-widest text-sm mb-4">Nivel: {{ levelName }}</div>
+      <div v-else-if="gameState === 'playing'" class="game-content flex-1 flex flex-col items-center relative">
+        <div class="scoreboard-container mt-6 z-20">
+          <div class="text-white font-black text-center uppercase tracking-widest text-sm mb-4 drop-shadow-md">Nivel: {{ levelName }}</div>
           <div class="equation-display">
             <span v-if="currentEquation" class="equation-text"><span v-html="formattedEquation"></span></span>
           </div>
@@ -232,27 +235,28 @@ const resetGame = () => {
               </g>
               <ellipse cx="85" cy="75" rx="30" ry="20" fill="white" fill-opacity="0.3" transform="rotate(-30, 85, 75)" />
             </svg>
-            <div class="ball-number-overlay-surgical">{{ ball.value }}</div>
+            <div class="ball-number-overlay-surgical font-black">{{ ball.value }}</div>
           </div>
         </div>
       </div>
 
-      <div v-else class="flex-1 flex flex-col items-center justify-center p-6 bg-slate-950 text-center font-inter uppercase italic">
-        <div class="bg-white p-8 rounded-[3rem] shadow-2xl flex flex-col items-center w-full max-w-[380px] animate-fade-in border-4 border-amber-400">
-          <Trophy size="80" class="text-yellow-500 mb-4 animate-bounce" />
+      <div v-else class="flex-1 flex flex-col items-center justify-center p-6 bg-slate-950 text-center relative overflow-hidden">
+        <div class="bg-white p-8 rounded-[3rem] shadow-2xl flex flex-col items-center w-full max-w-[380px] animate-fade-in border-4 border-amber-400 uppercase italic">
+          <Trophy size="80" class="text-yellow-500 mb-4 animate-bounce drop-shadow-lg" />
           <h2 class="text-3xl font-black text-indigo-900 mb-2 tracking-tight">¡MISIÓN LOGRADA!</h2>
           
           <div class="bg-slate-50 rounded-3xl p-5 mb-8 w-full flex justify-around border-2 border-slate-100 shadow-inner">
-            <div class="flex flex-col items-center"><img src="/images/coin-gold.png" class="w-8 h-8 mb-1" /><span class="text-xl font-black text-slate-800">+{{ sessionCoins.gold }}</span></div>
-            <div class="flex flex-col items-center border-x border-slate-200 px-4"><img src="/images/coin-silver.png" class="w-8 h-8 mb-1" /><span class="text-xl font-black text-slate-800">+{{ sessionCoins.silver }}</span></div>
-            <div class="flex flex-col items-center"><img src="/images/coin-copper.png" class="w-8 h-8 mb-1" /><span class="text-xl font-black text-slate-800">+{{ sessionCoins.copper }}</span></div>
+            <div class="flex flex-col items-center"><img src="/images/coin-gold.png" class="w-10 h-10 mb-1" /><span class="text-xl font-black text-slate-800">+{{ sessionCoins.gold }}</span></div>
+            <div class="flex flex-col items-center border-x border-slate-200 px-4"><img src="/images/coin-silver.png" class="w-10 h-10 mb-1" /><span class="text-xl font-black text-slate-800">+{{ sessionCoins.silver }}</span></div>
+            <div class="flex flex-col items-center"><img src="/images/coin-copper.png" class="w-10 h-10 mb-1" /><span class="text-xl font-black text-slate-800">+{{ sessionCoins.copper }}</span></div>
           </div>
 
           <div class="w-full flex flex-col gap-4">
-            <button @click="resetGame" class="btn-action-gold-surgical">
+            <button @click="resetGame" 
+                    class="w-full py-4 rounded-[2rem] text-xl font-black italic uppercase text-white bg-gradient-to-b from-[#3B82F6] to-[#1D4ED8] border-b-[8px] border-[#1E3A8A] shadow-lg active:translate-y-[4px] active:border-b-[4px] transition-all flex items-center justify-center">
               <RotateCcw size="20" class="mr-2" /> NUEVA RONDA
             </button>
-            <button @click="emit('close')" class="w-full bg-slate-100 text-slate-500 py-4 rounded-2xl font-black border-2 border-slate-200 active:translate-y-1 transition-all">
+            <button @click="emit('close')" class="text-slate-400 py-1 font-black text-sm hover:text-indigo-600 tracking-widest opacity-70">
               TERMINAR
             </button>
           </div>
@@ -291,31 +295,7 @@ const resetGame = () => {
 .rules-panel { width: 95%; background: white; padding: 1.5rem; border-radius: 2.5rem; border: 2px solid #e2e8f0; position: relative; margin-top: 1rem; }
 .rules-badge { position: absolute; top: -12px; left: 1.5rem; background: #4f46e5; color: white; font-size: 10px; font-weight: 900; padding: 4px 12px; border-radius: 9999px; }
 
-/* BOTÓN 3D RELIEVE HOMOLOGADO */
-.btn-action-primary {
-  background: linear-gradient(to bottom, #22c55e, #16a34a);
-  color: white;
-  padding: 1.2rem 2.5rem;
-  border-radius: 2.5rem;
-  font-weight: 900;
-  font-size: 1.5rem;
-  font-style: italic;
-  border: none;
-  border-bottom: 12px solid #15803d;
-  box-shadow: 0 12px 25px rgba(22, 163, 74, 0.4);
-  transition: all 0.1s;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 90%;
-  max-width: 450px;
-  margin-bottom: 2rem;
-}
-.btn-action-primary:active { transform: translateY(8px); border-bottom-width: 4px; box-shadow: 0 4px 10px rgba(22, 163, 74, 0.3); }
-
-.btn-action-gold-surgical { background: #fbbf24; color: #020617; border-radius: 1.5rem; font-weight: 900; font-size: 1.1rem; border: none; border-bottom: 8px solid #b45309; display: flex; align-items: center; justify-content: center; transition: all 0.1s; padding: 1rem; width: 100%; }
-.btn-action-gold-surgical:active { transform: translateY(4px); border-bottom-width: 2px; }
+/* Eliminados .btn-action-primary y .btn-action-gold-surgical para usar Tailwind directo */
 
 .game-title { font-weight: 900; text-transform: uppercase; font-style: italic; letter-spacing: -0.05em; }
 .animate-float { animation: float 3s ease-in-out infinite; }

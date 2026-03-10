@@ -1,10 +1,10 @@
 <script setup>
 /** * ARCHIVO: NumberSearch.vue
- * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.2 + REGLAS DIDÁCTICAS
- * LOGICA: Sopa de números (Resultados algebraicos) + Navegación Quirúrgica
+ * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.2 + BOTÓN 3D AZUL + ICONO QUIRÚRGICO
+ * LOGICA: Sopa de números (Resultados algebraicos) + Navegación Blindada.
  */
 import { ref, onMounted } from 'vue';
-import { X as CloseIcon, Trophy, AlertCircle, Sparkles, Search, PlayCircle, BookOpen } from 'lucide-vue-next';
+import { X as CloseIcon, Trophy, AlertCircle, Sparkles, Search, PlayCircle, BookOpen, ChevronRight } from 'lucide-vue-next';
 import SimpleConfetti from './SimpleConfetti.vue';
 import CoinRain from './CoinRain.vue';
 import { useGamificationStore } from '../stores/useGamificationStore';
@@ -15,7 +15,7 @@ const emit = defineEmits(['close', 'win']);
 const store = useGamificationStore();
 
 // --- ESTADO DEL JUEGO ---
-const gameState = ref('rules'); // 'rules' | 'playing' | 'finished'
+const gameState = ref('rules'); 
 const grid = ref([]);
 const challenges = ref([]);
 const currentSelection = ref([]);
@@ -24,7 +24,6 @@ const perfectGame = ref(true);
 const confirmedCells = ref(new Set());
 const isAudioUnlocked = ref(false);
 
-// --- SISTEMA DE RECOMPENSAS EN TIEMPO REAL ---
 const sessionCoins = ref({ gold: 0, silver: 0, copper: 0 });
 
 // --- MOTOR DE AUDIO ---
@@ -191,7 +190,7 @@ const triggerWin = async () => {
 </script>
 
 <template>
-  <div class="master-container">
+  <div class="master-container font-inter">
     <main class="app-canvas !bg-slate-50 shadow-smartphone">
         <CoinRain v-if="showCoinRain" type="gold" :count="30" class="z-[400]" />
 
@@ -223,7 +222,7 @@ const triggerWin = async () => {
                 </div>
 
                 <div class="rules-panel-sopa shadow-xl w-full">
-                    <div class="rules-badge">MANUAL DEL INVESTIGADOR</div>
+                    <div class="rules-badge uppercase font-black tracking-widest">Manual del Investigador</div>
                     <div class="flex flex-col gap-5 p-2">
                         <div class="flex gap-4 items-start">
                             <div class="bg-indigo-100 p-2 rounded-xl"><BookOpen class="text-indigo-600" size="20" /></div>
@@ -240,8 +239,16 @@ const triggerWin = async () => {
                     </div>
                 </div>
 
-                <button @click="startGame" class="btn-action-primary w-full py-5 text-xl uppercase italic">
-                    ¡BUSCAR NÚMEROS! <PlayCircle class="ml-2" />
+                <button @click="startGame" 
+                        class="w-[90%] max-w-[420px] bg-gradient-to-b from-[#3B82F6] to-[#1D4ED8] 
+                               text-white font-black italic text-xl uppercase rounded-[2rem] 
+                               border-b-[8px] border-[#1E3A8A] shadow-lg shadow-[#1D4ED8]/40 
+                               active:translate-y-[4px] active:border-b-[4px] transition-all 
+                               flex items-center justify-center py-4 group">
+                    ¡BUSCAR NÚMEROS! 
+                    <div class="ml-3 bg-white p-1 rounded-full flex items-center justify-center shadow-inner">
+                        <ChevronRight class="text-[#1D4ED8]" size="20" stroke-width="4" />
+                    </div>
                 </button>
             </div>
 
@@ -271,17 +278,24 @@ const triggerWin = async () => {
               <div v-if="gameState === 'finished'" class="victory-overlay animate-fade-in uppercase">
                 <SimpleConfetti />
                 <Trophy class="w-20 h-20 text-amber-500 mb-4 drop-shadow-2xl animate-bounce" />
-                <h2 class="victory-title">¡Botín Asegurado!</h2>
-                <div class="prize-card">
+                <h2 class="victory-title text-indigo-950 font-black italic">¡Botín Asegurado!</h2>
+                
+                <div class="prize-card border-b-[10px] border-indigo-100">
                    <div class="flex justify-around items-center w-full">
                       <div class="prize-item" :class="sessionCoins.gold > 0 ? 'opacity-100' : 'opacity-20'"><img src="/images/coin-gold.png" /><span>+{{ sessionCoins.gold }}</span></div>
                       <div class="prize-item" :class="sessionCoins.silver > 0 ? 'opacity-100' : 'opacity-20'"><img src="/images/coin-silver.png" /><span>+{{ sessionCoins.silver }}</span></div>
                       <div class="prize-item" :class="sessionCoins.copper > 0 ? 'opacity-100' : 'opacity-20'"><img src="/images/coin-copper.png" /><span>+{{ sessionCoins.copper }}</span></div>
                    </div>
                 </div>
+                
                 <div class="flex flex-col gap-4 w-full max-w-[280px]">
-                    <button @click="startGame" class="btn-victory-main py-4 uppercase font-black tracking-widest italic">OTRO DESAFÍO</button>
-                    <button @click="exitToPortal" class="btn-victory-back py-4 uppercase font-bold text-xs tracking-widest">SALIR AL PORTAL</button>
+                    <button @click="startGame" 
+                            class="w-full bg-gradient-to-b from-[#3B82F6] to-[#1D4ED8] 
+                                   text-white py-4 rounded-[1.5rem] font-black italic uppercase 
+                                   border-b-[6px] border-[#1E3A8A] shadow-lg active:translate-y-[2px] active:border-b-[2px] transition-all">
+                        OTRO DESAFÍO
+                    </button>
+                    <button @click="exitToPortal" class="text-slate-400 py-2 font-bold text-xs tracking-widest hover:text-indigo-600">SALIR AL PORTAL</button>
                 </div>
               </div>
             </Transition>
@@ -291,15 +305,11 @@ const triggerWin = async () => {
 </template>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400&family=Inter:wght@400;700;900&display=swap');
-
-/* LEY DE HIERRO v2.9.2 */
-
 .master-container {
     position: fixed; inset: 0; z-index: 9999;
     display: flex; justify-content: center; align-items: center;
     background-color: #ffffff; overflow: hidden;
-    touch-action: none !important; font-family: 'Inter', sans-serif !important;
+    touch-action: none !important;
 }
 
 .app-canvas {
@@ -309,7 +319,6 @@ const triggerWin = async () => {
 }
 
 @media (min-width: 1025px) { .app-canvas { width: 1024px; height: 90dvh; border-radius: 45px; border: 8px solid white; box-shadow: 0 40px 100px rgba(0,0,0,0.2); } }
-@media (min-width: 600px) and (max-width: 1024px) { .app-canvas { width: 85vw; height: 95dvh; border-radius: 35px; } }
 
 .header-sopa {
     width: 100%; display: flex; align-items: center; justify-content: space-between;
@@ -341,22 +350,18 @@ const triggerWin = async () => {
 .rules-panel-sopa { width: 92%; background: white; padding: 1.5rem; border-radius: 2rem; border: 2px solid #e2e8f0; position: relative; }
 .rules-badge { position: absolute; top: -12px; left: 1.5rem; background: #4f46e5; color: white; font-size: 10px; font-weight: 900; padding: 4px 12px; border-radius: 9999px; }
 
-.btn-action-primary { background: #4f46e5; color: white; border-radius: 2rem; font-weight: 900; box-shadow: 0 6px 0 #312e81; transition: all 0.1s; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-.btn-action-primary:active { transform: translateY(5px); box-shadow: 0 1px 0 #312e81; }
+/* .btn-action-primary eliminado para usar Tailwind directo según norma v2.9.2 */
 
 .victory-overlay {
     position: absolute; inset: 0; z-index: 300; background: white;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     padding: 2rem; text-align: center;
 }
-.victory-title { font-size: 2.5rem; font-weight: 900; color: #312e81; font-style: italic; line-height: 1; margin-bottom: 1.5rem; }
+.victory-title { font-size: 2.5rem; line-height: 1; margin-bottom: 1.5rem; }
 .prize-card { background: #f5f3ff; border: 4px solid #ede9fe; border-radius: 3rem; padding: 2rem; width: 100%; max-width: 280px; margin-bottom: 2rem; }
 .prize-item { display: flex; flex-direction: column; align-items: center; }
 .prize-item img { width: 2.5rem; height: 2.5rem; margin-bottom: 4px; }
 .prize-item span { font-size: 1.5rem; font-weight: 900; color: #4338ca; }
-
-.btn-victory-main { width: 100%; background: #f59e0b; color: white; font-weight: 900; border-radius: 1.25rem; box-shadow: 0 6px 0 #b45309; }
-.btn-victory-back { width: 100%; background: #94a3b8; color: white; font-weight: 900; border-radius: 1.25rem; }
 
 .game-title { font-weight: 900; color: #312e81; text-transform: uppercase; font-style: italic; letter-spacing: -0.05em; }
 .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }

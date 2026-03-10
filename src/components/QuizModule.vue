@@ -1,7 +1,7 @@
 <script setup>
 /** * ARCHIVO: QuizModule.vue
- * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.2 + NAVEGACIÓN QUIRÚRGICA
- * LOGICA: Desafío contra reloj + Monedas de Sesión
+ * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.2 + BOTÓN 3D ESTÁNDAR AZUL
+ * LOGICA: Desafío contra reloj + Monedas de Sesión + Relieve Quirúrgico
  */
 import { ref, onUnmounted, computed, onMounted } from 'vue';
 import { X, Clock, Zap, Trophy, Medal, CheckCircle, XCircle, PlayCircle } from 'lucide-vue-next';
@@ -91,7 +91,7 @@ const generateQuestion = () => {
 
 const handleTimeout = () => {
     playSound('wrong');
-    history.value.push({ q: currentQuestion.value.text, chosen: '⏳', correct: currentQuestion.value.correctAnswer, isCorrect: false });
+    history.value.push({ q: currentQuestion.text, chosen: '⏳', correct: currentQuestion.correctAnswer, isCorrect: false });
     currentQuestionIndex.value++;
     nextQuestion();
 };
@@ -134,7 +134,6 @@ const endGame = async () => {
     speak(performanceFeedback.value.text);
 };
 
-// Quirúrgico: Lógica de retorno según estado
 const closeQuiz = () => { 
     clearInterval(timerInterval); 
     if (gameState.value === 'rules') {
@@ -149,7 +148,7 @@ onUnmounted(() => clearInterval(timerInterval));
 </script>
 
 <template>
-  <div class="master-container">
+  <div class="master-container font-inter">
     <main class="app-canvas !bg-slate-50 shadow-smartphone">
         <div v-for="coin in fallingCoins" :key="coin.id" class="absolute z-[60] w-12 h-12 pointer-events-none animate-coin-fall" :style="{ left: coin.left + '%', top: '-50px', animationDelay: coin.delay + 's' }">
             <img :src="coin.img" class="w-full h-full drop-shadow-lg" />
@@ -177,20 +176,25 @@ onUnmounted(() => clearInterval(timerInterval));
 
                 <div class="flex flex-col items-center mt-6">
                     <Zap size="60" class="text-indigo-600 animate-bounce mb-2" />
-                    <h1 class="game-title text-3xl">QUIZ TIME</h1>
+                    <h1 class="game-title text-4xl uppercase italic font-black text-indigo-900">QUIZ TIME</h1>
                 </div>
 
-                <div class="rules-panel shadow-xl w-full">
-                    <div class="rules-badge">MANUAL DE MISIÓN</div>
-                    <ul class="p-5 space-y-5 text-slate-600 font-bold list-none">
-                        <li class="flex gap-4">⏱️ <span class="text-sm">Responde 10 preguntas antes de que el tiempo se agote.</span></li>
-                        <li class="flex gap-4">🎯 <span class="text-sm">Cada acierto suma monedas directamente a tu botín.</span></li>
-                        <li class="flex gap-4">💰 <span class="text-sm">Suma: 🥉 | Resta: 🥈 | Mult/Div: 🥇</span></li>
+                <div class="rules-panel shadow-2xl w-full">
+                    <div class="rules-badge uppercase font-black tracking-widest">Manual de Misión</div>
+                    <ul class="p-5 space-y-5 text-slate-700 font-bold list-none">
+                        <li class="flex gap-4">⏱️ <span class="text-[15px] leading-tight">Responde 10 preguntas antes de que el tiempo se agote.</span></li>
+                        <li class="flex gap-4">🎯 <span class="text-[15px] leading-tight">Cada acierto suma monedas directamente a tu botín.</span></li>
+                        <li class="flex gap-4">💰 <span class="text-[15px] leading-tight text-indigo-700">Suma: 🥉 | Resta: 🥈 | Mult/Div: 🥇</span></li>
                     </ul>
                 </div>
 
-                <button @click="gameState = 'menu'" class="bg-indigo-600 text-white w-full py-5 rounded-3xl font-black text-xl shadow-[0_6px_0_rgb(49,46,129)] active:translate-y-1 transition-all uppercase italic">
-                    ¡ENTENDIDO!
+                <button @click="gameState = 'menu'" 
+                        class="w-[90%] max-w-[420px] bg-gradient-to-b from-[#3B82F6] to-[#1D4ED8] 
+                               text-white font-black italic text-xl uppercase rounded-[2rem] 
+                               border-b-[8px] border-[#1E3A8A] shadow-lg shadow-[#1D4ED8]/40 
+                               active:translate-y-[4px] active:border-b-[4px] transition-all 
+                               flex items-center justify-center py-4">
+                    ¡EMPEZAR DESAFÍO!
                 </button>
             </div>
 
@@ -235,8 +239,14 @@ onUnmounted(() => clearInterval(timerInterval));
                     </div>
                 </div>
                 <div class="flex gap-4 pb-6 mt-4 shrink-0">
-                    <button @click="gameState = 'menu'" class="flex-1 bg-slate-200 text-slate-700 font-bold py-4 rounded-2xl uppercase tracking-widest">Menú</button>
-                    <button @click="startGame(selectedOperation)" class="flex-1 bg-green-500 text-white font-black py-4 rounded-2xl shadow-[0_6px_0_rgb(21,128,61)] active:translate-y-1 uppercase tracking-widest italic">¡Otro!</button>
+                    <button @click="gameState = 'menu'" class="flex-1 bg-slate-200 text-slate-700 font-black py-4 rounded-2xl uppercase tracking-widest text-sm">Menú</button>
+                    <button @click="startGame(selectedOperation)" 
+                            class="flex-1 bg-gradient-to-b from-[#3B82F6] to-[#1D4ED8] 
+                                   text-white font-black py-4 rounded-2xl border-b-[6px] border-[#1E3A8A] 
+                                   shadow-lg active:translate-y-[4px] active:border-b-[2px] transition-all 
+                                   uppercase tracking-widest italic text-sm">
+                        ¡OTRO!
+                    </button>
                 </div>
             </div>
         </div>

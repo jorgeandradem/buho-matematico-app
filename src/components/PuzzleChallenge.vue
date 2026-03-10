@@ -1,11 +1,11 @@
 <script setup>
 /** * ARCHIVO: PuzzleChallenge.vue
- * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.2 + REGLAS DIDÁCTICAS
+ * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.2 + BOTÓN 3D AZUL + ICONO QUIRÚRGICO
  * LOGICA: Desbloqueo de puzzle por retos matemáticos + Navegación Blindada
  */
 import { ref, onMounted, computed } from 'vue';
 import { puzzleImages } from '../data/puzzleImages';
-import { Lock, Trophy, X as CloseIcon, Sparkles, BookOpen, PlayCircle, MousePointer2 } from 'lucide-vue-next';
+import { Lock, Trophy, X as CloseIcon, Sparkles, BookOpen, PlayCircle, MousePointer2, ChevronRight } from 'lucide-vue-next';
 import SimpleConfetti from './SimpleConfetti.vue';
 import CoinRain from './CoinRain.vue';
 import VirtualKeyPad from './VirtualKeypad.vue';
@@ -17,7 +17,7 @@ const emit = defineEmits(['close', 'win']);
 const gamificationStore = useGamificationStore();
 
 // --- 1. ESTADO DEL JUEGO ---
-const gameState = ref('rules'); // 'rules' | 'playing' | 'finished'
+const gameState = ref('rules'); 
 const selectedImage = ref(null);
 const squares = ref([]);
 const activeSquare = ref(null);
@@ -27,7 +27,6 @@ const errorsInCurrentSquare = ref(0);
 const showConfetti = ref(false);
 const showCoinRain = ref(false);
 
-// --- SISTEMA DE RECOMPENSAS EN TIEMPO REAL ---
 const sessionCoins = ref({ gold: 0, silver: 0, copper: 0 });
 
 const showMathModal = ref(false);
@@ -166,7 +165,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="master-container">
+  <div class="master-container font-inter">
     <main class="app-canvas !bg-slate-50 shadow-smartphone">
         
         <CoinRain v-if="showCoinRain" type="gold" :count="40" class="z-[400]" />
@@ -197,29 +196,37 @@ onMounted(() => {
 
                 <div class="flex flex-col items-center mt-6">
                     <Sparkles size="60" class="text-indigo-600 animate-bounce mb-2" />
-                    <h1 class="game-title text-3xl">PUZZLE MÁGICO</h1>
+                    <h1 class="game-title text-4xl uppercase italic font-black text-indigo-900">PUZZLE MÁGICO</h1>
                 </div>
 
-                <div class="rules-panel-puzzle shadow-xl w-full">
-                    <div class="rules-badge">MANUAL DEL CONSTRUCTOR</div>
+                <div class="rules-panel-puzzle shadow-2xl w-full">
+                    <div class="rules-badge uppercase font-black tracking-widest">Manual del Constructor</div>
                     <div class="flex flex-col gap-5 p-2">
                         <div class="flex gap-4 items-start">
                             <div class="bg-indigo-100 p-2 rounded-xl"><MousePointer2 class="text-indigo-600" size="20" /></div>
-                            <p class="text-sm font-bold text-slate-600">Toca cualquier **pieza gris** para revelar un reto matemático.</p>
+                            <p class="text-sm font-bold text-slate-700 leading-tight">Toca cualquier **pieza gris** para revelar un reto matemático.</p>
                         </div>
                         <div class="flex gap-4 items-start">
                             <div class="bg-green-100 p-2 rounded-xl"><BookOpen class="text-green-600" size="20" /></div>
-                            <p class="text-sm font-bold text-slate-600">Resuelve la operación correctamente para **desbloquear la imagen** oculta.</p>
+                            <p class="text-sm font-bold text-slate-700 leading-tight">Resuelve la operación correctamente para **desbloquear la imagen**.</p>
                         </div>
                         <div class="flex gap-4 items-start">
                             <div class="bg-amber-100 p-2 rounded-xl"><Trophy class="text-amber-600" size="20" /></div>
-                            <p class="text-sm font-bold text-slate-600">¡Suma: 🥉 | Resta: 🥈 | Mult/Div: 🥇! Completa las 10 piezas para ganar.</p>
+                            <p class="text-sm font-bold text-slate-700 leading-tight">¡Suma: 🥉 | Resta: 🥈 | Mult/Div: 🥇! Completa las 10 piezas.</p>
                         </div>
                     </div>
                 </div>
 
-                <button @click="startGame" class="btn-action-primary w-full py-5 text-xl uppercase italic shadow-[0_6px_0_rgb(30,58,138)]">
-                    ¡CONSTRUIR PUZZLE! <PlayCircle class="ml-2" />
+                <button @click="startGame" 
+                        class="w-[90%] max-w-[420px] bg-gradient-to-b from-[#3B82F6] to-[#1D4ED8] 
+                               text-white font-black italic text-xl uppercase rounded-[2rem] 
+                               border-b-[8px] border-[#1E3A8A] shadow-lg shadow-[#1D4ED8]/40 
+                               active:translate-y-[4px] active:border-b-[4px] transition-all 
+                               flex items-center justify-center py-4 group">
+                    ¡CONSTRUIR PUZZLE! 
+                    <div class="ml-3 bg-white p-1 rounded-full flex items-center justify-center shadow-inner">
+                        <ChevronRight class="text-[#1D4ED8]" size="20" stroke-width="4" />
+                    </div>
                 </button>
             </div>
 
@@ -246,10 +253,10 @@ onMounted(() => {
             <Transition name="pop">
               <div v-if="gameState === 'finished'" class="victory-overlay animate-fade-in uppercase">
                 <SimpleConfetti v-if="showConfetti" />
-                <Trophy class="w-20 h-20 text-amber-500 mb-4 drop-shadow-2xl animate-bounce" />
-                <h2 class="victory-title">¡PUZZLE COMPLETADO!</h2>
+                <Trophy class="w-20 h-20 text-amber-500 mb-4 drop-shadow-xl animate-bounce" />
+                <h2 class="victory-title text-indigo-950 font-black italic">¡PUZZLE COMPLETADO!</h2>
                 
-                <div class="prize-card">
+                <div class="prize-card border-b-[10px] border-indigo-100">
                    <div class="flex justify-around items-center w-full">
                       <div class="prize-item"><img src="/images/coin-gold.png" /><span>+{{ sessionCoins.gold }}</span></div>
                       <div class="prize-item"><img src="/images/coin-silver.png" /><span>+{{ sessionCoins.silver }}</span></div>
@@ -258,8 +265,13 @@ onMounted(() => {
                 </div>
 
                 <div class="flex flex-col gap-4 w-full max-w-[280px]">
-                    <button @click="startGame" class="btn-victory-primary py-4 uppercase font-black tracking-widest italic">NUEVA IMAGEN</button>
-                    <button @click="exitToPortal" class="btn-victory-secondary py-4 uppercase font-bold text-xs tracking-widest">SALIR AL PORTAL</button>
+                    <button @click="startGame" 
+                            class="w-full bg-gradient-to-b from-[#3B82F6] to-[#1D4ED8] 
+                                   text-white py-4 rounded-[1.5rem] font-black italic uppercase 
+                                   border-b-[6px] border-[#1E3A8A] shadow-lg active:translate-y-[2px] active:border-b-[2px] transition-all">
+                        NUEVA IMAGEN
+                    </button>
+                    <button @click="exitToPortal" class="text-slate-400 py-2 font-bold text-xs tracking-widest hover:text-indigo-600">SALIR AL PORTAL</button>
                 </div>
               </div>
             </Transition>
@@ -267,13 +279,13 @@ onMounted(() => {
 
         <Transition name="pop">
           <div v-if="showMathModal" class="math-modal-overlay">
-            <div class="math-card">
+            <div class="math-card shadow-2xl">
               <button @click="showMathModal = false" class="btn-close-modal"><CloseIcon :size="16" /></button>
-              <p class="modal-hint">Resuelve para abrir la pieza</p>
+              <p class="modal-hint font-bold uppercase tracking-tighter opacity-50">Resuelve la pieza</p>
               <div class="math-expression">
-                {{ challenge.a }} <span class="op-symbol">{{ challenge.op }}</span> {{ challenge.b }}
+                {{ challenge.a }} <span class="op-symbol text-indigo-500">{{ challenge.op }}</span> {{ challenge.b }}
               </div>
-              <div class="answer-display-box">
+              <div class="answer-display-box w-full mb-4">
                 <div :class="['answer-text', feedbackStatus]">
                   {{ userAnswer || '?' }}
                 </div>
@@ -288,25 +300,20 @@ onMounted(() => {
 </template>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400&family=Inter:wght@400;700;900&display=swap');
-
-/* LEY DE HIERRO v2.9.2 */
-
 .master-container {
     position: fixed; inset: 0; z-index: 9999;
     display: flex; justify-content: center; align-items: center;
     background-color: #ffffff; overflow: hidden;
-    touch-action: none !important; font-family: 'Inter', sans-serif !important;
+    touch-action: none !important;
 }
 
 .app-canvas {
     display: flex; flex-direction: column; justify-content: space-between;
-    position: relative; overflow: hidden; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative; overflow: hidden; transition: all 0.4s;
     user-select: none; width: 100vw; height: 100dvh;
 }
 
 @media (min-width: 1025px) { .app-canvas { width: 1024px; height: 90dvh; border-radius: 45px; border: 8px solid white; box-shadow: 0 40px 100px rgba(0,0,0,0.2); } }
-@media (min-width: 600px) and (max-width: 1024px) { .app-canvas { width: 85vw; height: 95dvh; border-radius: 35px; } }
 
 .header-puzzle {
     width: 100%; display: flex; align-items: center; justify-content: space-between;
@@ -321,12 +328,12 @@ onMounted(() => {
 
 .session-loot-capsule {
     display: flex; align-items: center; background: white; padding: 6px 16px;
-    border-radius: 9999px; border: 2px solid #f1f5f9; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    border-radius: 9999px; border: 2px solid #f1f5f9;
 }
 
 .loot-indicator { display: flex; align-items: center; gap: 6px; padding: 0 10px; }
-.loot-indicator img { width: 1.2rem; height: 1.2rem; object-fit: contain; }
-.loot-indicator span { font-weight: 900; font-size: 0.95rem; color: #1e293b; }
+.loot-indicator img { width: 1.2rem; height: 1.2rem; }
+.loot-indicator span { font-weight: 900; color: #1e293b; }
 
 .btn-close-puzzle { background: #fee2e2; color: #ef4444; width: 36px; height: 36px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; }
 
@@ -336,36 +343,24 @@ onMounted(() => {
     overflow: hidden; border: 6px solid white;
 }
 
-.rules-panel-puzzle {
-    width: 92%; max-width: 400px; background: white; padding: 1.5rem;
-    border-radius: 2rem; border: 2px solid #e2e8f0; position: relative;
-}
+.rules-panel-puzzle { width: 92%; max-width: 400px; background: white; padding: 1.5rem; border-radius: 2rem; border: 2px solid #e2e8f0; position: relative; }
 .rules-badge { position: absolute; top: -12px; left: 1.5rem; background: #6366f1; color: white; font-size: 10px; font-weight: 900; padding: 4px 12px; border-radius: 9999px; }
 
-.btn-action-primary { background: #4f46e5; color: white; border-radius: 2rem; font-weight: 900; transition: all 0.1s; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-.btn-action-primary:active { transform: translateY(5px); }
-
-/* VICTORY OVERLAY */
 .victory-overlay {
     position: absolute; inset: 0; z-index: 300; background: white;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     padding: 2rem; text-align: center;
 }
-.victory-title { font-size: 2.2rem; font-weight: 900; color: #312e81; font-style: italic; line-height: 1; margin-bottom: 2rem; }
+.victory-title { font-size: 2.2rem; line-height: 1; margin-bottom: 2rem; }
 
-.prize-card { background: #f5f3ff; border: 4px solid #ede9fe; border-radius: 3rem; padding: 2rem; width: 100%; max-width: 280px; margin-bottom: 2rem; box-shadow: inset 0 2px 8px rgba(0,0,0,0.05); }
+.prize-card { background: #f5f3ff; border: 4px solid #ede9fe; border-radius: 3rem; padding: 2rem; width: 100%; max-width: 280px; margin-bottom: 2rem; }
 .prize-item { display: flex; flex-direction: column; align-items: center; }
-.prize-item img { width: 2.5rem; height: 2.5rem; margin-bottom: 4px; }
+.prize-item img { width: 2.5rem; height: 2.5rem; }
 .prize-item span { font-size: 1.5rem; font-weight: 900; color: #4338ca; }
 
-.btn-victory-primary { width: 100%; background: #f59e0b; color: white; font-weight: 900; border-radius: 1.25rem; box-shadow: 0 6px 0 #b45309; }
-.btn-victory-primary:active { transform: translateY(3px); box-shadow: 0 3px 0 #b45309; }
-.btn-victory-secondary { width: 100%; background: #94a3b8; color: white; border-radius: 1.25rem; }
-
-/* MODALES */
 .math-modal-overlay { position: absolute; inset: 0; z-index: 250; background: rgba(30, 27, 75, 0.5); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; padding: 1.5rem; }
 .math-card { background-color: white; border-radius: 2.5rem; padding: 1.5rem; width: 100%; max-width: 320px; border-top: 8px solid #6366f1; display: flex; flex-direction: column; align-items: center; position: relative; }
-.btn-close-modal { position: absolute; top: 1rem; right: 1rem; background: #f1f5f9; padding: 0.5rem; border-radius: 9999px; color: #64748b; }
+.btn-close-modal { position: absolute; top: 1rem; right: 1rem; background: #f1f5f9; padding: 0.5rem; border-radius: 9999px; }
 .math-expression { font-size: 3rem; font-weight: 900; color: #4338ca; font-style: italic; margin-bottom: 1rem; letter-spacing: -2px; }
 .answer-text { width: 100%; text-align: center; font-size: 4rem; font-weight: 900; padding: 0.5rem 0; border-radius: 1.5rem; border: 4px solid #f1f5f9; background-color: #f8fafc; }
 .answer-text.correct { background: #f0fdf4; border-color: #4ade80; color: #166534; }

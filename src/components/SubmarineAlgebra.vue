@@ -1,10 +1,10 @@
 <script setup>
 /** * ARCHIVO: SubmarineAlgebra.vue
- * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.2 + REGLAS EXPLÍCITAS + BOTÓN 3D
+ * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.2 + BOTÓN 3D AZUL + ICONO QUIRÚRGICO
  * LOGICA: Burbujas ascendentes + Inyección Atómica al Banco Central.
  */
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
-import { Trophy, X, Star, PlayCircle, RotateCcw, BookOpen, Waves, Target, Coins, Zap } from 'lucide-vue-next';
+import { Trophy, X, Star, PlayCircle, RotateCcw, BookOpen, Waves, Target, Coins, Zap, ChevronRight } from 'lucide-vue-next';
 import { gsap } from 'gsap';
 import { useGamificationStore } from '@/stores/useGamificationStore';
 
@@ -166,7 +166,7 @@ onBeforeUnmount(() => { clearInterval(bubbleInterval); soundAmbient.pause(); });
 </script>
 
 <template>
-  <div class="master-container">
+  <div class="master-container font-inter">
     <main class="app-canvas submarino-bg shadow-smartphone">
       
       <header v-if="gameState === 'playing'" class="header-standard shrink-0">
@@ -189,45 +189,51 @@ onBeforeUnmount(() => { clearInterval(bubbleInterval); soundAmbient.pause(); });
 
         <div class="flex flex-col items-center mt-6">
           <div class="text-7xl mb-4 animate-bounce">🌊</div>
-          <h1 class="game-title text-white text-4xl uppercase font-black italic">Submarine Algebra</h1>
+          <h1 class="game-title text-white text-4xl uppercase font-black italic tracking-tighter">Submarine Algebra</h1>
         </div>
 
         <div class="rules-panel shadow-2xl w-full bg-[#0f172a]/90 border-2 border-[#38bdf8] backdrop-blur-md">
-          <div class="rules-badge bg-[#fbbf24] text-[#020617] uppercase tracking-tighter">Manual de Inmersión</div>
+          <div class="rules-badge bg-[#fbbf24] text-[#020617] uppercase tracking-tighter font-black">Manual de Inmersión</div>
           <div class="p-6 space-y-6">
             <div class="flex gap-4 items-start text-white">
-                <div class="bg-sky-500/20 p-2 rounded-lg shrink-0"><Target class="text-sky-300" size="24" /></div>
+                <div class="bg-sky-500/20 p-2.5 rounded-lg shrink-0"><Target class="text-sky-300" size="24" /></div>
                 <div>
-                  <p class="font-black text-base text-sky-100">Calcula la incógnita X</p>
-                  <p class="text-xs text-slate-300 leading-snug">Observa la operación en la pizarra y busca el número que falta.</p>
+                  <p class="font-black text-base text-sky-100 leading-tight">Calcula la incógnita X</p>
+                  <p class="text-xs text-slate-300 leading-snug">Observa la pizarra y busca el número que falta en la operación.</p>
                 </div>
             </div>
             <div class="flex gap-4 items-start text-white">
-                <div class="bg-amber-500/20 p-2 rounded-lg shrink-0"><Zap class="text-amber-300" size="24" /></div>
+                <div class="bg-amber-500/20 p-2.5 rounded-lg shrink-0"><Zap class="text-amber-300" size="24" /></div>
                 <div>
-                  <p class="font-black text-base text-amber-100">Explota las burbujas</p>
-                  <p class="text-xs text-slate-300 leading-snug">Toca la burbuja con el resultado correcto antes de que suba a la superficie.</p>
+                  <p class="font-black text-base text-amber-100 leading-tight">Explota las burbujas</p>
+                  <p class="text-xs text-slate-300 leading-snug">Toca el resultado correcto antes de que las burbujas escapen.</p>
                 </div>
             </div>
             <div class="flex gap-4 items-start text-white">
-                <div class="bg-green-500/20 p-2 rounded-lg shrink-0"><Coins class="text-green-300" size="24" /></div>
+                <div class="bg-green-500/20 p-2.5 rounded-lg shrink-0"><Coins class="text-green-300" size="24" /></div>
                 <div>
-                  <p class="font-black text-base text-green-100">Gana tu Botín</p>
-                  <p class="text-xs text-slate-300 leading-snug">Suma: 🥉 | Resta: 5🥉 | Multi: 🥈 | Divi: 🥇. ¡Junta 10 aciertos para ganar!</p>
+                  <p class="font-black text-base text-green-100 leading-tight">Gana tu Botín</p>
+                  <p class="text-xs text-slate-300 leading-snug">Junta 10 aciertos para ganar. ¡Suma: 🥉 | Resta: 🥈 | Multi: 🥇!</p>
                 </div>
             </div>
           </div>
         </div>
 
-        <button @click.prevent.stop="startGame" class="btn-action-primary group">
-            <span class="flex items-center">
-                ¡EMPEZAR MISIÓN! <PlayCircle class="ml-3 group-hover:rotate-12 transition-transform" size="26" />
-            </span>
+        <button @click.prevent.stop="startGame" 
+                class="w-[90%] max-w-[420px] bg-gradient-to-b from-[#3B82F6] to-[#1D4ED8] 
+                       text-white font-black italic text-xl uppercase rounded-[2rem] 
+                       border-b-[8px] border-[#1E3A8A] shadow-lg shadow-[#1D4ED8]/40 
+                       active:translate-y-[4px] active:border-b-[4px] transition-all 
+                       flex items-center justify-center py-4 group mb-4">
+            ¡EMPEZAR MISIÓN! 
+            <div class="ml-3 bg-white p-1 rounded-full flex items-center justify-center shadow-inner">
+                <ChevronRight class="text-[#1D4ED8]" size="20" stroke-width="4" />
+            </div>
         </button>
       </div>
 
-      <div v-else-if="gameState === 'playing'" class="game-content flex-1 flex flex-col items-center py-4">
-        <div class="equation-board">
+      <div v-else-if="gameState === 'playing'" class="game-content flex-1 flex flex-col items-center py-4 relative">
+        <div class="equation-board z-20">
           <div class="equation-badge-surgical">Nivel: {{ levelName }}</div>
           <h2 v-if="currentEquation" class="equation-text shadow-xl"><span v-html="formattedEquation"></span></h2>
         </div>
@@ -244,12 +250,12 @@ onBeforeUnmount(() => { clearInterval(bubbleInterval); soundAmbient.pause(); });
         </div>
       </div>
 
-      <div v-else class="flex-1 flex flex-col items-center justify-center p-6 bg-slate-950 text-center relative overflow-hidden uppercase italic">
+      <div v-else class="flex-1 flex flex-col items-center justify-center p-6 bg-slate-950 text-center relative overflow-hidden">
         <div class="ocean-area pointer-events-none opacity-20">
            <div v-for="bubble in bubbles" :key="bubble.id" class="bubble" :style="{ left: bubble.x + 'px', bottom: bubble.y + 'px', width: bubble.size + 'px', height: bubble.size + 'px' }">{{ bubble.value }}</div>
         </div>
 
-        <div class="bg-white p-8 rounded-[3rem] border-4 border-[#fbbf24] shadow-2xl flex flex-col items-center w-full max-w-[380px] z-[100] animate-fade-in">
+        <div class="bg-white p-8 rounded-[3rem] border-4 border-[#fbbf24] shadow-2xl flex flex-col items-center w-full max-w-[380px] z-[100] animate-fade-in uppercase italic">
           <Trophy size="80" class="text-[#fbbf24] mb-4 animate-bounce drop-shadow-lg" />
           <h2 class="text-3xl font-black text-indigo-900 mb-2">¡MISIÓN LOGRADA!</h2>
           
@@ -260,10 +266,11 @@ onBeforeUnmount(() => { clearInterval(bubbleInterval); soundAmbient.pause(); });
           </div>
 
           <div class="w-full flex flex-col gap-4">
-            <button @click.prevent.stop="resetGame" class="btn-action-gold-surgical">
+            <button @click.prevent.stop="resetGame" 
+                    class="w-full py-4 rounded-[2rem] text-xl font-black text-white bg-gradient-to-b from-[#3B82F6] to-[#1D4ED8] border-b-[8px] border-[#1E3A8A] shadow-lg active:translate-y-[4px] active:border-b-[4px] transition-all flex items-center justify-center">
               <RotateCcw size="24" class="mr-2" /> NUEVA RONDA
             </button>
-            <button @click.prevent.stop="emit('close')" class="w-full bg-slate-100 text-slate-500 py-4 rounded-2xl font-black border-2 border-slate-200 active:translate-y-1 transition-all">
+            <button @click.prevent.stop="emit('close')" class="text-slate-400 py-1 font-black text-sm hover:text-indigo-600 tracking-widest opacity-70">
               TERMINAR
             </button>
           </div>
@@ -288,6 +295,7 @@ onBeforeUnmount(() => { clearInterval(bubbleInterval); soundAmbient.pause(); });
 .loot-item img { width: 1.2rem; height: 1.2rem; object-fit: contain; }
 .btn-close-circle { background: #fee2e2; color: #ef4444; width: 36px; height: 36px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
 
+.equation-board { text-align: center; width: 100%; padding: 0 20px; }
 .equation-badge-surgical { color: #ffffff; font-weight: 900; text-align: center; text-transform: uppercase; letter-spacing: 0.15em; font-size: 1rem; margin-bottom: 1rem; text-shadow: 0 4px 8px rgba(0,0,0,0.6); }
 .equation-text { background: rgba(15, 23, 42, 0.9); display: inline-flex; align-items: center; justify-content: center; min-height: 100px; padding: 15px 45px; border-radius: 2rem; color: white; font-size: 2.8rem; font-weight: 900; border: 3px solid #38bdf8; }
 
@@ -297,50 +305,7 @@ onBeforeUnmount(() => { clearInterval(bubbleInterval); soundAmbient.pause(); });
 :deep(.chalk-x) { font-family: 'Caveat', cursive; color: #fbbf24; font-size: 5rem; filter: drop-shadow(0px 0px 4px rgba(251, 191, 36, 0.5)); margin: 0 10px; }
 
 .rules-panel { border-radius: 2.5rem; position: relative; margin-top: 1rem; }
-.rules-badge { position: absolute; top: -12px; left: 1.5rem; font-size: 10px; font-weight: 900; padding: 4px 12px; border-radius: 9999px; }
-
-/* BOTÓN REDUCIDO CON RELIEVE 3D */
-.btn-action-primary {
-  background: linear-gradient(to bottom, #22c55e, #16a34a);
-  color: white;
-  padding: 1rem 2.2rem;
-  border-radius: 2.5rem;
-  font-weight: 900;
-  font-size: 1.25rem;
-  font-style: italic;
-  border: none;
-  border-bottom: 8px solid #15803d;
-  box-shadow: 0 8px 18px rgba(22, 163, 74, 0.4);
-  transition: all 0.1s;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 90%;
-  max-width: 420px;
-}
-.btn-action-primary:active {
-  transform: translateY(4px);
-  border-bottom-width: 4px;
-  box-shadow: 0 4px 10px rgba(22, 163, 74, 0.3);
-}
-
-.btn-action-gold-surgical {
-  background: linear-gradient(to bottom, #fbbf24, #f59e0b);
-  color: #020617;
-  padding: 1rem;
-  border-radius: 1.5rem;
-  font-weight: 900;
-  font-size: 1.2rem;
-  border: none;
-  border-bottom: 8px solid #b45309;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  transition: all 0.1s;
-}
-.btn-action-gold-surgical:active { transform: translateY(4px); border-bottom-width: 2px; }
+.rules-badge { position: absolute; top: -12px; left: 1.5rem; font-size: 11px; font-weight: 900; padding: 4px 15px; border-radius: 9999px; }
 
 .game-title { font-weight: 900; text-transform: uppercase; font-style: italic; letter-spacing: -0.05em; }
 .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }

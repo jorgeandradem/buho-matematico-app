@@ -1,10 +1,10 @@
 <script setup>
 /** * ARCHIVO: RunnerChallenge.vue
- * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.2 + REGLAS DIDÁCTICAS
+ * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.2 + BOTÓN 3D AZUL + ICONO QUIRÚRGICO
  * LOGICA: Runner Matemático (Física de Gravedad) + Navegación Blindada
  */
 import { ref, onMounted, onUnmounted, computed } from 'vue';
-import { X as CloseIcon, Zap, Heart, Trophy, Cloud, AlertCircle, MousePointer2, PlayCircle } from 'lucide-vue-next';
+import { X as CloseIcon, Zap, Heart, Trophy, Cloud, AlertCircle, MousePointer2, PlayCircle, ChevronRight } from 'lucide-vue-next';
 import SimpleConfetti from './SimpleConfetti.vue';
 import CoinRain from './CoinRain.vue';
 import { useGamificationStore } from '../stores/useGamificationStore';
@@ -15,7 +15,7 @@ const emit = defineEmits(['close', 'win']);
 const store = useGamificationStore();
 
 // --- 1. ESTADO DEL JUEGO ---
-const gameState = ref('rules'); // 'rules' | 'playing' | 'finished'
+const gameState = ref('rules'); 
 const QUESTIONS_COUNT = 10;
 const colorPalette = ['#3b82f6', '#22c55e', '#eab308', '#ef4444', '#a855f7', '#ec4899', '#f97316', '#06b6d4', '#8b5cf6', '#10b981'];
 
@@ -197,7 +197,7 @@ onUnmounted(() => { if (gameLoopId) cancelAnimationFrame(gameLoopId); });
 </script>
 
 <template>
-  <div class="master-container" @touchstart="jump" @mousedown="jump">
+  <div class="master-container font-inter" @touchstart="jump" @mousedown="jump">
     <main class="app-canvas !bg-sky-400 shadow-smartphone">
         
         <CoinRain v-if="showCoinRain" type="gold" :count="40" class="z-[400]" />
@@ -210,11 +210,11 @@ onUnmounted(() => { if (gameLoopId) cancelAnimationFrame(gameLoopId); });
 
         <header v-if="gameState === 'playing'" class="header-runner shrink-0">
             <div class="flex items-center gap-2">
-                <div class="status-pill bg-black/30 text-white">
+                <div class="status-pill bg-black/30 text-white border border-white/20 backdrop-blur-sm px-3 py-1 rounded-full">
                     <Heart size="18" class="text-red-500 fill-current animate-pulse" />
-                    <span class="font-black text-xl">{{ lives }}</span>
+                    <span class="font-black text-xl ml-1">{{ lives }}</span>
                 </div>
-                <div class="trophy-counter-runner">
+                <div class="trophy-counter-runner bg-white/90 backdrop-blur-sm border-2 border-yellow-400 px-3 py-1 rounded-full flex items-center gap-2">
                     <Trophy size="20" class="text-yellow-500" />
                     <span class="font-black text-xl text-indigo-900">{{ score }}/{{ QUESTIONS_COUNT }}</span>
                 </div>
@@ -236,31 +236,39 @@ onUnmounted(() => { if (gameLoopId) cancelAnimationFrame(gameLoopId); });
                     <CloseIcon size="24" stroke-width="3" />
                 </button>
 
-                <div class="flex flex-col items-center mt-6">
+                <div class="flex flex-col items-center mt-6 text-center">
                     <div class="text-7xl mb-2 drop-shadow-xl animate-float">🦉</div>
-                    <h1 class="game-title text-3xl text-white drop-shadow-md">VUELO MATEMÁTICO</h1>
+                    <h1 class="game-title text-4xl text-white drop-shadow-lg font-black italic uppercase">Vuelo Matemático</h1>
                 </div>
 
                 <div class="rules-panel-runner shadow-2xl w-full">
-                    <div class="rules-badge-runner">MANUAL DE VUELO</div>
+                    <div class="rules-badge-runner uppercase font-black tracking-widest">Manual de Vuelo</div>
                     <div class="flex flex-col gap-5 p-2">
                         <div class="flex gap-4 items-start">
-                            <div class="bg-blue-100 p-2 rounded-xl"><MousePointer2 class="text-blue-600" size="20" /></div>
-                            <p class="text-sm font-bold text-slate-600">Toca la pantalla para que el búho **salte** y no caiga.</p>
+                            <div class="bg-blue-100 p-2.5 rounded-xl"><MousePointer2 class="text-blue-600" size="20" /></div>
+                            <p class="text-sm font-bold text-slate-700 leading-tight">Toca la pantalla para que el búho **salte** y no caiga.</p>
                         </div>
                         <div class="flex gap-4 items-start">
-                            <div class="bg-green-100 p-2 rounded-xl"><Zap class="text-green-600" size="20" /></div>
-                            <p class="text-sm font-bold text-slate-600">Atraviesa el portal que tenga el **resultado correcto** de la operación.</p>
+                            <div class="bg-green-100 p-2.5 rounded-xl"><Zap class="text-green-600" size="20" /></div>
+                            <p class="text-sm font-bold text-slate-700 leading-tight">Atraviesa el portal que tenga el **resultado correcto**.</p>
                         </div>
                         <div class="flex gap-4 items-start">
-                            <div class="bg-red-100 p-2 rounded-xl"><Heart class="text-red-600" size="20" /></div>
-                            <p class="text-sm font-bold text-slate-600">Tienes **3 vidas**. ¡Evita los portales falsos para ganar el botín máximo!</p>
+                            <div class="bg-red-100 p-2.5 rounded-xl"><Heart class="text-red-600" size="20" /></div>
+                            <p class="text-sm font-bold text-slate-700 leading-tight">Tienes **3 vidas**. ¡Evita los portales falsos!</p>
                         </div>
                     </div>
                 </div>
 
-                <button @click="startGame" class="btn-action-primary w-full py-5 text-xl uppercase italic shadow-[0_6px_0_rgb(30,58,138)]">
-                    ¡INICIAR VUELO! <PlayCircle class="ml-2" />
+                <button @click="startGame" 
+                        class="w-[90%] max-w-[420px] bg-gradient-to-b from-[#3B82F6] to-[#1D4ED8] 
+                               text-white font-black italic text-xl uppercase rounded-[2rem] 
+                               border-b-[8px] border-[#1E3A8A] shadow-lg shadow-[#1D4ED8]/40 
+                               active:translate-y-[4px] active:border-b-[4px] transition-all 
+                               flex items-center justify-center py-4 group">
+                    ¡INICIAR VUELO! 
+                    <div class="ml-3 bg-white p-1 rounded-full flex items-center justify-center shadow-inner">
+                        <ChevronRight class="text-[#1D4ED8]" size="20" stroke-width="4" />
+                    </div>
                 </button>
             </div>
 
@@ -297,9 +305,9 @@ onUnmounted(() => { if (gameLoopId) cancelAnimationFrame(gameLoopId); });
               <div v-if="gameState === 'finished'" class="victory-overlay animate-fade-in uppercase">
                 <SimpleConfetti />
                 <Trophy class="w-20 h-20 text-amber-500 mb-4 drop-shadow-2xl animate-bounce" />
-                <h2 class="victory-title">¡Vuelo Legendario!</h2>
+                <h2 class="victory-title text-indigo-950 font-black italic">¡Vuelo Legendario!</h2>
                 
-                <div class="prize-card">
+                <div class="prize-card border-b-[10px] border-indigo-100 bg-white">
                    <div class="flex justify-around items-center w-full">
                       <div class="prize-item" :class="sessionCoins.gold > 0 ? 'opacity-100' : 'opacity-20'"><img src="/images/coin-gold.png" /><span>+{{ sessionCoins.gold }}</span></div>
                       <div class="prize-item" :class="sessionCoins.silver > 0 ? 'opacity-100' : 'opacity-20'"><img src="/images/coin-silver.png" /><span>+{{ sessionCoins.silver }}</span></div>
@@ -308,8 +316,13 @@ onUnmounted(() => { if (gameLoopId) cancelAnimationFrame(gameLoopId); });
                 </div>
 
                 <div class="flex flex-col gap-4 w-full max-w-[280px]">
-                    <button @click="startGame" class="btn-victory-main py-4 uppercase font-black tracking-widest italic">OTRA CARRERA</button>
-                    <button @click="closeRunner" class="btn-victory-back py-4 uppercase font-bold text-xs tracking-widest">SALIR AL PORTAL</button>
+                    <button @click="startGame" 
+                            class="w-full bg-gradient-to-b from-[#3B82F6] to-[#1D4ED8] 
+                                   text-white py-4 rounded-[1.5rem] font-black italic uppercase 
+                                   border-b-[6px] border-[#1E3A8A] shadow-lg active:translate-y-[2px] active:border-b-[2px] transition-all">
+                        OTRA CARRERA
+                    </button>
+                    <button @click="closeRunner" class="text-slate-400 py-2 font-bold text-xs tracking-widest hover:text-indigo-600">SALIR AL PORTAL</button>
                 </div>
               </div>
             </Transition>
@@ -319,47 +332,37 @@ onUnmounted(() => { if (gameLoopId) cancelAnimationFrame(gameLoopId); });
 </template>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400&family=Inter:wght@400;700;900&display=swap');
-
-.master-container { position: fixed; inset: 0; z-index: 9999; display: flex; justify-content: center; align-items: center; background-color: #ffffff; overflow: hidden; touch-action: none !important; font-family: 'Inter', sans-serif !important; }
-.app-canvas { display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); user-select: none; touch-action: none !important; width: 100vw; height: 100dvh; }
+.master-container { position: fixed; inset: 0; z-index: 9999; display: flex; justify-content: center; align-items: center; background-color: #ffffff; overflow: hidden; touch-action: none !important; }
+.app-canvas { display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; transition: all 0.4s; user-select: none; touch-action: none !important; width: 100vw; height: 100dvh; }
 
 @media (min-width: 1025px) { .app-canvas { width: 1024px; height: 90dvh; border-radius: 45px; border: 8px solid white; box-shadow: 0 40px 100px rgba(0,0,0,0.3); } }
-@media (min-width: 600px) and (max-width: 1024px) { .app-canvas { width: 85vw; height: 95dvh; border-radius: 35px; } }
 
 .header-runner { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1.25rem; background: white; border-bottom: 2px solid #f1f5f9; z-index: 100; }
-.status-pill { display: flex; align-items: center; gap: 0.5rem; padding: 4px 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); }
-.trophy-counter-runner { display: flex; align-items: center; gap: 0.5rem; background: #fefce8; border: 2px solid #fef08a; padding: 4px 12px; border-radius: 12px; }
+.trophy-counter-runner { display: flex; align-items: center; gap: 0.5rem; }
 
 .session-loot-capsule {
     display: flex; align-items: center; background: white; padding: 6px 16px;
-    border-radius: 9999px; border: 2px solid #f1f5f9; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    border-radius: 9999px; border: 2px solid #f1f5f9;
 }
 
 .loot-indicator { display: flex; align-items: center; gap: 6px; padding: 0 10px; }
 .loot-indicator img { width: 1.2rem; height: 1.2rem; object-fit: contain; }
-.loot-indicator span { font-weight: 900; font-size: 0.95rem; color: #1e293b; }
+.loot-indicator span { font-weight: 900; color: #1e293b; }
 
 .btn-close-runner { background: #fee2e2; color: #ef4444; width: 36px; height: 36px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; }
 
-.op-panel-runner { border-width: 4px; padding: 1rem 2rem; border-radius: 2.5rem; display: inline-block; min-width: 240px; box-shadow: 0 15px 30px rgba(0,0,0,0.2); }
+.op-panel-runner { border-width: 4px; padding: 1rem 2rem; border-radius: 2.5rem; display: inline-block; min-width: 240px; }
 .portal-circle { width: 100%; height: 100%; border-radius: 9999px; border-width: 7px; display: flex; align-items: center; justify-content: center; }
 
-.rules-panel-runner { width: 92%; max-width: 400px; background: white; padding: 1.5rem; border-radius: 2rem; border: 2px solid #e2e8f0; position: relative; }
+.rules-panel-runner { width: 92%; max-width: 400px; background: white; padding: 1.5rem; border-radius: 2.5rem; border: 2px solid #e2e8f0; position: relative; }
 .rules-badge-runner { position: absolute; top: -12px; left: 1.5rem; background: #4f46e5; color: white; font-size: 10px; font-weight: 900; padding: 4px 12px; border-radius: 9999px; }
 
-.btn-action-primary { background: #4f46e5; color: white; border-radius: 2rem; font-weight: 900; transition: all 0.1s; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-.btn-action-primary:active { transform: translateY(5px); }
-
-.victory-overlay { position: absolute; inset: 0; z-index: 300; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; text-align: center; }
-.victory-title { font-size: 2.5rem; font-weight: 900; color: #312e81; font-style: italic; line-height: 1; margin-bottom: 2rem; }
+.victory-overlay { position: absolute; inset: 0; z-index: 300; background: #f8fafc; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; text-align: center; }
+.victory-title { font-size: 2.5rem; line-height: 1; margin-bottom: 2rem; }
 .prize-card { background: #f5f3ff; border: 4px solid #ede9fe; border-radius: 2.5rem; padding: 1.5rem; width: 100%; max-width: 280px; margin-bottom: 2rem; }
 .prize-item { display: flex; flex-direction: column; align-items: center; }
-.prize-item img { width: 2.5rem; height: 2.5rem; margin-bottom: 4px; }
+.prize-item img { width: 2.5rem; height: 2.5rem; }
 .prize-item span { font-size: 1.5rem; font-weight: 900; color: #4338ca; }
-
-.btn-victory-main { width: 100%; background: #f59e0b; color: white; font-weight: 900; border-radius: 1.25rem; box-shadow: 0 6px 0 #b45309; }
-.btn-victory-back { width: 100%; background: #94a3b8; color: white; border-radius: 1.25rem; }
 
 .game-title { font-weight: 900; color: #312e81; text-transform: uppercase; font-style: italic; letter-spacing: -0.05em; }
 .animate-float { animation: float 3s ease-in-out infinite; }

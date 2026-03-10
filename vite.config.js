@@ -9,9 +9,10 @@ export default defineConfig({
     vue(),
     vueDevTools(),
     VitePWA({
-      // 🚀 ESTRATEGIA DE AUTO-ACTUALIZACIÓN
-      // Cambiado de 'prompt' a 'autoUpdate' para que el Service Worker se actualice solo.
-      registerType: 'autoUpdate', 
+      // 🔑 CLAVE DE SINCRONIZACIÓN: 
+      // Usamos 'prompt' para que el Service Worker espere nuestra orden 
+      // desde el botón "¡REINICIAR AHORA!" de ReloadPrompt.vue.
+      registerType: 'prompt', 
       
       injectRegister: 'auto',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
@@ -21,7 +22,7 @@ export default defineConfig({
         description: 'Mentoría Matemática con IA para todas las edades',
         theme_color: '#4f46e5',
         background_color: '#4f46e5',
-        display: 'standalone', // Obligatorio para que iOS lo trate como App
+        display: 'standalone',
         orientation: 'portrait',
         icons: [
           {
@@ -43,20 +44,15 @@ export default defineConfig({
         ]
       },
       workbox: {
-        // 🔥 Limpia automáticamente versiones antiguas de la caché
         cleanupOutdatedCaches: true,
         
-        // 🚀 Estas dos líneas permiten la activación inmediata
-        // El Service Worker nuevo no esperará a que se cierren las pestañas
+        // 🚀 Aunque sea modo 'prompt', estas dos opciones ayudan a que 
+        // la transición sea inmediata una vez que tocamos el botón.
         skipWaiting: true, 
         clientsClaim: true,
 
-        // 🛡️ Evita conflictos con las rutas de autenticación de Firebase
         navigateFallbackDenylist: [/^\/__/],
-        
         globPatterns: ['**/*.{js,css,html,ico,png,svg,json}'],
-        
-        // Límite de 5MB para soportar los recursos de los juegos (Soccer, Submarine, etc.)
         maximumFileSizeToCacheInBytes: 5000000 
       },
       devOptions: {

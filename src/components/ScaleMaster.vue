@@ -1,10 +1,10 @@
 <script setup>
 /** * ARCHIVO: ScaleMaster.vue
- * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.2 + BOTÓN 3D RELIEVE
+ * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.2 + SUSTITUCIÓN MEDALLA PREMIUM
  * LOGICA: Desafío de equilibrio físico + Recompensas por nivelación.
  */
 import { ref, computed, watch, onMounted } from 'vue';
-import { X, Trophy, Scale, CheckCircle2, AlertCircle, PlayCircle, Coins, TrendingUp, TrendingDown, BookOpen } from 'lucide-vue-next';
+import { X, Trophy, Scale, CheckCircle2, AlertCircle, PlayCircle, Coins, BookOpen, ChevronRight, RotateCcw } from 'lucide-vue-next';
 import { gsap } from 'gsap'; 
 import { useGamificationStore } from '@/stores/useGamificationStore'; 
 
@@ -193,18 +193,24 @@ const triggerRemove = (id, event) => {
         <h1 class="game-title text-4xl italic uppercase font-black text-indigo-900">Scale Master</h1>
         
         <div class="rules-panel-large shadow-2xl">
-          <div class="rules-badge">MANUAL DEL EQUILIBRIO</div>
-          <div class="rules-grid-content">
-            <div class="rule-row"><CheckCircle2 class="text-green-500" size="24" /><p class="text-sm font-bold">Iguala el peso objetivo colocando pesas en el plato derecho.</p></div>
-            <div class="rule-row"><AlertCircle class="text-indigo-500" size="24" /><p class="text-sm font-bold">Si te pasas del peso, toca una pesa en el plato para eliminarla.</p></div>
-            <div class="rule-row"><Coins class="text-amber-500" size="24" /><p class="text-sm font-bold">Niveles 7 al 10 activan el **Modo Oro** con mejores premios.</p></div>
+          <div class="rules-badge uppercase font-black tracking-widest">Manual del Equilibrio</div>
+          <div class="rules-grid-content p-2">
+            <div class="rule-row"><CheckCircle2 class="text-green-500" size="24" /><p class="text-sm font-bold text-slate-700 leading-tight">Iguala el peso objetivo colocando pesas en el plato derecho.</p></div>
+            <div class="rule-row"><AlertCircle class="text-indigo-500" size="24" /><p class="text-sm font-bold text-slate-700 leading-tight">Si te pasas del peso, toca una pesa en el plato para eliminarla.</p></div>
+            <div class="rule-row"><Coins class="text-amber-500" size="24" /><p class="text-sm font-bold text-slate-700 leading-tight">Niveles 7 al 10 activan el **Modo Oro** con mejores premios.</p></div>
           </div>
         </div>
         
-        <button @click="startGame" class="btn-action-primary group">
-          <span class="flex items-center">
-            ¡AL SUPERMERCADO! <PlayCircle class="ml-3 group-hover:rotate-12 transition-transform" size="28" />
-          </span>
+        <button @click="startGame" 
+                class="w-[90%] max-w-[420px] bg-gradient-to-b from-[#3B82F6] to-[#1D4ED8] 
+                       text-white font-black italic text-xl uppercase rounded-[2rem] 
+                       border-b-[8px] border-[#1E3A8A] shadow-lg shadow-[#1D4ED8]/40 
+                       active:translate-y-[4px] active:border-b-[4px] transition-all 
+                       flex items-center justify-center py-4 group mb-6">
+          ¡AL SUPERMERCADO! 
+          <div class="ml-3 bg-white p-1 rounded-full flex items-center justify-center shadow-inner">
+            <ChevronRight class="text-[#1D4ED8]" size="20" stroke-width="4" />
+          </div>
         </button>
       </div>
 
@@ -254,10 +260,13 @@ const triggerRemove = (id, event) => {
         </div>
       </div>
 
-      <div v-else class="flex-1 flex flex-col items-center justify-center p-6 bg-indigo-950 text-center font-inter uppercase">
-          <div class="bg-white/10 p-8 rounded-[60px] border-4 border-amber-400 backdrop-blur-sm flex flex-col items-center w-full max-w-sm animate-fade-in">
-            <div class="w-24 h-24 bg-amber-400 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl shadow-amber-500/20"><Trophy size="50" class="text-indigo-950" /></div>
-            <h2 class="text-3xl font-black text-white mb-4 italic tracking-tight">¡ESCALA DOMINADA!</h2>
+      <div v-else class="flex-1 flex flex-col items-center justify-center p-6 bg-indigo-950 text-center font-inter uppercase italic">
+          <div class="bg-white/10 p-8 rounded-[4rem] border-4 border-amber-400 backdrop-blur-sm flex flex-col items-center w-full max-w-sm animate-fade-in relative shadow-2xl">
+            
+            <img :src="getAssetUrl('medal-gold.png')" class="w-40 h-40 object-contain mb-4 animate-bounce drop-shadow-2xl" />
+            
+            <h2 class="text-3xl font-black text-white mb-2 italic tracking-tight">¡ESCALA DOMINADA!</h2>
+            
             <div class="prize-card-large w-full bg-white/10 rounded-3xl p-6 mb-8 text-center border border-white/20">
               <p class="text-[10px] text-white/70 uppercase font-bold tracking-widest mb-3">Tu Botín</p>
               <div class="flex justify-around items-center">
@@ -265,9 +274,13 @@ const triggerRemove = (id, event) => {
                   <div class="flex flex-col items-center"><img src="/images/coin-copper.png" class="w-10 h-10" /><span class="text-xl font-black text-white">+{{ sessionCoins.copper }}</span></div>
               </div>
             </div>
-            <div class="w-full flex flex-col gap-3">
-              <button @click="emit('close')" class="btn-action-finish">SALIR AL PORTAL</button>
-              <button @click="startGame" class="w-full bg-white/10 text-white py-4 rounded-3xl font-black text-lg border-2 border-white/20 active:translate-y-1">VOLVER A JUGAR</button>
+
+            <div class="w-full flex flex-col gap-4">
+              <button @click="startGame" 
+                      class="w-full py-5 rounded-[2rem] text-2xl font-black italic uppercase text-white bg-gradient-to-b from-[#3B82F6] to-[#1D4ED8] border-b-[8px] border-[#1E3A8A] shadow-lg active:translate-y-[4px] active:border-b-[4px] transition-all">
+                VOLVER A JUGAR
+              </button>
+              <button @click="emit('close')" class="text-white/40 py-2 font-black text-sm hover:text-white uppercase tracking-widest">SALIR AL PORTAL</button>
             </div>
           </div>
       </div>
@@ -289,37 +302,6 @@ const triggerRemove = (id, event) => {
 .rules-panel-large { width: 95%; background: white; padding: 2.2rem 1.5rem; border-radius: 2.5rem; border: 2px solid #e2e8f0; position: relative; }
 .rules-badge { position: absolute; top: -12px; left: 1.5rem; background: #4f46e5; color: white; font-size: 10px; font-weight: 900; padding: 4px 12px; border-radius: 9999px; }
 .rule-row { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.4rem; text-align: left; }
-
-/* BOTÓN REDISEÑADO CON RELIEVE 3D */
-.btn-action-primary {
-  background: linear-gradient(to bottom, #22c55e, #16a34a);
-  color: white;
-  padding: 1.4rem 2.8rem;
-  border-radius: 2.5rem;
-  font-weight: 900;
-  font-size: 1.5rem;
-  font-style: italic;
-  border: none;
-  border-bottom: 12px solid #15803d; /* Relieve físico */
-  box-shadow: 0 12px 25px rgba(22, 163, 74, 0.4);
-  transition: all 0.1s;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 90%;
-  max-width: 450px;
-  margin-bottom: 2rem;
-}
-
-.btn-action-primary:active {
-  transform: translateY(8px); /* El botón se hunde */
-  border-bottom: 4px solid #15803d; /* Se comprime la base */
-  box-shadow: 0 4px 10px rgba(22, 163, 74, 0.3);
-}
-
-.btn-action-finish { background: #f59e0b; color: white; width: 100%; padding: 1.2rem; border-radius: 1.5rem; font-weight: 900; font-size: 22px; border: none; border-bottom: 8px solid #b45309; transition: transform 0.1s; }
-.btn-action-finish:active { transform: translateY(4px); border-bottom: 2px solid #b45309; }
 
 .bubble-glow { filter: drop-shadow(0 0 6px rgba(34, 197, 94, 0.6)); }
 .filter-red img { filter: brightness(0.5) sepia(1) hue-rotate(-50deg) saturate(15) !important; transform: scale(1.1); }

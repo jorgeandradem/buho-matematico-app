@@ -1,6 +1,6 @@
 <script setup>
 /** * ARCHIVO: WorldTourChallenge.vue
- * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.2 + CORRECCIÓN DE NIVELACIÓN
+ * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.2 + BOTÓN 3D AZUL + ICONO QUIRÚRGICO
  * LOGICA: Expedición geográfica con transición optimizada y síntesis de voz.
  */
 import { ref, computed, onMounted } from 'vue';
@@ -139,14 +139,9 @@ const handleMissionNext = () => {
 const finishGame = async () => {
   gameState.value = 'finished'; showRain.value = true; playSound('coins');
   
-  // Castigo por errores excesivos
   if (totalErrors.value > 6) sessionCoins.value = { gold: 0, silver: 0, copper: 5 };
 
-  // --- INTERVENCIÓN: LLAMADA ÚNICA PARA EVITAR TRIPLE NIVELACIÓN ---
-  // Subimos nivel y entregamos el oro (o la moneda principal)
   await store.completeWorldTourChallenge('gold', sessionCoins.value.gold);
-  
-  // El resto se añade como monedas directas para no incrementar worldTourLevel 3 veces
   if (sessionCoins.value.silver > 0) await store.addCoins('silver', sessionCoins.value.silver);
   if (sessionCoins.value.copper > 0) await store.addCoins('copper', sessionCoins.value.copper);
   
@@ -197,23 +192,32 @@ const getButtonClass = (opt) => {
             </button>
             <div class="flex flex-col items-center mt-6">
                 <Globe size="80" class="text-indigo-600 mb-4 animate-pulse drop-shadow-xl" />
-                <h1 class="game-title text-center text-4xl uppercase italic">Expedición Mundial</h1>
+                <h1 class="game-title text-center text-4xl uppercase italic font-black text-indigo-900 tracking-tighter">Expedición Mundial</h1>
             </div>
             <div class="rules-panel shadow-2xl w-full">
-                <div class="rules-badge">BITÁCORA DE VIAJE</div>
+                <div class="rules-badge uppercase font-black tracking-widest">Bitácora de Viaje</div>
                 <div class="flex flex-col gap-5 p-2">
                     <div class="flex gap-4 items-start">
-                        <div class="bg-indigo-100 p-2 rounded-xl border border-blue-100"><MapPin class="text-indigo-600" size="20" /></div>
-                        <p class="text-sm font-bold text-slate-600">Escucha el nombre de cada continente al llegar a una nueva **Misión**.</p>
+                        <div class="bg-indigo-100 p-2.5 rounded-xl shrink-0"><MapPin class="text-indigo-600" size="20" /></div>
+                        <p class="text-sm font-bold text-slate-700 leading-tight">Escucha el nombre de cada continente al llegar a una nueva **Misión**.</p>
                     </div>
                     <div class="flex gap-4 items-start">
-                        <div class="bg-green-100 p-2 rounded-xl"><Zap class="text-green-600" size="20" /></div>
-                        <p class="text-sm font-bold text-slate-600">Resuelve las estaciones de trabajo para desbloquear el siguiente país.</p>
+                        <div class="bg-green-100 p-2.5 rounded-xl shrink-0"><Zap class="text-green-600" size="20" /></div>
+                        <p class="text-sm font-bold text-slate-700 leading-tight">Resuelve las estaciones de trabajo para desbloquear el siguiente país.</p>
                     </div>
                 </div>
             </div>
-            <button @click="startChallenge" class="btn-action-primary w-full py-5 text-xl uppercase italic shadow-[0_6px_0_rgb(30,58,138)]">
-                ¡INICIAR MISIÓN! <PlayCircle class="ml-2" />
+            
+            <button @click="startChallenge" 
+                    class="w-[90%] max-w-[420px] bg-gradient-to-b from-[#3B82F6] to-[#1D4ED8] 
+                           text-white font-black italic text-xl uppercase rounded-[2rem] 
+                           border-b-[8px] border-[#1E3A8A] shadow-lg shadow-[#1D4ED8]/40 
+                           active:translate-y-[4px] active:border-b-[4px] transition-all 
+                           flex items-center justify-center py-4 group">
+                ¡INICIAR MISIÓN! 
+                <div class="ml-3 bg-white p-1 rounded-full flex items-center justify-center shadow-inner">
+                    <ChevronRight class="text-[#1D4ED8]" size="20" stroke-width="4" />
+                </div>
             </button>
         </div>
 
@@ -249,17 +253,17 @@ const getButtonClass = (opt) => {
                     <h2 class="font-black text-yellow-400 text-xs tracking-widest uppercase italic">Estaciones de Trabajo</h2>
                   </div>
                   
-                  <div class="flex flex-col gap-4 py-2">
-                    <div v-for="i in [1, 2]" :key="i" class="flex items-center justify-center gap-10 p-2 rounded-3xl transition-all h-[75px]"
+                  <div class="flex flex-col gap-3 py-2">
+                    <div v-for="i in [1, 2]" :key="i" class="flex items-center justify-center gap-4 p-2 rounded-3xl transition-all h-[75px]"
                          :class="step === i ? 'bg-indigo-50 border-2 border-indigo-200 scale-105' : 'opacity-20 grayscale'">
                       
-                      <span class="w-10 h-10 bg-indigo-600 text-white rounded-full flex items-center justify-center font-black text-lg shadow-md shrink-0">{{ i }}</span>
+                      <span class="w-9 h-9 bg-indigo-600 text-white rounded-full flex items-center justify-center font-black text-base shadow-md shrink-0">{{ i }}</span>
                       
-                      <div class="flex items-center gap-8">
+                      <div class="flex items-center gap-1.5">
                         <div v-for="field in ['a', 'op', 'b', 'eq', 'res']" :key="field">
-                          <span v-if="field === 'op'" class="font-black text-indigo-600 text-4xl mx-2">{{ currentChallenge?.pasos[i-1].op === 'x' ? '×' : currentChallenge?.pasos[i-1].op }}</span>
-                          <span v-else-if="field === 'eq'" class="font-black text-slate-300 text-4xl mx-2">=</span>
-                          <div v-else class="w-22 h-16 rounded-2xl flex items-center justify-center font-black text-5xl border-2 shadow-sm"
+                          <span v-if="field === 'op'" class="font-black text-indigo-600 text-2xl mx-1">{{ currentChallenge?.pasos[i-1].op === 'x' ? '×' : currentChallenge?.pasos[i-1].op }}</span>
+                          <span v-else-if="field === 'eq'" class="font-black text-slate-300 text-2xl mx-1">=</span>
+                          <div v-else class="w-16 h-14 rounded-xl flex items-center justify-center font-black text-3xl border-2 shadow-sm"
                                :class="isTarget(i-1, field) ? 'bg-amber-100 border-amber-400 text-amber-700' : 'bg-slate-50 border-slate-100'">
                             {{ displayCell(i-1, field) }}
                           </div>
@@ -279,7 +283,7 @@ const getButtonClass = (opt) => {
             </div>
         </template>
 
-        <div v-else-if="gameState === 'finished'" class="flex-1 flex flex-col items-center justify-center p-6 bg-slate-900 w-full animate-fade-in">
+        <div v-else-if="gameState === 'finished'" class="flex-1 flex flex-col items-center justify-center p-6 bg-slate-900 w-full animate-fade-in relative">
           <CoinRain v-if="showRain" type="gold" class="z-50" />
           <Trophy size="100" class="text-yellow-400 mb-6 animate-bounce drop-shadow-2xl" />
           <h2 class="victory-title text-white text-center mb-8 italic uppercase text-4xl font-black">¡Expedición Lograda!</h2>
@@ -292,8 +296,11 @@ const getButtonClass = (opt) => {
             </div>
           </div>
 
-          <div class="w-full flex flex-col gap-4 max-w-[320px]">
-            <button @click="resetGame" class="w-full bg-indigo-600 text-white py-5 rounded-[2rem] font-black text-2xl shadow-[0_8px_0_rgb(49,46,129)] active:translate-y-2 italic uppercase">Nueva Misión</button>
+          <div class="w-full flex flex-col items-center gap-4 max-w-[320px]">
+            <button @click="resetGame" 
+                    class="w-full py-5 rounded-[2rem] text-2xl font-black italic uppercase text-white bg-gradient-to-b from-[#3B82F6] to-[#1D4ED8] border-b-[8px] border-[#1E3A8A] shadow-lg active:translate-y-[4px] active:border-b-[4px] transition-all">
+              Nueva Misión
+            </button>
             <button @click="emit('close')" class="w-full bg-white/10 text-white py-4 rounded-[2rem] font-black text-lg border-2 border-white/20 active:translate-y-1">SALIR AL PORTAL</button>
           </div>
         </div>
@@ -320,14 +327,11 @@ const getButtonClass = (opt) => {
 .rules-panel { width: 95%; max-width: 420px; background: white; padding: 1.5rem; border-radius: 2.5rem; border: 2px solid #e2e8f0; position: relative; }
 .rules-badge { position: absolute; top: -12px; left: 1.5rem; background: #4f46e5; color: white; font-size: 10px; font-weight: 900; padding: 4px 12px; border-radius: 9999px; }
 
-.btn-action-primary { background: #4f46e5; color: white; border-radius: 2rem; font-weight: 900; transition: all 0.1s; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-.btn-action-primary:active { transform: translateY(5px); }
+/* .btn-action-primary eliminado para usar Tailwind directo según norma v2.9.2 */
 
-.game-title { font-weight: 900; color: #312e81; text-transform: uppercase; font-style: italic; letter-spacing: -0.05em; }
+.game-title { letter-spacing: -0.05em; }
 .globe-wrapper { perspective: 1000px; }
 .rotate-y-360 { transform: rotateY(360deg); }
-
-.w-22 { width: 6.5rem; }
 
 .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }

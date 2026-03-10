@@ -1,12 +1,12 @@
 <script setup>
 /** * ARCHIVO: TreasureHunt.vue
- * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.2 + OPTIMIZACIÓN SMARTPHONE
+ * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.2 + BOTÓN 3D AZUL + ICONO QUIRÚRGICO
  * LOGICA: Operaciones algebraicas + Navegación de Buque + Foghorn Audio
  */
 import { ref, computed, onMounted } from 'vue';
 import { useGamificationStore } from '../stores/useGamificationStore';
 import { pirateLevels } from '../data/pirateLevels';
-import { X as CloseIcon, Trophy, Anchor, Zap, AlertCircle, Flag, Ship, MousePointer2, PlayCircle } from 'lucide-vue-next';
+import { X as CloseIcon, Trophy, Anchor, Zap, AlertCircle, Flag, Ship, MousePointer2, PlayCircle, ChevronRight } from 'lucide-vue-next';
 import SimpleConfetti from '../components/SimpleConfetti.vue';
 import CoinRain from '../components/CoinRain.vue';
 import { playOwlHoot, playCoinSound } from '../utils/sound';
@@ -163,31 +163,39 @@ onMounted(() => { document.body.style.overflow = 'hidden'; });
                 <CloseIcon size="24" stroke-width="3" />
             </button>
 
-            <div class="flex flex-col items-center mt-6">
+            <div class="flex flex-col items-center mt-6 text-center">
                 <Anchor size="80" class="text-blue-600 mb-4 drop-shadow-xl animate-float" />
-                <h1 class="game-title text-center">RUTA DEL TESORO</h1>
+                <h1 class="game-title text-center text-4xl uppercase italic font-black text-indigo-900">Ruta del Tesoro</h1>
             </div>
 
             <div class="rules-panel shadow-2xl w-full">
-                <div class="rules-badge">MANUAL DEL CAPITÁN</div>
+                <div class="rules-badge uppercase font-black tracking-widest">Manual del Capitán</div>
                 <div class="flex flex-col gap-5 p-2">
                     <div class="flex gap-4 items-start">
-                        <div class="bg-blue-50 p-2 rounded-xl border border-blue-100"><Ship class="text-blue-600" size="20" /></div>
-                        <p class="text-sm font-bold text-slate-600">Navega a través de **10 islas** resolviendo operaciones matemáticas.</p>
+                        <div class="bg-blue-50 p-2.5 rounded-xl border border-blue-100 shrink-0"><Ship class="text-blue-600" size="20" /></div>
+                        <p class="text-sm font-bold text-slate-700 leading-tight">Navega a través de **10 islas** resolviendo operaciones matemáticas.</p>
                     </div>
                     <div class="flex gap-4 items-start">
-                        <div class="bg-yellow-50 p-2 rounded-xl border border-yellow-100"><Zap class="text-yellow-600" size="20" /></div>
-                        <p class="text-sm font-bold text-slate-600">Cada acierto abre el cofre y te permite zarpar hacia el próximo destino.</p>
+                        <div class="bg-yellow-50 p-2.5 rounded-xl border border-yellow-100 shrink-0"><Zap class="text-yellow-600" size="20" /></div>
+                        <p class="text-sm font-bold text-slate-700 leading-tight">Cada acierto abre el cofre y te permite zarpar hacia el próximo destino.</p>
                     </div>
                     <div class="flex gap-4 items-start">
-                        <div class="bg-red-50 p-2 rounded-xl border border-red-100"><AlertCircle class="text-red-600" size="20" /></div>
-                        <p class="text-sm font-bold text-slate-600">¡Cuidado! Muchos errores reducirán tu botín final en el puerto.</p>
+                        <div class="bg-red-50 p-2.5 rounded-xl border border-red-100 shrink-0"><AlertCircle class="text-red-600" size="20" /></div>
+                        <p class="text-sm font-bold text-slate-700 leading-tight">¡Cuidado! Muchos errores reducirán tu botín final en el puerto.</p>
                     </div>
                 </div>
             </div>
 
-            <button @click="startChallenge" class="btn-action-primary w-full py-5 text-xl uppercase italic shadow-[0_6px_0_rgb(21,128,61)]">
-                ¡A NAVEGAR! <PlayCircle class="ml-2" />
+            <button @click="startChallenge" 
+                    class="w-[90%] max-w-[420px] bg-gradient-to-b from-[#3B82F6] to-[#1D4ED8] 
+                           text-white font-black italic text-xl uppercase rounded-[2rem] 
+                           border-b-[8px] border-[#1E3A8A] shadow-lg shadow-[#1D4ED8]/40 
+                           active:translate-y-[4px] active:border-b-[4px] transition-all 
+                           flex items-center justify-center py-4 group">
+                ¡A NAVEGAR! 
+                <div class="ml-3 bg-white p-1 rounded-full flex items-center justify-center shadow-inner">
+                    <ChevronRight class="text-[#1D4ED8]" size="20" stroke-width="4" />
+                </div>
             </button>
         </div>
 
@@ -239,18 +247,25 @@ onMounted(() => { document.body.style.overflow = 'hidden'; });
 
         <div v-else-if="gameState === 'finished'" class="flex-1 flex flex-col items-center justify-center p-6 animate-fade-in z-50">
             <SimpleConfetti />
-            <Trophy class="w-32 h-32 text-yellow-300 mb-4 drop-shadow-2xl animate-float" />
-            <h2 class="victory-title text-center uppercase italic">¡RUTA COMPLETADA!</h2>
-            <div class="prize-card-large mt-6">
+            <Trophy class="w-32 h-32 text-yellow-300 mb-4 drop-shadow-xl animate-float" />
+            <h2 class="victory-title text-indigo-950 font-black text-center uppercase italic">¡Ruta Completada!</h2>
+            
+            <div class="prize-card-large mt-6 border-b-[10px] border-indigo-100 bg-white">
                 <div class="flex justify-around w-full">
                     <div class="loot-res flex flex-col items-center"><img src="/images/coin-gold.png" class="w-12 h-12" /><span class="font-black text-xl text-amber-600">+{{ sessionCoins.gold }}</span></div>
                     <div class="loot-res flex flex-col items-center border-x border-slate-100 px-6"><img src="/images/coin-silver.png" class="w-12 h-12" /><span class="font-black text-xl text-slate-500">+{{ sessionCoins.silver }}</span></div>
                     <div class="loot-res flex flex-col items-center"><img src="/images/coin-copper.png" class="w-12 h-12" /><span class="font-black text-xl text-orange-600">+{{ sessionCoins.copper }}</span></div>
                 </div>
             </div>
+
             <div class="flex flex-col gap-4 w-full max-w-[280px] mt-8">
-                <button @click="startChallenge" class="btn-victory-primary py-4 uppercase font-black tracking-widest italic shadow-[0_6px_0_rgb(180,130,0)]">OTRA RUTA</button>
-                <button @click="closeTreasure" class="btn-victory-secondary py-4 uppercase font-bold text-xs tracking-widest">VOLVER AL PORTAL</button>
+                <button @click="startChallenge" 
+                        class="w-full bg-gradient-to-b from-[#3B82F6] to-[#1D4ED8] 
+                               text-white py-4 rounded-[1.5rem] font-black italic uppercase 
+                               border-b-[6px] border-[#1E3A8A] shadow-lg active:translate-y-[2px] active:border-b-[2px] transition-all">
+                    OTRA RUTA
+                </button>
+                <button @click="closeTreasure" class="text-slate-400 py-2 font-bold text-xs tracking-widest hover:text-indigo-600 uppercase">VOLVER AL PORTAL</button>
             </div>
         </div>
       </div>
@@ -259,24 +274,19 @@ onMounted(() => { document.body.style.overflow = 'hidden'; });
 </template>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400&family=Inter:wght@400;700;900&display=swap');
-
-.master-container { position: fixed; inset: 0; z-index: 9999; display: flex; justify-content: center; align-items: center; background-color: #ffffff; overflow: hidden; touch-action: none !important; font-family: 'Inter', sans-serif !important; }
+.master-container { position: fixed; inset: 0; z-index: 9999; display: flex; justify-content: center; align-items: center; background-color: #ffffff; overflow: hidden; touch-action: none !important; }
 .app-canvas { display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); user-select: none; touch-action: none !important; -webkit-tap-highlight-color: transparent; width: 100vw; height: 100dvh; }
 
 @media (min-width: 1025px) { .app-canvas { width: 1024px; height: 90dvh; border-radius: 45px; box-shadow: 0 40px 100px rgba(0,0,0,0.2); border: 8px solid white; } }
-@media (min-width: 600px) and (max-width: 1024px) { .app-canvas { width: 85vw; height: 95dvh; border-radius: 35px; } }
 
 .header-standard { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1.25rem; background: white; border-bottom: 2px solid #f1f5f9; }
 .session-loot-capsule { display: flex; align-items: center; background: white; padding: 6px 16px; border-radius: 9999px; border: 2px solid #f1f5f9; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-.loot-item { display: flex; align-items: center; gap: 6px; padding: 0 10px; font-weight: 900; color: #1e293b; font-size: 0.95rem; }
-.loot-item img { width: 1.2rem; height: 1.2rem; object-fit: contain; }
+.loot-item { display: flex; align-items: center; gap: 6px; padding: 0 10px; font-weight: 900; }
+.loot-item img { width: 1.2rem; height: 1.2rem; }
 .btn-close-circle { background: #fee2e2; color: #ef4444; width: 36px; height: 36px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; }
 
-/* INDICADOR DE MISIÓN CORREGIDO */
 .mission-tag-surgical { background: #312e81; color: #fde047; padding: 6px 24px; border-radius: 9999px; font-weight: 900; text-transform: uppercase; font-size: 14px; letter-spacing: 2px; border: 2px solid #fde047; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
 
-/* MODAL DE DESAFÍO ESTIRADO */
 .challenge-card-treasure-surgical { width: 100%; background: white; padding: 1.5rem; border-radius: 3rem; box-shadow: 0 20px 50px rgba(0,0,0,0.4); text-align: center; border-bottom: 8px solid #cbd5e1; }
 .challenge-text-surgical { font-size: 5rem; font-weight: 900; color: #1e3a8a; margin-bottom: 1.5rem; letter-spacing: -3px; line-height: 1; }
 .options-grid-surgical { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
@@ -284,15 +294,10 @@ onMounted(() => { document.body.style.overflow = 'hidden'; });
 .btn-treasure-option-surgical:active { transform: translateY(4px); border-bottom-width: 2px; }
 .btn-treasure-option-surgical.is-wrong { background: #fee2e2; border-color: #f87171; color: #b91c1c; animation: shake 0.3s; }
 
-/* REGLAS */
-.game-title { font-size: 2.2rem; font-weight: 900; color: #1e3a8a; text-transform: uppercase; font-style: italic; letter-spacing: -0.05em; text-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+.game-title { font-size: 2.5rem; letter-spacing: -0.05em; text-shadow: 0 2px 4px rgba(0,0,0,0.1); }
 .rules-panel { width: 92%; max-width: 400px; background: white; padding: 1.5rem; border-radius: 2rem; border: 2px solid #e2e8f0; position: relative; }
 .rules-badge { position: absolute; top: -12px; left: 1.5rem; background: #2563eb; color: white; font-size: 10px; font-weight: 900; padding: 4px 12px; border-radius: 9999px; }
 
-.btn-action-primary { background: #22c55e; color: white; border-radius: 2rem; font-weight: 900; transition: all 0.1s; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-.btn-action-primary:active { transform: translateY(5px); }
-
-/* ANIMACIONES Y ELEMENTOS */
 .ship-container { position: relative; transition: transform 1.5s ease-in-out, opacity 1s; }
 .ship-container.center { transform: translateX(0); opacity: 1; }
 .ship-container.exit-left { transform: translateX(-600px); opacity: 0; }
@@ -312,11 +317,8 @@ onMounted(() => { document.body.style.overflow = 'hidden'; });
 @keyframes flag-wave { 0% { transform: skewY(0); } 100% { transform: skewY(-12deg); } }
 .animate-flag-wave { animation: flag-wave 1.2s ease-in-out infinite alternate; }
 
-.prize-card-large { width: 90%; max-width: 320px; background: white; padding: 2.5rem 1rem; border-radius: 3rem; box-shadow: 0 15px 30px rgba(0,0,0,0.2); }
-.victory-title { font-size: 2.2rem; font-weight: 900; color: #1e3a8a; text-shadow: 0 2px 4px white; }
-
-.btn-victory-primary { width: 100%; background: #fbbf24; color: #020617; font-weight: 900; border-radius: 1.5rem; }
-.btn-victory-secondary { width: 100%; background: #94a3b8; color: white; border-radius: 1.5rem; }
+.prize-card-large { width: 90%; max-width: 320px; padding: 2.5rem 1rem; border-radius: 3rem; box-shadow: 0 15px 30px rgba(0,0,0,0.2); }
+.victory-title { font-size: 2.2rem; text-shadow: 0 2px 4px white; }
 
 .animate-fade-in { animation: fadeIn 0.5s ease-out forwards; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }

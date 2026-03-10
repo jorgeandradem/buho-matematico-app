@@ -235,7 +235,7 @@ onMounted(async () => {
       <footer class="footer-anclado">
           <div class="flex flex-col items-center gap-1 text-white">
               <p class="text-sm font-bold drop-shadow-sm">@Copyright 2026</p>
-              <p class="text-xs font-medium opacity-100 drop-shadow-sm">Búho Mate v2.9.0</p>
+              <p class="text-xs font-medium opacity-100 drop-shadow-sm">Búho Mate v2.9.1</p>
           </div>
       </footer>
 
