@@ -1,7 +1,7 @@
 <script setup>
 /** * ARCHIVO: PuzzleChallenge.vue
- * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.2 + BOTÓN 3D AZUL + ICONO QUIRÚRGICO
- * LOGICA: Desbloqueo de puzzle por retos matemáticos + Navegación Blindada
+ * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.3 + BLINDAJE DVH + REPORTE VIVO
+ * LOGICA: Reporte de cada pieza al Store para avance de misiones en tiempo real.
  */
 import { ref, onMounted, computed } from 'vue';
 import { puzzleImages } from '../data/puzzleImages';
@@ -34,7 +34,7 @@ const challenge = ref({ a: 0, b: 0, op: '', result: 0 });
 const userAnswer = ref('');
 const feedbackStatus = ref('neutral'); 
 
-// --- 2. LÓGICA DE NAVEGACIÓN QUIRÚRGICA ---
+// --- 2. LÓGICA DE NAVEGACIÓN ---
 const startGame = () => {
     gameState.value = 'playing';
     initGame();
@@ -118,6 +118,9 @@ const checkAutomaticAnswer = () => {
         feedbackStatus.value = 'correct';
         playCorrectAudio();
 
+        // 🛡️ REPORTE QUIRÚRGICO A MISIONES: Notificamos avance con cada pieza
+        gamificationStore.updateMissionProgress('solve_puzzle_piece', 1);
+
         if (errorsInCurrentSquare.value === 0) perfectAttempts.value++;
         
         if (challenge.value.op === '+') sessionCoins.value.copper++;
@@ -146,6 +149,9 @@ const checkWinCondition = async () => {
         playCoinSound();
         playOwlHoot();
         
+        // 🛡️ REPORTE DE PARTIDA COMPLETADA:
+        gamificationStore.updateMissionProgress('play_any_game', 1);
+
         if (totalErrors.value > 6) {
             sessionCoins.value.gold = Math.min(sessionCoins.value.gold, 5);
             sessionCoins.value.silver = Math.min(sessionCoins.value.silver, 5);
@@ -300,11 +306,13 @@ onMounted(() => {
 </template>
 
 <style scoped>
+/* 🛡️ BLINDAJE TÉCNICO MASTER-CONTAINER v2.9.3 */
 .master-container {
     position: fixed; inset: 0; z-index: 9999;
     display: flex; justify-content: center; align-items: center;
     background-color: #ffffff; overflow: hidden;
     touch-action: none !important;
+    height: 100dvh; top: 0; left: 0;
 }
 
 .app-canvas {
@@ -358,11 +366,11 @@ onMounted(() => {
 .prize-item img { width: 2.5rem; height: 2.5rem; }
 .prize-item span { font-size: 1.5rem; font-weight: 900; color: #4338ca; }
 
-.math-modal-overlay { position: absolute; inset: 0; z-index: 250; background: rgba(30, 27, 75, 0.5); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; padding: 1.5rem; }
+.math-modal-overlay { position: absolute; inset: 0; z-index: 250; background: rgba(30, 27, 75, 0.5); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; padding: 1.5rem; height: 100dvh; }
 .math-card { background-color: white; border-radius: 2.5rem; padding: 1.5rem; width: 100%; max-width: 320px; border-top: 8px solid #6366f1; display: flex; flex-direction: column; align-items: center; position: relative; }
 .btn-close-modal { position: absolute; top: 1rem; right: 1rem; background: #f1f5f9; padding: 0.5rem; border-radius: 9999px; }
 .math-expression { font-size: 3rem; font-weight: 900; color: #4338ca; font-style: italic; margin-bottom: 1rem; letter-spacing: -2px; }
-.answer-text { width: 100%; text-align: center; font-size: 4rem; font-weight: 900; padding: 0.5rem 0; border-radius: 1.5rem; border: 4px solid #f1f5f9; background-color: #f8fafc; }
+.answer-text { width: 100%; text-align: center; font-size: 3rem; font-weight: 900; padding: 0.5rem 0; border-radius: 1.5rem; border: 4px solid #f1f5f9; background-color: #f8fafc; }
 .answer-text.correct { background: #f0fdf4; border-color: #4ade80; color: #166534; }
 .answer-text.error { background: #fef2f2; border-color: #f87171; color: #991b1b; animation: shake 0.3s; }
 

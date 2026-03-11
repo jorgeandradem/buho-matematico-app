@@ -1,4 +1,8 @@
 <script setup>
+/** * ARCHIVO: IndexScreen.vue
+ * NOTA INTERNA: TORRE DE CONTROL v2.9.4 + SINCRONIZACIÓN DE RACHAS
+ * LOGICA: Punto de entrada principal, gestión de racha diaria y sincronización Firebase.
+ */
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue'; 
 import { 
   Plus, Minus, X as MultiplyIcon, Divide, LogOut, 
@@ -158,9 +162,11 @@ const saveName = async () => {
 };
 
 onMounted(() => {
+  // 🛡️ SINCRONIZACIÓN PRIORITARIA DE RACHAS
   gamificationStore.loadFromStorage();
   gamificationStore.checkDailyStreak();
 
+  // Asegurar misiones activas al entrar
   if (!gamificationStore.activeMissions || gamificationStore.activeMissions.length === 0) {
       gamificationStore.generateNewMissions();
   }
@@ -305,15 +311,15 @@ const currentSubjectLabel = computed(() => {
 
           <div class="px-4 w-full mb-4">
               <button @click="showChallengeHub = true" class="w-full bg-gradient-to-r from-yellow-400 to-orange-500 rounded-[2.5rem] p-1 shadow-[0_6px_0_rgb(194,65,12)] active:translate-y-1 transition-all group">
-                  <div class="bg-white/10 rounded-[2.2rem] p-3 flex items-center gap-5">
-                      <div class="w-12 h-12 shrink-0 rounded-full bg-white flex items-center justify-center group-hover:scale-110 transition-transform shadow-inner">
-                          <Target size="26" class="text-orange-500" fill="currentColor" />
-                      </div>
-                      <div class="text-left text-white flex-1">
-                          <h3 class="font-black text-lg leading-tight uppercase tracking-tighter">Portal de Desafíos</h3>
-                          <p class="text-orange-100 text-[10px] font-bold uppercase">🎯 ¡Gana monedas extra aquí!</p>
-                      </div>
-                  </div>
+                <div class="bg-white/10 rounded-[2.2rem] p-3 flex items-center gap-5">
+                    <div class="w-12 h-12 shrink-0 rounded-full bg-white flex items-center justify-center group-hover:scale-110 transition-transform shadow-inner">
+                        <Target size="26" class="text-orange-500" fill="currentColor" />
+                    </div>
+                    <div class="text-left text-white flex-1">
+                        <h3 class="font-black text-lg leading-tight uppercase tracking-tighter">Portal de Desafíos</h3>
+                        <p class="text-orange-100 text-[10px] font-bold uppercase">🎯 ¡Gana monedas extra aquí!</p>
+                    </div>
+                </div>
               </button>
           </div>
         </div>
@@ -360,7 +366,7 @@ const currentSubjectLabel = computed(() => {
 </template>
 
 <style scoped>
-/* LEY DE HIERRO v2.9.2 - INDEX SCREEN QUIRÚRGICO */
+/* 🛡️ LEY DE HIERRO v2.9.4 - INDEX SCREEN BLINDADO */
 
 .master-container {
   height: 100dvh;
@@ -404,7 +410,7 @@ const currentSubjectLabel = computed(() => {
   }
 }
 
-/* PC: LEY DE ADAPTACIÓN PROGRESIVA (1024px) */
+/* PC: LEY DE ADAPTACIÓN PROGRESIVA */
 @media (min-width: 1025px) {
   .app-canvas {
     width: 1024px;
@@ -451,18 +457,6 @@ const currentSubjectLabel = computed(() => {
   z-index: 40;
 }
 
-.main-title {
-  color: white;
-  font-weight: 900;
-  line-height: 0.9;
-  text-align: center;
-  text-transform: uppercase;
-  letter-spacing: -0.05em;
-  margin-bottom: 1.5rem;
-  font-size: clamp(2.5rem, 8vw, 4rem);
-}
-
-/* ANIMACIONES */
 .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 .animate-bounce-slow { animation: bounce 3s infinite; }

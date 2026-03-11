@@ -1,7 +1,7 @@
 <script setup>
 /** * ARCHIVO: WorldTourChallenge.vue
- * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.2 + BOTÓN 3D AZUL + ICONO QUIRÚRGICO
- * LOGICA: Expedición geográfica con transición optimizada y síntesis de voz.
+ * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.3 + BLINDAJE DVH + REPORTE VIVO
+ * LOGICA: Expedición mundial con reporte de misiones por cada país completado.
  */
 import { ref, computed, onMounted } from 'vue';
 import { Trophy, X, Globe, MapPin, Zap, AlertTriangle, ChevronRight, PlayCircle, BookOpen } from 'lucide-vue-next';
@@ -14,9 +14,9 @@ const emit = defineEmits(['close', 'win']);
 const store = useGamificationStore();
 
 // --- 1. ESTADOS DE FLUJO ---
+const QUESTIONS_COUNT = 10;
 const gameState = ref('rules'); 
 const currentRound = ref(1);
-const QUESTIONS_COUNT = 10;
 const step = ref(1);
 const totalErrors = ref(0);
 const sessionCoins = ref({ gold: 0, silver: 0, copper: 0 });
@@ -115,18 +115,22 @@ const checkAnswer = (val) => {
       setTimeout(() => { step.value = 2; selectedAnswer.value = null; }, 400);
     } else {
       revealFinalAnswer.value = true; 
+      
+      // 🛡️ REPORTE QUIRÚRGICO A MISIONES: Cada país completado mueve la llamita
+      store.updateMissionProgress('world_tour_country', 1);
+
       setTimeout(() => { handleMissionNext(); }, 1200);
     }
   } else {
     isWrong.value = true; totalErrors.value++;
-    playSound('wrong'); setTimeout(() => { selectedAnswer.value = null; }, 600);
+    playCustomSound('wrong1.mp3'); // Sincronizado v2.9.3
+    setTimeout(() => { selectedAnswer.value = null; }, 600);
   }
 };
 
 const handleMissionNext = () => {
   if (currentRound.value < QUESTIONS_COUNT) {
     isRotating.value = true;
-    playCustomSound('wrong1.mp3'); 
     setTimeout(() => {
       isRotating.value = false; currentRound.value++; step.value = 1;
       selectedAnswer.value = null; revealFinalAnswer.value = false;
@@ -139,6 +143,9 @@ const handleMissionNext = () => {
 const finishGame = async () => {
   gameState.value = 'finished'; showRain.value = true; playSound('coins');
   
+  // 🛡️ REPORTE DE PARTIDA COMPLETADA PARA LA RACHA:
+  store.updateMissionProgress('play_any_game', 1);
+
   if (totalErrors.value > 6) sessionCoins.value = { gold: 0, silver: 0, copper: 5 };
 
   await store.completeWorldTourChallenge('gold', sessionCoins.value.gold);
@@ -310,11 +317,11 @@ const getButtonClass = (opt) => {
 </template>
 
 <style scoped>
-.master-container { position: fixed; inset: 0; z-index: 9999; display: flex; justify-content: center; align-items: center; background-color: #ffffff; overflow: hidden; touch-action: none !important; font-family: 'Inter', sans-serif !important; }
+/* 🛡️ BLINDAJE TÉCNICO MASTER-CONTAINER v2.9.3 */
+.master-container { position: fixed; inset: 0; z-index: 9999; display: flex; justify-content: center; align-items: center; background-color: #ffffff; overflow: hidden; touch-action: none !important; font-family: 'Inter', sans-serif !important; height: 100dvh; }
 .app-canvas { display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; background-color: #f8fafc; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); user-select: none; width: 100vw; height: 100dvh; }
 
 @media (min-width: 1025px) { .app-canvas { width: 1024px; height: 90dvh; border-radius: 45px; box-shadow: 0 40px 100px rgba(0,0,0,0.2); border: 8px solid white; } }
-@media (min-width: 600px) and (max-width: 1024px) { .app-canvas { width: 85vw; height: 95dvh; border-radius: 35px; } }
 
 .header-standard { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1.25rem; background: white; border-bottom: 2px solid #f1f5f9; }
 .session-loot-capsule { display: flex; align-items: center; background: white; padding: 6px 16px; border-radius: 9999px; border: 2px solid #f1f5f9; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
@@ -326,8 +333,6 @@ const getButtonClass = (opt) => {
 
 .rules-panel { width: 95%; max-width: 420px; background: white; padding: 1.5rem; border-radius: 2.5rem; border: 2px solid #e2e8f0; position: relative; }
 .rules-badge { position: absolute; top: -12px; left: 1.5rem; background: #4f46e5; color: white; font-size: 10px; font-weight: 900; padding: 4px 12px; border-radius: 9999px; }
-
-/* .btn-action-primary eliminado para usar Tailwind directo según norma v2.9.2 */
 
 .game-title { letter-spacing: -0.05em; }
 .globe-wrapper { perspective: 1000px; }

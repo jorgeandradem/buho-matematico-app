@@ -1,7 +1,7 @@
 <script setup>
 /** * ARCHIVO: SoccerAlgebra.vue
- * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.2 + BOTÓN 3D AZUL + ICONO QUIRÚRGICO
- * LOGICA: Operaciones algebraicas + Física de poste + Navegación Quirúrgica
+ * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.3 + BLINDAJE DVH + REPORTE VIVO
+ * LOGICA: Operaciones algebraicas con reporte de goles al Store para misiones.
  */
 import { ref, computed, onMounted } from 'vue';
 import { Trophy, X, Star, PlayCircle, RotateCcw, BookOpen, ChevronRight } from 'lucide-vue-next';
@@ -44,7 +44,7 @@ const currentBg = computed(() => {
   return '#15803d'; 
 });
 
-// --- 3. LÓGICA DE NAVEGACIÓN QUIRÚRGICA ---
+// --- 3. LÓGICA DE NAVEGACIÓN ---
 const startGame = () => {
   gameState.value = 'playing';
   sessionCoins.value = { gold: 0, silver: 0, copper: 0 };
@@ -109,6 +109,10 @@ const kickBall = (ball) => {
         onComplete: () => {
           soundGoal.play();
           if (navigator.vibrate) navigator.vibrate([50, 30, 50]);
+
+          // 🛡️ REPORTE QUIRÚRGICO A MISIONES: Cada gol avanza la llamita
+          store.updateMissionProgress('soccer_goal_algebra', 1);
+
           const opType = currentEquation.value.type;
           if (opType === 'add') sessionCoins.value.copper += 1;
           else if (opType === 'sub') sessionCoins.value.copper += 5;
@@ -127,6 +131,10 @@ const kickBall = (ball) => {
 
 const endGame = async () => { 
   gameState.value = 'finished'; 
+  
+  // 🛡️ REPORTE DE PARTIDA COMPLETADA PARA LA RACHA:
+  store.updateMissionProgress('play_any_game', 1);
+
   await store.addMultipleCoins({...sessionCoins.value});
   await store.updateMissionProgress('complete_challenge', 1);
   soundCoins.play().catch(() => {}); 
@@ -162,7 +170,7 @@ const resetGame = () => {
           <X size="24" stroke-width="3" />
         </button>
 
-        <div class="flex flex-col items-center mt-6 w-full">
+        <div class="flex flex-col items-center mt-6 w-full text-center">
           <h1 class="game-title text-4xl mb-10 italic font-black text-indigo-900">SOCCER ALGEBRA</h1>
           
           <div class="spherical-ball-rules-wrapper animate-float">
@@ -268,7 +276,8 @@ const resetGame = () => {
 </template>
 
 <style scoped>
-.master-container { position: fixed; inset: 0; z-index: 9999; display: flex; justify-content: center; align-items: center; background-color: #ffffff; overflow: hidden; }
+/* 🛡️ BLINDAJE TÉCNICO MASTER-CONTAINER v2.9.3 */
+.master-container { position: fixed; inset: 0; z-index: 9999; display: flex; justify-content: center; align-items: center; background-color: #ffffff; overflow: hidden; height: 100dvh; top: 0; left: 0; }
 .app-canvas { display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; transition: all 0.4s; width: 100vw; height: 100dvh; }
 
 @media (min-width: 1025px) { .app-canvas { width: 1024px; height: 90dvh; border-radius: 45px; border: 8px solid white; box-shadow: 0 40px 100px rgba(0,0,0,0.2); } }
@@ -294,8 +303,6 @@ const resetGame = () => {
 
 .rules-panel { width: 95%; background: white; padding: 1.5rem; border-radius: 2.5rem; border: 2px solid #e2e8f0; position: relative; margin-top: 1rem; }
 .rules-badge { position: absolute; top: -12px; left: 1.5rem; background: #4f46e5; color: white; font-size: 10px; font-weight: 900; padding: 4px 12px; border-radius: 9999px; }
-
-/* Eliminados .btn-action-primary y .btn-action-gold-surgical para usar Tailwind directo */
 
 .game-title { font-weight: 900; text-transform: uppercase; font-style: italic; letter-spacing: -0.05em; }
 .animate-float { animation: float 3s ease-in-out infinite; }

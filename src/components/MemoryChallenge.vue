@@ -1,7 +1,7 @@
 <script setup>
 /** * ARCHIVO: MemoryChallenge.vue
- * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.2 + BOTÓN 3D ESTÁNDAR AZUL
- * LOGICA: Reajuste de dimensiones, lluvia de monedas y botón de acción azul.
+ * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.3 + BLINDAJE DE MASTER-CONTAINER
+ * LOGICA: Blindaje de altura dinámica (dvh) para evitar desbordamiento en producción.
  */
 import { ref, onMounted } from 'vue';
 import { X as CloseIcon, Brain, Trophy, AlertCircle, Sparkles, CheckCircle2, PlayCircle, Star } from 'lucide-vue-next';
@@ -217,7 +217,7 @@ const triggerWin = async () => {
                                     <span :class="['font-black text-center leading-none tracking-tighter transition-colors', 
                                                    card.hasError ? 'text-red-700' : card.isMatched ? 'text-green-800' : 'text-slate-800',
                                                    card.type === 'op' ? 'text-xl sm:text-2xl' : 'text-4xl sm:text-5xl italic']">
-                                        {{ card.content }}
+                                         {{ card.content }}
                                     </span>
                                 </div>
 
@@ -264,10 +264,12 @@ const triggerWin = async () => {
 </template>
 
 <style scoped>
+/* 🛡️ BLINDAJE TÉCNICO MASTER-CONTAINER v2.9.3 */
 .master-container {
     position: fixed; inset: 0; z-index: 9999;
     display: flex; justify-content: center; align-items: center;
     background-color: #ffffff; overflow: hidden;
+    height: 100dvh; /* Fuerza al contenedor fijo a respetar la altura dinámica del móvil */
 }
 
 .app-canvas {

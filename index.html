@@ -20,23 +20,22 @@
     <style>
       /* BLINDAJE TOTAL DISPOSITIVOS TÁCTILES */
       html, body {
-        /* Evita el scroll y el rebote (Goma elástica) */
         overscroll-behavior-y: contain;
         overscroll-behavior-x: none;
         overflow: hidden !important;
         
-        /* Fija el tamaño absoluto para evitar desplazamientos por teclado */
-        width: 100% ;
-        height: 100% ;
+        /* Ajuste 2: Usamos 100dvh para que las cartas no se salgan por abajo en el móvil */
+        width: 100vw;
+        height: 100dvh; 
         position: fixed;
+        top: 0;
+        left: 0;
         
-        /* Desactiva selección de texto y menús contextuales */
         -webkit-user-select: none;
         -webkit-touch-callout: none;
         user-select: none;
         
-        /* DESACTIVA GESTOS DEL NAVEGADOR (Zoom y Pan) */
-        /* Importante: !important asegura que nadie lo sobreescriba */
+        /* DESACTIVA GESTOS DEL NAVEGADOR */
         touch-action: none !important;
         -ms-touch-action: none !important;
         
@@ -46,9 +45,9 @@
       }
 
       #app {
+        /* Ajuste 3: El contenedor de Vue también debe respetar el alto dinámico */
         width: 100%;
-        height: 100%;
-        /* Refuerzo para el contenedor de Vue */
+        height: 100dvh;
         touch-action: none !important;
       }
     </style>

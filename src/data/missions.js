@@ -1,8 +1,8 @@
 // src/data/missions.js
-// Configuración v2.7 - Gratificación Exclusiva Diaria
+// 🦉 Configuración v2.9.4 - Sincronización Total con Juegos Blindados
 
 export const missionsData = [
-    // --- 🟠 RETOS DE COBRE (Premio Fijo: 15 Monedas) ---
+    // --- 🟠 RETOS DE COBRE (Premio: 15 Monedas) ---
     {
         id: 'm_c_1',
         title: 'Recolecta 30 monedas de Cobre',
@@ -15,6 +15,16 @@ export const missionsData = [
     },
     {
         id: 'm_c_2',
+        title: 'Explorador del Nido',
+        desc: 'Juega 2 partidas de cualquier juego.',
+        type: 'play_any_game',
+        target: 2,
+        rewardAmount: 15,
+        rewardType: 'copper',
+        icon: '🦉'
+    },
+    {
+        id: 'm_c_3',
         title: 'Entusiasta de la Tienda',
         desc: 'Realiza 1 compra en la tienda de premios.',
         type: 'buy_shop',
@@ -24,11 +34,11 @@ export const missionsData = [
         icon: '🛍️'
     },
 
-    // --- ⚪ RETOS DE PLATA (Premio Fijo: 10 Monedas) ---
+    // --- ⚪ RETOS DE PLATA (Premio: 10 Monedas) ---
     {
         id: 'm_s_1',
         title: 'Velocidad Mental',
-        desc: 'Juega 2 partidas del Desafío Contrarreloj.',
+        desc: 'Juega 2 partidas del Quiz Time.',
         type: 'play_quiz',
         target: 2,
         rewardAmount: 10,
@@ -45,13 +55,33 @@ export const missionsData = [
         rewardType: 'silver',
         icon: '🥈'
     },
+    {
+        id: 'm_s_3',
+        title: 'Buscador Experto',
+        desc: 'Encuentra 10 números en la Sopa de Números.',
+        type: 'search_numbers',
+        target: 10,
+        rewardAmount: 10,
+        rewardType: 'silver',
+        icon: '🔍'
+    },
+    {
+        id: 'm_s_4',
+        title: 'Piloto de Tablas',
+        desc: 'Acierta 15 operaciones en Tablas Rápidas.',
+        type: 'quick_fly_answer',
+        target: 15,
+        rewardAmount: 10,
+        rewardType: 'silver',
+        icon: '🚀'
+    },
 
-    // --- 🟡 RETOS DE ORO (Premio Fijo: 3 Monedas) ---
+    // --- 🟡 RETOS DE ORO (Premio: 3 Monedas) ---
     {
         id: 'm_g_1',
-        title: 'Experto Contrarreloj',
-        desc: 'Logra 20 aciertos totales en el Desafío.',
-        type: 'correct_quiz',
+        title: 'Genio del Quiz',
+        desc: 'Logra 20 aciertos totales en el Quiz Time.',
+        type: 'quiz_correct_answer', // Sincronizado con QuizModule.vue
         target: 20,
         rewardAmount: 3,
         rewardType: 'gold',
@@ -66,5 +96,25 @@ export const missionsData = [
         rewardAmount: 3,
         rewardType: 'gold',
         icon: '🤖'
+    },
+    {
+        id: 'm_g_3',
+        title: 'Arquitecto de Puzzles',
+        desc: 'Desbloquea 10 piezas del Puzzle Mágico.',
+        type: 'solve_puzzle_piece', // Sincronizado con PuzzleChallenge.vue
+        target: 10,
+        rewardAmount: 3,
+        rewardType: 'gold',
+        icon: '🧩'
+    },
+    {
+        id: 'm_g_4',
+        title: 'Capitán de Ruta',
+        desc: 'Abre 10 cofres en la Ruta del Tesoro.',
+        type: 'treasure_chest_opened', // Sincronizado con TreasureHunt.vue
+        target: 10,
+        rewardAmount: 3,
+        rewardType: 'gold',
+        icon: '🏴‍☠️'
     }
 ];

@@ -1,7 +1,7 @@
 <script setup>
 /** * ARCHIVO: RunnerChallenge.vue
- * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.2 + BOTÓN 3D AZUL + ICONO QUIRÚRGICO
- * LOGICA: Runner Matemático (Física de Gravedad) + Navegación Blindada
+ * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.4 + AUDIO QUIRÚRGICO + REPORTE VIVO
+ * LOGICA: Runner con física de gravedad + Sonidos correct1/wrong1 + Avance de misiones.
  */
 import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { X as CloseIcon, Zap, Heart, Trophy, Cloud, AlertCircle, MousePointer2, PlayCircle, ChevronRight } from 'lucide-vue-next';
@@ -15,10 +15,10 @@ const emit = defineEmits(['close', 'win']);
 const store = useGamificationStore();
 
 // --- 1. ESTADO DEL JUEGO ---
-const gameState = ref('rules'); 
 const QUESTIONS_COUNT = 10;
 const colorPalette = ['#3b82f6', '#22c55e', '#eab308', '#ef4444', '#a855f7', '#ec4899', '#f97316', '#06b6d4', '#8b5cf6', '#10b981'];
 
+const gameState = ref('rules'); 
 const score = ref(0);
 const lives = ref(3);
 const totalErrors = ref(0); 
@@ -38,8 +38,17 @@ let lastOpId = 0;
 let gameLoopId = null;
 const isAudioUnlocked = ref(false);
 
-const safePlay = (soundFunc) => {
-    if (SoundUtils[soundFunc]) SoundUtils[soundFunc]();
+// --- 🔊 MOTOR DE AUDIO ACTUALIZADO v2.9.4 ---
+const playCorrectAudio = () => {
+    const audio = new Audio('/audios/correct1.mp3');
+    audio.volume = 0.8;
+    audio.play().catch(() => {});
+};
+
+const playErrorAudio = () => {
+    const audio = new Audio('/audios/wrong1.mp3');
+    audio.volume = 0.6;
+    audio.play().catch(() => {});
 };
 
 const speakLoud = (text) => {
@@ -58,7 +67,7 @@ const unlockAudio = () => {
     isAudioUnlocked.value = true;
 };
 
-// --- 2. LÓGICA DE NAVEGACIÓN QUIRÚRGICA ---
+// --- 2. LÓGICA DE NAVEGACIÓN ---
 const startGame = () => {
     gameState.value = 'playing';
     initGame();
@@ -138,18 +147,26 @@ const gameLoop = () => {
                 if (p.isCorrect) {
                     p.state = 'exploding'; 
                     score.value++;
+                    
+                    // 🛡️ REPORTE VIVO PARA LA LLAMITA (Acierto)
+                    store.updateMissionProgress('runner_hit', 1);
+
                     if (p.opType === '+') sessionCoins.value.copper++;
                     else if (p.opType === '-') sessionCoins.value.silver++;
                     else sessionCoins.value.gold++;
+                    
                     speakLoud("¡Bien!");
-                    safePlay('playCoinSound');
+                    playCorrectAudio(); // ✅ Audio Actualizado
+
                     setTimeout(() => { p.passed = true; if (score.value >= QUESTIONS_COUNT) triggerWin(); }, 650);
                 } else {
                     p.state = 'shattered'; 
                     lives.value--;
                     totalErrors.value++;
+                    
                     speakLoud("¡Ups!");
-                    safePlay('playErrorSound');
+                    playErrorAudio(); // ❌ Audio Actualizado
+
                     setTimeout(() => { p.passed = true; if (lives.value <= 0) initGame(); }, 850);
                 }
             }
@@ -177,7 +194,11 @@ const initGame = () => {
 const triggerWin = async () => {
     gameState.value = 'finished';
     showCoinRain.value = true;
-    safePlay('playOwlHoot');
+    
+    // 🛡️ REPORTE VIVO PARA LA LLAMITA (Partida completa)
+    store.updateMissionProgress('play_any_game', 1);
+
+    if (SoundUtils.playOwlHoot) SoundUtils.playOwlHoot();
 
     if (totalErrors.value > 6) {
         sessionCoins.value.gold = Math.min(sessionCoins.value.gold, 5);
@@ -332,7 +353,8 @@ onUnmounted(() => { if (gameLoopId) cancelAnimationFrame(gameLoopId); });
 </template>
 
 <style scoped>
-.master-container { position: fixed; inset: 0; z-index: 9999; display: flex; justify-content: center; align-items: center; background-color: #ffffff; overflow: hidden; touch-action: none !important; }
+/* 🛡️ BLINDAJE TÉCNICO MASTER-CONTAINER v2.9.3 */
+.master-container { position: fixed; inset: 0; z-index: 9999; display: flex; justify-content: center; align-items: center; background-color: #ffffff; overflow: hidden; touch-action: none !important; height: 100dvh; top: 0; left: 0; }
 .app-canvas { display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; transition: all 0.4s; user-select: none; touch-action: none !important; width: 100vw; height: 100dvh; }
 
 @media (min-width: 1025px) { .app-canvas { width: 1024px; height: 90dvh; border-radius: 45px; border: 8px solid white; box-shadow: 0 40px 100px rgba(0,0,0,0.3); } }

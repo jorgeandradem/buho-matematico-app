@@ -1,7 +1,7 @@
 <script setup>
 /** * ARCHIVO: TreasureHunt.vue
- * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.2 + BOTÓN 3D AZUL + ICONO QUIRÚRGICO
- * LOGICA: Operaciones algebraicas + Navegación de Buque + Foghorn Audio
+ * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.3 + CONEXIÓN LLAMITA (RACHAS)
+ * LOGICA: Reporte de cofres abiertos y fin de partida al Banco Central.
  */
 import { ref, computed, onMounted } from 'vue';
 import { useGamificationStore } from '../stores/useGamificationStore';
@@ -33,7 +33,7 @@ const playHorn = () => {
     soundShipHorn.play().catch(() => {});
 };
 
-// --- 3. LÓGICA DE NAVEGACIÓN QUIRÚRGICA ---
+// --- 3. LÓGICA DE NAVEGACIÓN ---
 const isChestOpen = ref(false);
 const navigationClass = ref('center'); 
 const showIslandBanner = ref(false);
@@ -90,6 +90,10 @@ const handleAnswer = (selected) => {
 
     if (selected === currentChallenge.value.result) {
         progress.value++;
+
+        // 🛡️ REPORTE QUIRÚRGICO A MISIONES: Notificamos cada cofre abierto para la llamita
+        store.updateMissionProgress('treasure_chest_opened', 1);
+
         if (currentChallenge.value.opType === '+') sessionCoins.value.copper++;
         else sessionCoins.value.silver++;
         
@@ -127,6 +131,10 @@ const finishGame = async () => {
     playHorn(); 
     gameState.value = 'finished';
     showCoinRain.value = true;
+    
+    // 🛡️ REPORTE DE PARTIDA COMPLETADA PARA LA RACHA:
+    store.updateMissionProgress('play_any_game', 1);
+
     playOwlHoot();
     if (totalErrors.value > 6) sessionCoins.value = { gold: 0, silver: 0, copper: 5 };
     await store.addCoins('gold', sessionCoins.value.gold);
@@ -180,7 +188,7 @@ onMounted(() => { document.body.style.overflow = 'hidden'; });
                         <p class="text-sm font-bold text-slate-700 leading-tight">Cada acierto abre el cofre y te permite zarpar hacia el próximo destino.</p>
                     </div>
                     <div class="flex gap-4 items-start">
-                        <div class="bg-red-50 p-2.5 rounded-xl border border-red-100 shrink-0"><AlertCircle class="text-red-600" size="20" /></div>
+                        <div class="bg-red-100 p-2.5 rounded-xl border border-red-100 shrink-0"><AlertCircle class="text-red-600" size="20" /></div>
                         <p class="text-sm font-bold text-slate-700 leading-tight">¡Cuidado! Muchos errores reducirán tu botín final en el puerto.</p>
                     </div>
                 </div>
@@ -274,7 +282,8 @@ onMounted(() => { document.body.style.overflow = 'hidden'; });
 </template>
 
 <style scoped>
-.master-container { position: fixed; inset: 0; z-index: 9999; display: flex; justify-content: center; align-items: center; background-color: #ffffff; overflow: hidden; touch-action: none !important; }
+/* 🛡️ BLINDAJE TÉCNICO MASTER-CONTAINER v2.9.3 */
+.master-container { position: fixed; inset: 0; z-index: 9999; display: flex; justify-content: center; align-items: center; background-color: #ffffff; overflow: hidden; touch-action: none !important; height: 100dvh; top: 0; left: 0; }
 .app-canvas { display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); user-select: none; touch-action: none !important; -webkit-tap-highlight-color: transparent; width: 100vw; height: 100dvh; }
 
 @media (min-width: 1025px) { .app-canvas { width: 1024px; height: 90dvh; border-radius: 45px; box-shadow: 0 40px 100px rgba(0,0,0,0.2); border: 8px solid white; } }

@@ -1,7 +1,7 @@
 <script setup>
 /** * ARCHIVO: ScaleMaster.vue
- * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.2 + SUSTITUCIÓN MEDALLA PREMIUM
- * LOGICA: Desafío de equilibrio físico + Recompensas por nivelación.
+ * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.3 + BLINDAJE DVH + REPORTE VIVO
+ * LOGICA: Desafío de equilibrio con reporte de niveles al Store para la llamita.
  */
 import { ref, computed, watch, onMounted } from 'vue';
 import { X, Trophy, Scale, CheckCircle2, AlertCircle, PlayCircle, Coins, BookOpen, ChevronRight, RotateCcw } from 'lucide-vue-next';
@@ -65,6 +65,9 @@ watch(totalRight, (newTotal) => {
   if (newTotal === targetWeight.value && !isVictory.value && newTotal > 0) {
     isVictory.value = true; 
     playSound('correct1');
+
+    // 🛡️ REPORTE QUIRÚRGICO A MISIONES: Cada balanza equilibrada avanza la llamita
+    store.updateMissionProgress('scale_balanced', 1);
     
     if (currentLevel.value < 7) sessionCoins.value.copper++;
     else sessionCoins.value.silver++;
@@ -106,8 +109,13 @@ const autoNextLevel = () => {
 
 const finishGame = async () => {
   gameState.value = 'finished';
+  
+  // 🛡️ REPORTE DE PARTIDA COMPLETA:
+  store.updateMissionProgress('play_any_game', 1);
+
   if (sessionCoins.value.silver > 0) await store.addCoins('silver', sessionCoins.value.silver);
   if (sessionCoins.value.copper > 0) await store.addCoins('copper', sessionCoins.value.copper);
+  
   await store.updateMissionProgress('complete_challenge', 1);
   playSound('finish1'); playSound('coins'); triggerCoinRain();
 };
@@ -289,8 +297,20 @@ const triggerRemove = (id, event) => {
 </template>
 
 <style scoped>
-.master-container { position: fixed; inset: 0; z-index: 9999; display: flex; justify-content: center; align-items: center; background-color: #ffffff; overflow: hidden; }
-.app-canvas { display: flex; flex-direction: column; position: relative; overflow: hidden; background-color: #f8fafc; transition: all 0.4s; width: 100vw; height: 100dvh; }
+/* 🛡️ BLINDAJE TÉCNICO MASTER-CONTAINER v2.9.3 */
+.master-container { 
+    position: fixed; inset: 0; z-index: 9999; 
+    display: flex; justify-content: center; align-items: center; 
+    background-color: #ffffff; overflow: hidden; 
+    height: 100dvh; /* Blindaje Viewport Dinámico */
+}
+
+.app-canvas { 
+    display: flex; flex-direction: column; position: relative; overflow: hidden; 
+    background-color: #f8fafc; transition: all 0.4s; 
+    width: 100vw; height: 100dvh; /* Blindaje Viewport Dinámico */
+}
+
 @media (min-width: 1025px) { .app-canvas { width: 1024px; height: 90dvh; border-radius: 45px; box-shadow: 0 40px 100px rgba(0,0,0,0.2); border: 8px solid white; } }
 
 .header-standard { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1.25rem; background: white; border-bottom: 2px solid #f1f5f9; }

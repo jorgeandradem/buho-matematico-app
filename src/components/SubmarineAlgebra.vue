@@ -1,7 +1,7 @@
 <script setup>
 /** * ARCHIVO: SubmarineAlgebra.vue
- * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.2 + BOTÓN 3D AZUL + ICONO QUIRÚRGICO
- * LOGICA: Burbujas ascendentes + Inyección Atómica al Banco Central.
+ * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.3 + BLINDAJE DVH + REPORTE VIVO
+ * LOGICA: Burbujas ascendentes con reporte de aciertos al Store para misiones.
  */
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { Trophy, X, Star, PlayCircle, RotateCcw, BookOpen, Waves, Target, Coins, Zap, ChevronRight } from 'lucide-vue-next';
@@ -38,7 +38,7 @@ const formattedEquation = computed(() => {
   return currentEquation.value.text.replace(/x/g, '<span class="chalk-x-container"><span class="chalk-x">x</span></span>');
 });
 
-// --- 3. LÓGICA DE NAVEGACIÓN QUIRÚRGICA ---
+// --- 3. LÓGICA DE NAVEGACIÓN ---
 const startGame = () => {
   gameState.value = 'playing';
   gameActive.value = true;
@@ -77,7 +77,7 @@ const spawnBubble = () => {
   const id = Date.now();
   const val = Math.random() > 0.7 ? currentEquation.value.answer : Math.floor(Math.random() * 40);
   bubbles.value.push({
-    id, value: val, x: Math.random() * 250 + 20, y: -80, 
+    id, value: val, x: Math.random() * (window.innerWidth * 0.7), y: -80, 
     size: 65, speed: 1.5 + (progress.value * 0.3), opacity: 1
   });
 };
@@ -95,6 +95,10 @@ const animateBubbles = () => {
 const checkAnswer = (bubble) => {
   if (bubble.value === currentEquation.value.answer) {
     const pop = soundPop.cloneNode(); pop.play();
+
+    // 🛡️ REPORTE QUIRÚRGICO A MISIONES: Cada burbuja correcta mueve la llamita
+    store.updateMissionProgress('submarine_bubble_pop', 1);
+
     const opType = currentEquation.value.type;
     if (opType === 'add') sessionCoins.value.copper += 1;
     else if (opType === 'sub') sessionCoins.value.copper += 5;
@@ -114,6 +118,9 @@ const endGame = async () => {
   soundAmbient.pause();
   soundCoins.play().catch(() => {});
   
+  // 🛡️ REPORTE DE PARTIDA COMPLETADA PARA LA RACHA:
+  store.updateMissionProgress('play_any_game', 1);
+
   await store.addMultipleCoins({...sessionCoins.value});
   await store.updateMissionProgress('complete_challenge', 1);
   
@@ -187,7 +194,7 @@ onBeforeUnmount(() => { clearInterval(bubbleInterval); soundAmbient.pause(); });
           <X size="28" stroke-width="3" />
         </button>
 
-        <div class="flex flex-col items-center mt-6">
+        <div class="flex flex-col items-center mt-6 text-center">
           <div class="text-7xl mb-4 animate-bounce">🌊</div>
           <h1 class="game-title text-white text-4xl uppercase font-black italic tracking-tighter">Submarine Algebra</h1>
         </div>
@@ -282,12 +289,12 @@ onBeforeUnmount(() => { clearInterval(bubbleInterval); soundAmbient.pause(); });
 </template>
 
 <style scoped>
-.master-container { position: fixed; inset: 0; z-index: 9999; display: flex; justify-content: center; align-items: center; background-color: #ffffff; overflow: hidden; }
+/* 🛡️ BLINDAJE TÉCNICO MASTER-CONTAINER v2.9.3 */
+.master-container { position: fixed; inset: 0; z-index: 9999; display: flex; justify-content: center; align-items: center; background-color: #ffffff; overflow: hidden; height: 100dvh; }
 .app-canvas { display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; background-color: #f8fafc; transition: all 0.4s; width: 100vw; height: 100dvh; }
 .submarino-bg { background: linear-gradient(180deg, #1e3a8a 0%, #080c14 100%); }
 
 @media (min-width: 1025px) { .app-canvas { width: 1024px; height: 90dvh; border-radius: 45px; border: 8px solid white; box-shadow: 0 40px 100px rgba(0,0,0,0.2); } }
-@media (min-width: 600px) and (max-width: 1024px) { .app-canvas { width: 85vw; height: 95dvh; border-radius: 35px; } }
 
 .header-standard { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1.25rem; background: white; border-bottom: 2px solid #f1f5f9; z-index: 100; }
 .session-loot-capsule { display: flex; align-items: center; background: white; padding: 6px 16px; border-radius: 9999px; border: 2px solid #f1f5f9; }
@@ -297,7 +304,7 @@ onBeforeUnmount(() => { clearInterval(bubbleInterval); soundAmbient.pause(); });
 
 .equation-board { text-align: center; width: 100%; padding: 0 20px; }
 .equation-badge-surgical { color: #ffffff; font-weight: 900; text-align: center; text-transform: uppercase; letter-spacing: 0.15em; font-size: 1rem; margin-bottom: 1rem; text-shadow: 0 4px 8px rgba(0,0,0,0.6); }
-.equation-text { background: rgba(15, 23, 42, 0.9); display: inline-flex; align-items: center; justify-content: center; min-height: 100px; padding: 15px 45px; border-radius: 2rem; color: white; font-size: 2.8rem; font-weight: 900; border: 3px solid #38bdf8; }
+.equation-text { background: rgba(15, 23, 42, 0.9); display: inline-flex; align-items: center; justify-content: center; min-height: 100px; padding: 15px 45px; border-radius: 2rem; color: white; font-size: 2.5rem; font-weight: 900; border: 3px solid #38bdf8; }
 
 .ocean-area { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 5; }
 .bubble { position: absolute; border-radius: 50%; background: radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.5), rgba(56, 189, 248, 0.15)); border: 2px solid rgba(255, 255, 255, 0.5); display: flex; align-items: center; justify-content: center; color: white; font-weight: 900; font-size: 2rem; cursor: pointer; z-index: 10; text-shadow: 0 2px 4px rgba(0,0,0,0.3); }

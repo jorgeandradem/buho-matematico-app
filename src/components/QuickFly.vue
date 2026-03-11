@@ -1,7 +1,7 @@
 <script setup>
 /** * ARCHIVO: QuickFly.vue
- * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.2 + BOTÓN 3D AZUL + ICONO QUIRÚRGICO
- * LOGICA: Desafío de cálculo mental rápido + Navegación Blindada
+ * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.4 + BLINDAJE DVH + AUDIO QUIRÚRGICO
+ * LOGICA: Desafío rápido con sonidos correct1/wrong1 y reporte de misiones.
  */
 import { ref, onMounted, computed } from 'vue';
 import { X as CloseIcon, Trophy, Coins, Sparkles, MousePointer2, PlayCircle, BookOpen, ChevronRight } from 'lucide-vue-next';
@@ -33,7 +33,7 @@ const sessionCoins = ref({ gold: 0, silver: 0, copper: 0 });
 const activeOp = ref('add');
 const isAudioUnlocked = ref(false);
 
-// --- 2. LÓGICA DE NAVEGACIÓN QUIRÚRGICA ---
+// --- 2. LÓGICA DE NAVEGACIÓN ---
 const startGame = () => {
     gameState.value = 'playing';
     resetGame();
@@ -47,7 +47,19 @@ const closeQuickFly = () => {
     }
 };
 
-// --- 3. MOTOR DEL JUEGO ---
+// --- 3. MOTOR DEL JUEGO & AUDIO ---
+const playCorrectAudio = () => {
+    const audio = new Audio('/audios/correct1.mp3');
+    audio.volume = 0.8;
+    audio.play().catch(() => {});
+};
+
+const playErrorAudio = () => {
+    const audio = new Audio('/audios/wrong1.mp3');
+    audio.volume = 0.6;
+    audio.play().catch(() => {});
+};
+
 const speakLoud = (text) => {
     if (!('speechSynthesis' in window)) return;
     window.speechSynthesis.cancel(); 
@@ -107,13 +119,18 @@ const selectOption = async (selected) => {
     unlockAudio(); 
 
     if (selected === currentQuestion.value.answer) {
+        playCorrectAudio(); // ✅ ACIERTO
         score.value++;
         feedbackMessage.value = "¡Bien!";
         feedbackColor.value = "text-green-500";
         speakLoud("¡Bien!");
 
+        // Reporte de misión para que la racha avance
+        gamificationStore.updateMissionProgress('quick_fly_answer', 1);
+
         const type = getCurrencyType(activeOp.value);
         sessionCoins.value[type]++;
+        
         if (currentQuestionIndex.value < QUESTIONS_COUNT - 1) {
             currentQuestionIndex.value++;
             setTimeout(() => { feedbackMessage.value = ""; generateQuestion(); }, 500);
@@ -121,6 +138,7 @@ const selectOption = async (selected) => {
             await finishGame();
         }
     } else {
+        playErrorAudio(); // ❌ DESACIERTO
         feedbackMessage.value = "¡Ups!";
         feedbackColor.value = "text-red-500";
         speakLoud("Ups");
@@ -131,6 +149,8 @@ const selectOption = async (selected) => {
 const finishGame = async () => {
     gameState.value = 'finished';
     showCoinRain.value = true;
+    gamificationStore.updateMissionProgress('play_any_game', 1);
+
     const bonusType = getCurrencyType(activeOp.value);
     sessionCoins.value[bonusType] += 5;
 
@@ -275,8 +295,18 @@ onMounted(() => { if (gameState.value === 'playing') generateQuestion(); });
 </template>
 
 <style scoped>
-.master-container { position: fixed; inset: 0; z-index: 9999; display: flex; justify-content: center; align-items: center; background-color: #ffffff; overflow: hidden; touch-action: none !important; }
-.app-canvas { display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; transition: all 0.4s; user-select: none; width: 100vw; height: 100dvh; }
+.master-container { 
+    position: fixed; inset: 0; z-index: 9999; 
+    display: flex; justify-content: center; align-items: center; 
+    background-color: #ffffff; overflow: hidden; 
+    touch-action: none !important; 
+    height: 100dvh; top: 0; left: 0;
+}
+.app-canvas { 
+    display: flex; flex-direction: column; justify-content: space-between; 
+    position: relative; overflow: hidden; transition: all 0.4s; 
+    user-select: none; width: 100vw; height: 100dvh; 
+}
 
 @media (min-width: 1025px) { .app-canvas { width: 1024px; height: 90dvh; border-radius: 45px; border: 8px solid white; box-shadow: 0 40px 100px rgba(0,0,0,0.2); } }
 
@@ -295,7 +325,7 @@ onMounted(() => { if (gameState.value === 'playing') generateQuestion(); });
 .title-fly { font-size: 1.5rem; font-weight: 900; color: #312e81; text-transform: uppercase; font-style: italic; margin-bottom: 0.5rem; }
 
 .question-container-fly { width: 100%; max-width: 400px; display: flex; flex-direction: column; align-items: center; }
-.op-box-fly { display: flex; align-items: center; justify-content: center; gap: 1rem; width: 90%; padding: 1.5rem; border-radius: 2.5rem; border-width: 6px; font-size: 4rem; font-weight: 900; }
+.op-box-fly { display: flex; align-items: center; justify-content: center; gap: 1rem; width: 90%; padding: 1.5rem; border-radius: 2.5rem; border-width: 6px; font-size: 3.5rem; font-weight: 900; }
 
 .rules-panel-fly { width: 92%; max-width: 400px; background: white; padding: 2rem 1.5rem; border-radius: 2.5rem; border: 2px solid #e2e8f0; position: relative; }
 .rules-badge { position: absolute; top: -14px; left: 1.5rem; background: #4f46e5; color: white; font-size: 11px; padding: 5px 15px; border-radius: 9999px; }

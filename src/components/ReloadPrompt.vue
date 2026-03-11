@@ -1,11 +1,11 @@
 <script setup>
 /**
- * 🦉 ARCHIVO: ReloadPrompt.vue - VERSIÓN NUCLEAR v2.9.2
- * OBJETIVO: Vencer el congelamiento de iOS y Android.
+ * 🦉 ARCHIVO: ReloadPrompt.vue - VERSIÓN NUCLEAR v2.9.8
+ * OBJETIVO: Automatización total con retardo visual de 1s.
  */
 import { useRegisterSW } from 'virtual:pwa-register/vue';
 import { RefreshCw, Zap, X } from 'lucide-vue-next';
-import { ref } from 'vue';
+import { ref, watch } from 'vue'; // 👈 Inyección de watch
 
 const isUpdating = ref(false);
 
@@ -28,11 +28,20 @@ const { needRefresh, updateServiceWorker } = useRegisterSW({
   }
 });
 
+// --- 🤖 AUTO-DISPARADOR QUIRÚRGICO (1 segundo de espera) ---
+watch(needRefresh, (newValue) => {
+  if (newValue) {
+    setTimeout(() => {
+      handleUpdate();
+    }, 1000); // 👈 El "Segundo de Oro" para que el alumno lo lea
+  }
+});
+
 const handleUpdate = async () => {
   if (isUpdating.value) return;
   
   isUpdating.value = true;
-  console.log("🚀 Disparando reinicio nuclear...");
+  console.log("🚀 Disparando reinicio nuclear automático...");
 
   try {
     // 1. Comando de SKIP_WAITING (Obliga al SW a tomar el mando ya)
@@ -44,8 +53,6 @@ const handleUpdate = async () => {
       
       if (isiOS) {
         // 3. EL COMANDO PODEROSO PARA iOS:
-        // window.location.reload no sirve en Safari PWA. 
-        // Usamos replace con un 'cache-buster' único.
         const urlLimpia = window.location.origin + window.location.pathname;
         window.location.replace(`${urlLimpia}?update=${Date.now()}`);
       } else {
@@ -85,9 +92,9 @@ const close = () => {
           <div class="flex-1 text-left">
             <p class="text-[11px] font-black uppercase tracking-widest text-indigo-900/60 leading-none mb-1">Mejoras en el nido</p>
             <h3 class="text-lg font-black leading-none uppercase tracking-tighter text-indigo-950">
-              {{ isUpdating ? 'ACTUALIZANDO...' : '¡REINICIAR AHORA!' }}
+              {{ isUpdating ? 'ACTUALIZANDO...' : '¡NIDO ACTUALIZADO!' }}
             </h3>
-            <p class="text-[10px] font-bold mt-1 text-indigo-900/80">Toca para aplicar los cambios del Búho.</p>
+            <p class="text-[10px] font-bold mt-1 text-indigo-900/80">Preparando los cambios del Búho... ✨</p>
           </div>
 
           <Zap v-if="!isUpdating" class="text-indigo-900 animate-pulse" size="24" />

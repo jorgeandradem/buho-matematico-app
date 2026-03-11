@@ -1,7 +1,7 @@
 <script setup>
 /** * ARCHIVO: NumberSearch.vue
- * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.2 + BOTÓN 3D AZUL + ICONO QUIRÚRGICO
- * LOGICA: Sopa de números (Resultados algebraicos) + Navegación Blindada.
+ * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.3 + BLINDAJE DVH + REPORTE DE MISIONES
+ * LOGICA: Sopa de números (Resultados algebraicos) + Comunicación viva con el Store.
  */
 import { ref, onMounted } from 'vue';
 import { X as CloseIcon, Trophy, AlertCircle, Sparkles, Search, PlayCircle, BookOpen, ChevronRight } from 'lucide-vue-next';
@@ -50,7 +50,7 @@ const unlockAudio = () => {
     isAudioUnlocked.value = true;
 };
 
-// --- NAVEGACIÓN QUIRÚRGICA ---
+// --- NAVEGACIÓN ---
 const startGame = () => {
     gameState.value = 'playing';
     initGame();
@@ -148,6 +148,9 @@ const handleCellClick = (cell) => {
         });
         playCorrectSound();
 
+        // 🛡️ REPORTE QUIRÚRGICO A MISIONES: Notificamos al Store cada hallazgo
+        store.updateMissionProgress('search_numbers', 1);
+
         if (match.opType === '+') sessionCoins.value.copper++;
         else if (match.opType === '-') sessionCoins.value.silver++;
         else if (match.opType === '×') sessionCoins.value.gold++;
@@ -173,6 +176,9 @@ const triggerWin = async () => {
     showCoinRain.value = true;
     playCoinSound();
     playOwlHoot();
+    
+    // 🛡️ REPORTE DE PARTIDA COMPLETADA:
+    store.updateMissionProgress('play_any_game', 1);
     
     if (!perfectGame.value) {
         sessionCoins.value.gold = Math.max(1, Math.floor(sessionCoins.value.gold / 2));
@@ -209,7 +215,7 @@ const triggerWin = async () => {
             <button @click="returnToRules" class="btn-close-sopa"><CloseIcon :size="20" /></button>
         </header>
 
-        <div class="game-content flex-1 flex flex-col items-center justify-between py-4 overflow-hidden relative">
+        <div class="game-content flex-1 flex flex-col items-center justify-between py-2 overflow-hidden relative">
             
             <div v-if="gameState === 'rules'" class="flex-1 flex flex-col items-center justify-between p-6 w-full animate-fade-in">
                 <button @click="exitToPortal" class="absolute top-4 right-4 bg-slate-200/50 w-10 h-10 rounded-full flex items-center justify-center text-slate-600 active:scale-75 transition-all">
@@ -253,9 +259,9 @@ const triggerWin = async () => {
             </div>
 
             <template v-else-if="gameState === 'playing'">
-                <div class="w-full grid grid-cols-4 gap-1.5 px-4 shrink-0 mt-2">
+                <div class="w-full grid grid-cols-4 gap-1 px-4 shrink-0 mt-1">
                     <div v-for="ch in challenges" :key="ch.text" :class="['challenge-pill', ch.found ? 'pill-found' : 'pill-active']">
-                        <p class="text-lg font-black italic tracking-tighter">{{ ch.text }}</p>
+                        <p class="text-base font-black italic tracking-tighter">{{ ch.text }}</p>
                     </div>
                 </div>
 
@@ -271,7 +277,7 @@ const triggerWin = async () => {
                         </button>
                     </div>
                 </div>
-                <div class="h-4"></div>
+                <div class="h-2"></div>
             </template>
 
             <Transition name="pop">
@@ -305,11 +311,13 @@ const triggerWin = async () => {
 </template>
 
 <style scoped>
+/* 🛡️ BLINDAJE TÉCNICO v2.9.3 */
 .master-container {
     position: fixed; inset: 0; z-index: 9999;
     display: flex; justify-content: center; align-items: center;
     background-color: #ffffff; overflow: hidden;
     touch-action: none !important;
+    height: 100dvh; top: 0; left: 0; /* Blindaje de viewport dinámico */
 }
 
 .app-canvas {
@@ -336,29 +344,38 @@ const triggerWin = async () => {
 
 .btn-close-sopa { background: #fee2e2; color: #ef4444; width: 36px; height: 36px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; }
 
-.sopa-grid-container { width: 92%; max-width: 380px; aspect-ratio: 1/1; background: white; border-radius: 2rem; padding: 6px; border: 4px solid white; outline: 4px solid #f1f5f9; }
-.cell-btn { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 1.75rem; font-weight: 900; font-style: italic; border: 0.5px solid #f1f5f9; }
+/* OPTIMIZACIÓN DE TAMAÑO PARA MÓVILES */
+.sopa-grid-container { 
+    width: 90%; 
+    max-width: 340px; /* Reducido de 380 a 340 para que quepa en todos los móviles */
+    aspect-ratio: 1/1; 
+    background: white; 
+    border-radius: 2rem; 
+    padding: 6px; 
+    border: 4px solid white; 
+    outline: 4px solid #f1f5f9; 
+}
+
+.cell-btn { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 900; font-style: italic; border: 0.5px solid #f1f5f9; }
 .cell-neutral { color: #cbd5e1; }
 .cell-selected { background: #fde047; color: #854d0e; border-radius: 8px; transform: scale(1.05); }
 .cell-correct { background: #dcfce7; color: #15803d; }
 .cell-error { background: #fee2e2; color: #b91c1c; animation: shake 0.2s ease-in-out 2; }
 
-.challenge-pill { padding: 6px; border-radius: 10px; border: 2px solid #e0e7ff; text-align: center; }
+.challenge-pill { padding: 4px; border-radius: 8px; border: 2px solid #e0e7ff; text-align: center; }
 .pill-found { background: #f0fdf4; border-color: #bbf7d0; opacity: 0.4; color: #166534; transform: scale(0.9); }
 .pill-active { background: white; color: #312e81; }
 
 .rules-panel-sopa { width: 92%; background: white; padding: 1.5rem; border-radius: 2rem; border: 2px solid #e2e8f0; position: relative; }
 .rules-badge { position: absolute; top: -12px; left: 1.5rem; background: #4f46e5; color: white; font-size: 10px; font-weight: 900; padding: 4px 12px; border-radius: 9999px; }
 
-/* .btn-action-primary eliminado para usar Tailwind directo según norma v2.9.2 */
-
 .victory-overlay {
     position: absolute; inset: 0; z-index: 300; background: white;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     padding: 2rem; text-align: center;
 }
-.victory-title { font-size: 2.5rem; line-height: 1; margin-bottom: 1.5rem; }
-.prize-card { background: #f5f3ff; border: 4px solid #ede9fe; border-radius: 3rem; padding: 2rem; width: 100%; max-width: 280px; margin-bottom: 2rem; }
+.victory-title { font-size: 2.2rem; line-height: 1; margin-bottom: 1rem; }
+.prize-card { background: #f5f3ff; border: 4px solid #ede9fe; border-radius: 3rem; padding: 1.5rem; width: 100%; max-width: 280px; margin-bottom: 1.5rem; }
 .prize-item { display: flex; flex-direction: column; align-items: center; }
 .prize-item img { width: 2.5rem; height: 2.5rem; margin-bottom: 4px; }
 .prize-item span { font-size: 1.5rem; font-weight: 900; color: #4338ca; }

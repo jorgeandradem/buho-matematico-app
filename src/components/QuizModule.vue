@@ -1,7 +1,7 @@
 <script setup>
 /** * ARCHIVO: QuizModule.vue
- * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.2 + BOTÓN 3D ESTÁNDAR AZUL
- * LOGICA: Desafío contra reloj + Monedas de Sesión + Relieve Quirúrgico
+ * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.4 + AUDIO QUIRÚRGICO + REPORTE VIVO
+ * LOGICA: Desafío contra reloj con sonidos correct1/wrong1 y avance de misiones.
  */
 import { ref, onUnmounted, computed, onMounted } from 'vue';
 import { X, Clock, Zap, Trophy, Medal, CheckCircle, XCircle, PlayCircle } from 'lucide-vue-next';
@@ -41,8 +41,23 @@ const buttonColors = [
     'bg-green-500 hover:bg-green-600 shadow-[0_6px_0_rgb(21,128,61)] text-white'
 ];
 
-const playSound = (type) => {
-    try { const audio = new Audio(`/audios/${type}.mp3`); audio.play().catch(() => {}); } catch (e) {}
+// --- 🔊 MOTOR DE AUDIO ACTUALIZADO v2.9.4 ---
+const playCorrectAudio = () => {
+    const audio = new Audio('/audios/correct1.mp3');
+    audio.volume = 0.7;
+    audio.play().catch(() => {});
+};
+
+const playWrongAudio = () => {
+    const audio = new Audio('/audios/wrong1.mp3');
+    audio.volume = 0.5;
+    audio.play().catch(() => {});
+};
+
+const playFinishAudio = () => {
+    const audio = new Audio('/audios/finish.mp3'); // O el que tengas para victoria
+    audio.volume = 0.8;
+    audio.play().catch(() => {});
 };
 
 const performanceFeedback = computed(() => {
@@ -90,8 +105,8 @@ const generateQuestion = () => {
 };
 
 const handleTimeout = () => {
-    playSound('wrong');
-    history.value.push({ q: currentQuestion.text, chosen: '⏳', correct: currentQuestion.correctAnswer, isCorrect: false });
+    playWrongAudio(); // ✅ Audio Actualizado
+    history.push({ q: currentQuestion.value.text, chosen: '⏳', correct: currentQuestion.value.correctAnswer, isCorrect: false });
     currentQuestionIndex.value++;
     nextQuestion();
 };
@@ -100,11 +115,18 @@ const checkAnswer = (answer) => {
     const isCorrect = (answer === currentQuestion.value.correctAnswer);
     if (isCorrect) { 
         score.value++; 
+        
+        // 🛡️ REPORTE VIVO PARA LA LLAMITA (Cada acierto suma)
+        store.updateMissionProgress('quiz_correct_answer', 1);
+
         if (selectedOperation.value === '+') sessionCoins.value.copper++;
         else if (selectedOperation.value === '-') sessionCoins.value.silver++;
         else sessionCoins.value.gold++;
-        playSound('correct'); 
-    } else { playSound('wrong'); }
+        
+        playCorrectAudio(); // ✅ Audio Actualizado
+    } else { 
+        playWrongAudio(); // ✅ Audio Actualizado
+    }
     history.value.push({ q: currentQuestion.value.text, chosen: answer, correct: currentQuestion.value.correctAnswer, isCorrect });
     currentQuestionIndex.value++;
     nextQuestion();
@@ -121,14 +143,19 @@ const triggerCoinRain = (type, amount) => {
 const endGame = async () => {
     clearInterval(timerInterval);
     gameState.value = 'finished';
-    playSound('finish');
+    playFinishAudio(); // ✅ Audio Actualizado
+    
     earned.value = { ...sessionCoins.value };
     try {
         if (earned.value.gold > 0) await store.addCoins('gold', earned.value.gold);
         if (earned.value.silver > 0) await store.addCoins('silver', earned.value.silver);
         if (earned.value.copper > 0) await store.addCoins('copper', earned.value.copper);
+        
+        // 🛡️ REPORTES DE FIN DE JUEGO (Misión específica + Racha general)
         await store.updateMissionProgress('play_quiz', 1); 
+        await store.updateMissionProgress('play_any_game', 1); 
     } catch (e) { console.error(e); }
+    
     const coinType = selectedOperation.value === '+' ? 'copper' : selectedOperation.value === '-' ? 'silver' : 'gold';
     triggerCoinRain(coinType, earned.value[coinType]);
     speak(performanceFeedback.value.text);
@@ -157,7 +184,7 @@ onUnmounted(() => clearInterval(timerInterval));
         <header v-if="gameState !== 'rules'" class="header-standard sticky top-0 z-50 shrink-0">
             <div class="trophy-section">
                 <Trophy size="22" class="text-yellow-500" />
-                <span class="text-xl font-black text-indigo-900">{{ currentQuestionIndex + (gameState === 'finished' ? 0 : 1) }}/10</span>
+                <span class="text-xl font-black text-indigo-900">{{ (gameState === 'finished' ? currentQuestionIndex : currentQuestionIndex + 1) }}/10</span>
             </div>
             <div class="session-loot-capsule">
                 <div class="loot-item"><img src="/images/coin-gold.png" /><span>{{ sessionCoins.gold }}</span></div>
@@ -255,8 +282,7 @@ onUnmounted(() => clearInterval(timerInterval));
 </template>
 
 <style scoped>
-/* LEY DE HIERRO v2.9.2 - DESAFÍO CONTRA RELOJ */
-
+/* LEY DE HIERRO v2.9.4 - BLINDAJE DVH */
 .master-container {
     position: fixed; inset: 0;
     width: 100vw; height: 100dvh;
@@ -285,10 +311,6 @@ onUnmounted(() => clearInterval(timerInterval));
         box-shadow: 0 40px 100px rgba(0,0,0,0.15);
         border: 8px solid white;
     }
-}
-
-@media (min-width: 600px) and (max-width: 1024px) {
-    .app-canvas { width: 85vw; height: 95dvh; border-radius: 35px; }
 }
 
 .header-standard {
