@@ -1,7 +1,7 @@
 <script setup>
 /** * ARCHIVO: MemoryChallenge.vue
- * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.5 - ELIMINACIÓN TOTAL 3D + BORDE DORADO GARANTIZADO
- * LOGICA: Renderizado estático v-if para estabilidad absoluta. Reglas 100% íntegras.
+ * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.2 - CINTURÓN ANTI-DESBORDE + ESTÉTICA CYBERPUNK
+ * LOGICA: Renderizado plano v-if. Iconografía de alto contraste neón. Escalado 3 niveles.
  */
 import { ref, onMounted } from 'vue';
 import { X as CloseIcon, Brain, Trophy, AlertCircle, Sparkles, CheckCircle2, PlayCircle, Star } from 'lucide-vue-next';
@@ -24,7 +24,7 @@ const showCoinRain = ref(false);
 
 const sessionCoins = ref({ gold: 0, silver: 0, copper: 0 });
 
-// Depuración quirúrgica: Eliminamos bordes antiguos para no chocar con el dorado
+// Colores base de fondo y texto para el frente de las cartas (sin bordes aquí)
 const pairColors = [
     'bg-pink-50 text-pink-700', 'bg-blue-50 text-blue-700',
     'bg-green-50 text-green-700', 'bg-amber-50 text-amber-700',
@@ -47,16 +47,10 @@ const returnToRules = () => {
     flippedCards.value = [];
 };
 
-const exitToPortal = () => {
-    sessionCoins.value = { gold: 0, silver: 0, copper: 0 };
-    emit('close');
-};
-
 // --- 3. MOTOR DEL JUEGO ---
 const initGame = () => {
     showCoinRain.value = false;
-    errors.value = 0;
-    matches.value = 0;
+    errors.value = 0; matches.value = 0;
     flippedCards.value = [];
     sessionCoins.value = { gold: 0, silver: 0, copper: 0 };
     
@@ -68,8 +62,7 @@ const initGame = () => {
         let a = Math.floor(Math.random() * 10) + 1;
         let b = Math.floor(Math.random() * 10) + 1;
         let res = op === '+' ? a + b : (op === '-' ? (a + 10) - b : a * b);
-        let text = `${op === '-' ? a + 10 : a} ${op} ${b}`;
-        
+        let text = `${op === '-' ? a + 10 : a}${op}${b}`;
         if (!basePairs.find(p => p.text === text)) {
             basePairs.push({ text, res: res.toString() });
         }
@@ -104,25 +97,20 @@ const handleCardClick = (card) => {
 
         if (card1.matchId === card2.matchId) {
             new Audio('/audios/correct1.mp3').play().catch(() => {});
-            card1.isMatched = true;
-            card2.isMatched = true;
+            card1.isMatched = true; card2.isMatched = true;
             matches.value++;
-            sessionCoins.Gold++;
-
-            // 🛡️ REPORTE VIVO: Mueve la llamita en tiempo real
+            sessionCoins.value.gold++;
             store.updateMissionProgress('memory_match_found', 1);
-
             flippedCards.value = [];
-            if (matches.value === 6) setTimeout(() => triggerWin(), 800);
+            if (matches.value === 6) setTimeout(() => triggerWin(), 600);
         } else {
             errors.value++;
-            card1.hasError = true;
-            card2.hasError = true;
+            card1.hasError = true; card2.hasError = true;
             setTimeout(() => {
                 card1.isFlipped = false; card2.isFlipped = false;
                 card1.hasError = false; card2.hasError = false;
                 flippedCards.value = [];
-            }, 800); 
+            }, 700); 
         }
     }
 };
@@ -130,63 +118,61 @@ const handleCardClick = (card) => {
 const triggerWin = async () => {
     gameState.value = 'finished';
     showCoinRain.value = true;
-    
-    // 🛡️ REPORTE DE RACHA: Partida completa
     store.updateMissionProgress('play_any_game', 1);
-
     playCoinSound(); playOwlHoot();
     let finalPrize = errors.value < 6 ? 10 : 5;
-    sessionCoins.Gold = finalPrize;
+    sessionCoins.value.gold = finalPrize;
     await store.addCoins('gold', finalPrize);
 };
 </script>
 
 <template>
   <div class="master-container font-inter">
-    <main class="app-canvas !bg-slate-50 shadow-smartphone">
+    <main class="app-canvas !bg-slate-50">
         
-        <header v-if="gameState === 'playing'" class="header-memoria shrink-0">
-            <div class="flex items-center gap-2 bg-indigo-50 px-4 py-2 rounded-full border border-indigo-100 shadow-sm">
-                <Trophy size="18" class="text-yellow-500" />
-                <span class="font-black text-indigo-900">{{ matches }}/6</span>
+        <header v-if="gameState !== 'rules'" class="header-standard shrink-0">
+            <div class="trophy-section">
+                <Trophy size="22" class="text-yellow-500" />
+                <span class="text-xl font-black text-indigo-900">{{ matches }}/6</span>
             </div>
 
             <div class="session-loot-capsule">
-                <div class="loot-item"><img src="/images/coin-gold.png" /><span>{{ sessionCoins.Gold }}</span></div>
+                <div class="loot-item"><img src="/images/coin-gold.png" /><span>{{ sessionCoins.gold }}</span></div>
                 <div class="loot-item border-x border-slate-100"><img src="/images/coin-silver.png" /><span>{{ sessionCoins.silver }}</span></div>
                 <div class="loot-item"><img src="/images/coin-copper.png" /><span>{{ sessionCoins.copper }}</span></div>
             </div>
 
-            <button @click="returnToRules" class="btn-close-mem"><CloseIcon :size="20" /></button>
+            <button @click="emit('close')" class="btn-close-circle"><CloseIcon :size="20" /></button>
         </header>
 
-        <div class="game-content flex-1 flex flex-col items-center justify-between py-4 relative">
+        <div class="game-content flex-1 flex flex-col items-center justify-between py-2 relative overflow-hidden">
             
             <div v-if="gameState === 'rules'" class="flex-1 flex flex-col items-center justify-between p-6 w-full animate-fade-in">
-                <button @click="exitToPortal" class="absolute top-4 right-4 bg-slate-200/50 w-10 h-10 rounded-full flex items-center justify-center text-slate-600 active:scale-75 transition-all">
+                <button @click="emit('close')" class="absolute top-4 right-4 bg-slate-200/50 w-10 h-10 rounded-full flex items-center justify-center text-slate-600 active:scale-75 transition-all">
                     <CloseIcon size="24" stroke-width="3" />
                 </button>
 
-                <div class="flex flex-col items-center mt-6">
-                    <Brain size="70" class="text-indigo-600 animate-bounce mb-2" />
-                    <h1 class="game-title text-4xl uppercase italic font-black text-indigo-900">MEMORIA PRO</h1>
-                    <span class="text-[10px] font-black text-amber-500 tracking-widest bg-amber-50 px-3 py-1 rounded-full border border-amber-100 mt-2">v2.9.5 GOLD EDITION</span>
+                <div class="flex flex-col items-center mt-6 text-center">
+                    <div class="cyber-icon-container mb-4 shadow-xl">
+                        <Brain size="65" class="cyber-brain-rules" />
+                    </div>
+                    <h1 class="game-title">MEMORIA PRO</h1>
                 </div>
 
-                <div class="rules-panel shadow-2xl w-full bg-white p-6 rounded-[2.5rem] border-2 border-slate-100">
-                    <div class="rules-badge uppercase font-black tracking-widest">Manual de Misión</div>
-                    <div class="flex flex-col gap-6 p-2 mt-4 text-left">
-                        <div class="flex gap-4 items-start">
-                            <div class="bg-indigo-100 p-2.5 rounded-xl shrink-0"><Sparkles class="text-indigo-600" size="24" /></div>
-                            <p class="text-[15px] font-bold text-slate-700 leading-tight">Encuentra las parejas uniendo cada **operación** con su **resultado** correcto.</p>
+                <div class="rules-panel shadow-2xl w-full max-w-[400px]">
+                    <div class="rules-badge">Misión</div>
+                    <div class="flex flex-col gap-4 p-2 mt-2 text-left rules-text">
+                        <div class="flex gap-3 items-start">
+                            <Sparkles class="text-indigo-600 shrink-0" size="20" />
+                            <p class="text-sm font-bold text-slate-700 leading-tight">Encuentra las parejas uniendo cada **operación** con su **resultado** correcto.</p>
                         </div>
-                        <div class="flex gap-4 items-start">
-                            <div class="bg-amber-100 p-2.5 rounded-xl shrink-0"><Star class="text-amber-600" size="24" /></div>
-                            <p class="text-[15px] font-bold text-slate-700 leading-tight">Guíate por el **color de la estrella**; las parejas reales tienen el mismo color.</p>
+                        <div class="flex gap-3 items-start">
+                            <Star class="text-amber-500 shrink-0" size="20" />
+                            <p class="text-sm font-bold text-slate-700 leading-tight">Guíate por el **color de la estrella**; las parejas reales tienen el mismo color.</p>
                         </div>
-                        <div class="flex gap-4 items-start">
-                            <div class="bg-green-100 p-2.5 rounded-xl shrink-0"><Trophy class="text-green-600" size="24" /></div>
-                            <p class="text-[15px] font-bold text-slate-700 leading-tight">Completar con menos de 6 errores otorga **10 Monedas de Oro**.</p>
+                        <div class="flex gap-3 items-start">
+                            <Trophy class="text-green-600 shrink-0" size="20" />
+                            <p class="text-sm font-bold text-slate-700 leading-tight">Completar con menos de 6 errores otorga **10 Monedas de Oro**.</p>
                         </div>
                     </div>
                 </div>
@@ -194,139 +180,153 @@ const triggerWin = async () => {
                 <button @click="startGame" 
                         class="w-[90%] max-w-[420px] bg-gradient-to-b from-[#3B82F6] to-[#1D4ED8] 
                                text-white font-black italic text-xl uppercase rounded-[2rem] 
-                               border-b-[8px] border-[#1E3A8A] shadow-lg shadow-[#1D4ED8]/40 
-                               active:translate-y-[4px] transition-all 
-                               flex items-center justify-center py-4 group">
-                    ¡EMPEZAR! 
-                    <PlayCircle class="ml-3 group-hover:rotate-12 transition-transform" size="26" />
+                               border-b-[8px] border-[#1E3A8A] shadow-lg active:translate-y-[4px] transition-all 
+                               flex items-center justify-center py-4 group mb-4">
+                    ¡A JUGAR! 
+                    <PlayCircle class="ml-3" size="26" />
                 </button>
             </div>
 
             <template v-else-if="gameState === 'playing'">
-                <h1 class="title-memoria shrink-0 mt-2">Buscando Parejas</h1>
-                
-                <div class="cards-grid">
-                    <div v-for="card in cards" :key="card.id" 
-                          class="card-wrapper aspect-square"
-                          @click="handleCardClick(card)">
-                        
-                        <div class="w-full h-full relative">
-                            <div v-if="!card.isFlipped && !card.isMatched" 
-                                 class="absolute inset-0 rounded-2xl flex items-center justify-center bg-gradient-to-br from-indigo-500 to-indigo-700 border-b-8 border-indigo-900 shadow-xl transition-all active:scale-95">
-                                <Brain size="36" class="text-white opacity-40" />
-                            </div>
-
-                            <div v-else 
-                                 :class="['absolute inset-0 rounded-2xl flex flex-col items-center justify-between p-3 border-4 border-b-8 shadow-2xl animate-pop-in', 
-                                          card.color, /* Color de fondo y texto base del par */
-                                          card.hasError ? 'border-red-500 bg-red-100 !text-red-700' : 
-                                          card.isMatched ? 'border-green-500 bg-green-100 !text-green-800' : 
-                                          'border-amber-400' /* Borde dorado premium para carta volteada normal */]">
+                <div class="main-visual-area flex-1 flex items-center justify-center w-full px-4">
+                    <div class="memory-belt">
+                        <div class="memory-grid">
+                            <div v-for="card in cards" :key="card.id" class="card-wrapper" @click="handleCardClick(card)">
                                 
-                                <div class="w-full flex justify-center pt-1">
-                                    <Star :class="['shrink-0 drop-shadow-sm', card.starColor]" size="24" fill="currentColor" />
+                                <div v-if="!card.isFlipped && !card.isMatched" 
+                                     class="card-base card-back shadow-lg transition-transform active:scale-95">
+                                    <Brain size="40" class="cyber-brain-card" />
                                 </div>
 
-                                <div class="flex-1 flex items-center justify-center w-full">
-                                    <span :class="['font-black text-center leading-none tracking-tighter transition-colors', 
-                                                   card.type === 'op' ? 'text-xl sm:text-2xl' : 'text-4xl sm:text-5xl italic']">
-                                         {{ card.content }}
+                                <div v-else 
+                                     :class="['card-base card-front border-4 border-b-8 animate-pop-in shadow-xl', 
+                                              card.color, /* Fondo y color texto base del par */
+                                              card.hasError ? 'border-red-500 bg-red-100 !text-red-700' : 
+                                              card.isMatched ? 'border-green-500 bg-green-100 !text-green-800' : 
+                                              'border-amber-400' /* Borde dorado premium para carta volteada */]">
+                                    
+                                    <Star :class="['shrink-0 drop-shadow-sm', card.starColor]" size="22" fill="currentColor" />
+                                    
+                                    <span :class="['card-text-clamp font-black text-center leading-none tracking-tighter transition-colors', 
+                                                   card.type === 'op' ? 'text-indigo-900' : 'text-slate-800 italic']">
+                                        {{ card.content }}
                                     </span>
-                                </div>
 
-                                <div class="h-6 w-full flex justify-center items-center pb-1">
-                                    <CheckCircle2 v-if="card.isMatched" class="text-green-600" size="20" stroke-width="3" />
+                                    <div class="h-[22px] flex items-center justify-center">
+                                        <CheckCircle2 v-if="card.isMatched" class="text-green-600" size="20" stroke-width="3" />
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div class="h-4"></div>
             </template>
 
-            <Transition name="pop">
-              <div v-if="gameState === 'finished'" class="victory-overlay animate-fade-in uppercase italic font-black">
+            <div v-else-if="gameState === 'finished'" class="flex-1 flex flex-col items-center justify-center p-6 w-full animate-fade-in z-50">
                 <SimpleConfetti />
-                <CoinRain v-if="showCoinRain" type="gold" :count="40" class="z-[400] pointer-events-none" />
-                <div class="flex flex-col items-center w-full z-[500]">
-                    <Trophy class="w-20 h-20 text-yellow-500 mb-2 drop-shadow-xl animate-bounce" />
-                    <h2 class="victory-title text-indigo-950 text-3xl mb-1">¡LOGRADO!</h2>
-                    <div class="prize-card-compact bg-white shadow-xl border-4 border-b-[10px] border-amber-400 rounded-[3rem] p-6 my-4">
-                        <div class="flex flex-col items-center">
-                           <img src="/images/coin-gold.png" class="w-20 h-20 object-contain" />
-                           <span class="text-6xl text-amber-600 tracking-tighter">+{{ sessionCoins.Gold }}</span>
-                        </div>
-                    </div>
-                    <button @click="startGame" class="w-full max-w-[280px] py-4 rounded-[2rem] text-2xl font-black italic uppercase text-white bg-gradient-to-b from-[#3B82F6] to-[#1D4ED8] border-b-[8px] border-[#1E3A8A]">NUEVA PARTIDA</button>
-                    <button @click="exitToPortal" class="text-slate-400 py-4 font-black text-sm hover:text-indigo-600 uppercase tracking-widest opacity-70">SALIR AL PORTAL</button>
+                <CoinRain v-if="showCoinRain" type="gold" :count="40" />
+                <Trophy size="100" class="text-yellow-500 mb-4 animate-bounce" />
+                <h2 class="game-title text-3xl">¡OPERACIÓN COMPLETADA!</h2>
+                <div class="bg-white border-4 border-b-[10px] border-amber-400 p-8 rounded-[3rem] shadow-2xl my-6">
+                    <span class="text-6xl font-black text-amber-600 tracking-tighter">+{{ sessionCoins.gold }}</span>
                 </div>
-              </div>
-            </Transition>
+                <button @click="startGame" class="w-full max-w-[280px] py-4 rounded-[2rem] bg-blue-600 text-white font-black italic uppercase shadow-lg active:translate-y-1">NUEVA PARTIDA</button>
+            </div>
         </div>
+
     </main>
   </div>
 </template>
 
 <style scoped>
-/* 🛡️ BLINDAJE TÉCNICO MASTER-CONTAINER v2.9.5 */
-.master-container {
-    position: fixed; inset: 0; z-index: 9999;
-    display: flex; justify-content: center; align-items: center;
-    background-color: #ffffff; overflow: hidden;
-    height: 100dvh; 
-}
+/* 🛡️ ESTRUCTURA MAESTRA (Ajuste 3 Niveles) */
+.master-container { position: fixed; inset: 0; z-index: 9999; display: flex; justify-content: center; align-items: center; background-color: #f1f5f9; overflow: hidden; touch-action: none !important; }
 
-.app-canvas {
-    display: flex; flex-direction: column;
-    position: relative; overflow: hidden; transition: all 0.4s;
-    user-select: none; width: 100vw; height: 100dvh;
-}
+.app-canvas { display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; background-color: #f8fafc; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); user-select: none; touch-action: none !important; -webkit-tap-highlight-color: transparent; width: 100vw; height: 100dvh; }
 
-@media (min-width: 1025px) { .app-canvas { width: 1024px; height: 90dvh; border-radius: 45px; border: 8px solid white; } }
+@media (min-width: 1025px) { .app-canvas { width: 1024px; height: 90dvh; border-radius: 45px; box-shadow: 0 40px 100px rgba(0,0,0,0.2); border: 8px solid white; } }
+@media (min-width: 600px) and (max-width: 1024px) { .app-canvas { width: 85vw; height: 95dvh; border-radius: 35px; } }
 
-.header-memoria {
-    width: 100%; display: flex; align-items: center; justify-content: space-between;
-    padding: 1rem 1.25rem; background: white; border-bottom: 2px solid #f1f5f9; z-index: 50;
-}
-
-.session-loot-capsule {
-    display: flex; align-items: center; background: white; padding: 6px 16px;
-    border-radius: 9999px; border: 2px solid #f1f5f9;
-}
-
+/* COMPONENTES HOMOLOGADOS */
+.header-standard { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1.25rem; background: white; border-bottom: 2px solid #f1f5f9; }
+.session-loot-capsule { display: flex; align-items: center; background: white; padding: 6px 16px; border-radius: 9999px; border: 2px solid #f1f5f9; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
 .loot-item { display: flex; align-items: center; gap: 6px; padding: 0 10px; font-weight: 900; }
-.loot-item img { width: 1.2rem; height: 1.2rem; }
+.loot-item img { width: 1.2rem; height: 1.2rem; object-fit: contain; }
+.game-title { font-size: 2rem; font-weight: 900; color: #312e81; text-transform: uppercase; font-style: italic; letter-spacing: -0.05em; }
+.rules-panel { width: 92%; background: white; padding: 1rem; border-radius: 1.75rem; border: 2px solid #e2e8f0; position: relative; }
+.rules-badge { position: absolute; top: -10px; left: 1.5rem; background: #4f46e5; color: white; font-size: 10px; font-weight: 900; padding: 2px 10px; border-radius: 9999px; }
+.btn-close-circle { background: #fee2e2; color: #ef4444; width: 36px; height: 36px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; }
 
-.btn-close-mem { background: #fee2e2; color: #ef4444; width: 36px; height: 36px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; }
-
-/* 🛡️ GRID PLANO SIN ESPACIO FANTASMA */
-.cards-grid {
-    display: grid; 
-    grid-template-columns: repeat(3, 1fr);
-    grid-template-rows: repeat(4, 1fr);
-    gap: 12px; 
-    width: 94%; max-width: 440px; 
-    flex: 1; margin: 1rem 0;
+/* 🛡️ EL CINTURÓN (Ajuste Horizontal) */
+.memory-belt {
+    width: 100%;
+    max-width: 440px; 
+    aspect-ratio: 3/4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.card-wrapper { cursor: pointer; position: relative; }
-
-.rules-panel { position: relative; }
-.rules-badge { position: absolute; top: -14px; left: 1.5rem; background: #4f46e5; color: white; font-size: 11px; padding: 5px 15px; border-radius: 9999px; }
-
-.victory-overlay {
-    position: absolute; inset: 0; z-index: 300; background: #f8fafc;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    padding: 1rem; text-align: center;
+.memory-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-rows: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    width: 100%;
+    height: 100%;
 }
 
-.game-title { font-weight: 900; color: #312e81; text-transform: uppercase; font-style: italic; letter-spacing: -0.05em; }
-.title-memoria { font-size: 1.6rem; font-weight: 900; color: #312e81; text-transform: uppercase; font-style: italic; }
+.card-wrapper { width: 100%; height: 100%; cursor: pointer; position: relative; }
+
+.card-base {
+    position: absolute; inset: 0;
+    border-radius: 1.5rem;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: space-between;
+    padding: 0.6rem;
+}
+
+.card-back {
+    background: linear-gradient(135deg, #4f46e5 0%, #312e81 100%);
+    border-bottom: 8px solid #1e1b4b;
+    display: flex; align-items: center; justify-content: center;
+}
+
+.card-front { background-color: white; }
+
+/* 🧠 INGENIERÍA VISUAL: EFECTO CYBERPUNK */
+/* Técnica de contorno múltiple para borde blanco delgado perfecto alrededor del icono */
+.cyber-brain-rules,
+.cyber-brain-card {
+    color: #ec4899; /* Rosado Intenso Neón */
+    fill: #ec4899;
+    filter: 
+        drop-shadow(1px 0 0 white) 
+        drop-shadow(-1px 0 0 white) 
+        drop-shadow(0 1px 0 white) 
+        drop-shadow(0 -1px 0 white) 
+        drop-shadow(0 0 4px rgba(255, 255, 255, 0.5)); /* Brillo sutil */
+}
+
+.cyber-icon-container {
+    background: linear-gradient(135deg, #3730a3 0%, #1e1b4b 100%); /* Fondo índigo muy oscuro */
+    padding: 1.5rem;
+    border-radius: 2.5rem;
+    border: 3px solid #4f46e5;
+}
+
+/* TEXTO DINÁMICO */
+.card-text-clamp {
+    font-size: clamp(1rem, 5vw, 1.8rem);
+    word-break: break-all;
+}
+
+/* Negrita en reglas */
+.rules-text strong { font-weight: 900; color: #312e81; }
 
 .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-/* Animación de aparición plana (Pop en lugar de Giro 3D) */
 .animate-pop-in { animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
 @keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 </style>
