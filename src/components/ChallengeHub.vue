@@ -1,14 +1,14 @@
 <script setup>
 /**
  * NOTA INFORMATIVA: PORTAL DE DESAFÍOS (CHALLENGE HUB)
- * Gestión de los 12 retos especiales con navegación paginada.
- * Política de Cero Scroll v2.9.3
+ * Gestión de los 15 retos especiales con navegación paginada.
+ * Política de Cero Scroll v2.9.6
  */
 import { ref, computed } from 'vue';
 import { 
   X as CloseIcon, Zap, Trophy, Brain, Search, Puzzle, 
   Rocket, Plane, Anchor, Globe, ChevronLeft, ChevronRight,
-  Scale, PieChart, Waves, Dribbble 
+  Scale, PieChart, Waves, Dribbble, Box, Clock, Lock // 🔐 ICONO NUEVO
 } from 'lucide-vue-next';
 
 // --- IMPORTACIÓN DE JUEGOS ---
@@ -24,6 +24,9 @@ import ScaleMaster from './ScaleMaster.vue';
 import FractionArchitect from './FractionArchitect.vue';
 import SubmarineAlgebra from './SubmarineAlgebra.vue'; 
 import SoccerAlgebra from './SoccerAlgebra.vue'; 
+import DataDetective3D from './DataDetective3D.vue';
+import TimeWatchmaker from './TimeWatchmaker.vue';
+import MechanicalVault from './MechanicalVault.vue'; // 🔐 COMPONENTE NUEVO
 
 const emit = defineEmits(['close', 'update-coins']);
 const activeGame = ref(null); 
@@ -43,7 +46,10 @@ const games = [
   { id: 'scale', name: 'Scale Master', icon: Scale, color: 'bg-cyan-600', desc: 'Equilibra el álgebra con pesas' },
   { id: 'pizza', name: 'Arquitecto de Fracciones', icon: PieChart, color: 'bg-red-500', desc: 'Prepara pedidos y domina partes' },
   { id: 'submarine', name: 'Burbujas de Álgebra', icon: Waves, color: 'bg-blue-600', desc: 'Explota el valor de X bajo el mar' },
-  { id: 'soccer', name: 'Estadio de Ecuaciones', icon: Dribbble, color: 'bg-lime-600', desc: 'Anota goles resolviendo incógnitas' }
+  { id: 'soccer', name: 'Estadio de Ecuaciones', icon: Dribbble, color: 'bg-lime-600', desc: 'Anota goles resolviendo incógnitas' },
+  { id: 'detective', name: 'Detective 3D', icon: Box, color: 'bg-indigo-600', desc: 'Analiza columnas de datos y gana Cobre' },
+  { id: 'watchmaker', name: 'El Relojero', icon: Clock, color: 'bg-amber-500', desc: 'Domina las manecillas y gana Plata' },
+  { id: 'vault', name: 'La Bóveda', icon: Lock, color: 'bg-slate-600', desc: 'Hackea el valor posicional y gana Oro' } // 🔐 NUEVO
 ];
 
 const totalPages = computed(() => Math.ceil(games.length / gamesPerPage));
@@ -126,6 +132,10 @@ const handleCoins = (amount) => {
         
         <SubmarineAlgebra v-if="activeGame === 'submarine'" @close="closeGame" @update-coins="handleCoins" />
         <SoccerAlgebra v-if="activeGame === 'soccer'" @close="closeGame" @update-coins="handleCoins" />
+
+        <DataDetective3D v-if="activeGame === 'detective'" @close="closeGame" />
+        <TimeWatchmaker v-if="activeGame === 'watchmaker'" @close="closeGame" />
+        <MechanicalVault v-if="activeGame === 'vault'" @close="closeGame" />
       </div>
     </div>
   </div>
@@ -133,7 +143,6 @@ const handleCoins = (amount) => {
 
 <style scoped>
 /* LEY DE HIERRO v2.9.3 - CERO SCROLL SMARTPHONE */
-
 .master-hub {
   position: fixed;
   inset: 0;
@@ -148,7 +157,7 @@ const handleCoins = (amount) => {
 
 .hub-canvas {
   display: grid;
-  grid-template-rows: auto 1fr; /* Header arriba, contenido ocupa el resto */
+  grid-template-rows: auto 1fr;
   position: relative;
   overflow: hidden;
   background: linear-gradient(to bottom right, #312e81, #4f46e5);
@@ -160,12 +169,10 @@ const handleCoins = (amount) => {
   height: 100dvh;
 }
 
-/* TABLETS */
 @media (min-width: 600px) and (max-width: 1024px) {
   .hub-canvas { width: 85vw; height: 92dvh; border-radius: 35px; padding: 2rem; }
 }
 
-/* PC: 1024px */
 @media (min-width: 1025px) {
   .hub-canvas { width: 1024px; height: 90dvh; border-radius: 45px; padding: 2.5rem; }
 }
@@ -194,17 +201,16 @@ const handleCoins = (amount) => {
 
 .view-paginator {
   display: grid;
-  grid-template-rows: 1fr auto; /* Juegos ocupan todo, footer abajo */
+  grid-template-rows: 1fr auto;
   height: 100%;
   overflow: hidden;
 }
 
-/* AJUSTE QUIRÚRGICO DE CARDS PARA EVITAR SCROLL */
 .grid-games {
   display: flex;
   flex-direction: column;
-  justify-content: center; /* Centra las cards verticalmente si sobra espacio */
-  gap: 0.75rem; /* Gap reducido para smartphones */
+  justify-content: center;
+  gap: 0.75rem;
   padding-bottom: 1rem;
 }
 
@@ -213,9 +219,9 @@ const handleCoins = (amount) => {
   border-radius: 1.5rem;
   padding: 0.2rem;
   border-bottom: 4px solid #e2e8f0;
-  flex: 1; /* Permite que las cards se estiren o encojan según el alto disponible */
-  max-height: 110px; /* Evita que crezcan demasiado en pantallas grandes */
-  min-height: 80px;  /* Asegura un tamaño mínimo táctil */
+  flex: 1;
+  max-height: 110px;
+  min-height: 80px;
 }
 
 .card-inner {
@@ -280,10 +286,9 @@ const handleCoins = (amount) => {
   height: 100%;
   overflow: hidden;
   border-radius: 2rem;
-  background: black;
+  background: white;
 }
 
-/* Soporte para pantallas de tablets/PC con más aire */
 @media (min-height: 800px) {
   .grid-games { gap: 1.25rem; }
   .game-card { max-height: 130px; }

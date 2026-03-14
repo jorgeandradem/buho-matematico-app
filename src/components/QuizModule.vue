@@ -1,7 +1,7 @@
 <script setup>
 /** * ARCHIVO: QuizModule.vue
- * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.4 + AUDIO QUIRÚRGICO + REPORTE VIVO
- * LOGICA: Desafío contra reloj con sonidos correct1/wrong1 y avance de misiones.
+ * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.6 + REFUERZO HORIZONTAL QUIRÚRGICO
+ * LOGICA: Desafío contra reloj. Feedback "Correcto (xx)" ubicado entre resultado e icono.
  */
 import { ref, onUnmounted, computed, onMounted } from 'vue';
 import { X, Clock, Zap, Trophy, Medal, CheckCircle, XCircle, PlayCircle } from 'lucide-vue-next';
@@ -41,7 +41,7 @@ const buttonColors = [
     'bg-green-500 hover:bg-green-600 shadow-[0_6px_0_rgb(21,128,61)] text-white'
 ];
 
-// --- 🔊 MOTOR DE AUDIO ACTUALIZADO v2.9.4 ---
+// --- 🔊 MOTOR DE AUDIO ---
 const playCorrectAudio = () => {
     const audio = new Audio('/audios/correct1.mp3');
     audio.volume = 0.7;
@@ -49,13 +49,13 @@ const playCorrectAudio = () => {
 };
 
 const playWrongAudio = () => {
-    const audio = new Audio('/audios/wrong1.mp3');
+    const audio = new Audio('/audios/wrong.mp3');
     audio.volume = 0.5;
     audio.play().catch(() => {});
 };
 
 const playFinishAudio = () => {
-    const audio = new Audio('/audios/finish.mp3'); // O el que tengas para victoria
+    const audio = new Audio('/audios/finish.mp3');
     audio.volume = 0.8;
     audio.play().catch(() => {});
 };
@@ -105,8 +105,8 @@ const generateQuestion = () => {
 };
 
 const handleTimeout = () => {
-    playWrongAudio(); // ✅ Audio Actualizado
-    history.push({ q: currentQuestion.value.text, chosen: '⏳', correct: currentQuestion.value.correctAnswer, isCorrect: false });
+    playWrongAudio();
+    history.value.push({ q: currentQuestion.value.text, chosen: '⏳', correct: currentQuestion.value.correctAnswer, isCorrect: false });
     currentQuestionIndex.value++;
     nextQuestion();
 };
@@ -115,17 +115,15 @@ const checkAnswer = (answer) => {
     const isCorrect = (answer === currentQuestion.value.correctAnswer);
     if (isCorrect) { 
         score.value++; 
-        
-        // 🛡️ REPORTE VIVO PARA LA LLAMITA (Cada acierto suma)
         store.updateMissionProgress('quiz_correct_answer', 1);
 
         if (selectedOperation.value === '+') sessionCoins.value.copper++;
         else if (selectedOperation.value === '-') sessionCoins.value.silver++;
         else sessionCoins.value.gold++;
         
-        playCorrectAudio(); // ✅ Audio Actualizado
+        playCorrectAudio();
     } else { 
-        playWrongAudio(); // ✅ Audio Actualizado
+        playWrongAudio();
     }
     history.value.push({ q: currentQuestion.value.text, chosen: answer, correct: currentQuestion.value.correctAnswer, isCorrect });
     currentQuestionIndex.value++;
@@ -143,7 +141,7 @@ const triggerCoinRain = (type, amount) => {
 const endGame = async () => {
     clearInterval(timerInterval);
     gameState.value = 'finished';
-    playFinishAudio(); // ✅ Audio Actualizado
+    playFinishAudio();
     
     earned.value = { ...sessionCoins.value };
     try {
@@ -151,7 +149,6 @@ const endGame = async () => {
         if (earned.value.silver > 0) await store.addCoins('silver', earned.value.silver);
         if (earned.value.copper > 0) await store.addCoins('copper', earned.value.copper);
         
-        // 🛡️ REPORTES DE FIN DE JUEGO (Misión específica + Racha general)
         await store.updateMissionProgress('play_quiz', 1); 
         await store.updateMissionProgress('play_any_game', 1); 
     } catch (e) { console.error(e); }
@@ -184,7 +181,7 @@ onUnmounted(() => clearInterval(timerInterval));
         <header v-if="gameState !== 'rules'" class="header-standard sticky top-0 z-50 shrink-0">
             <div class="trophy-section">
                 <Trophy size="22" class="text-yellow-500" />
-                <span class="text-xl font-black text-indigo-900">{{ (gameState === 'finished' ? currentQuestionIndex : currentQuestionIndex + 1) }}/10</span>
+                <span class="text-xl font-black text-indigo-900">{{ (gameState === 'finished' ? totalQuestions : currentQuestionIndex + 1) }}/10</span>
             </div>
             <div class="session-loot-capsule">
                 <div class="loot-item"><img src="/images/coin-gold.png" /><span>{{ sessionCoins.gold }}</span></div>
@@ -253,25 +250,36 @@ onUnmounted(() => clearInterval(timerInterval));
             </div>
 
             <div v-else-if="gameState === 'finished'" class="flex-1 flex flex-col p-4 bg-slate-50 animate-fade-in w-full h-full overflow-hidden">
-                <div class="text-center mb-4 shrink-0">
-                    <Medal size="48" class="text-yellow-500 mx-auto mb-2" /><h2 class="text-2xl font-black text-indigo-900 uppercase italic">¡Reto Terminado!</h2>
-                    <div :class="`mt-1 px-4 py-1 rounded-full inline-block ${performanceFeedback.bg}`">
+                <div class="text-center mb-2 shrink-0">
+                    <Medal size="42" class="text-yellow-500 mx-auto mb-1" /><h2 class="text-2xl font-black text-indigo-900 uppercase italic">¡Reto Terminado!</h2>
+                    <div :class="`mt-0.5 px-4 py-1 rounded-full inline-block ${performanceFeedback.bg}`">
                         <p :class="`font-black text-xs ${performanceFeedback.color}`">{{ performanceFeedback.text }}</p>
                     </div>
                 </div>
-                <div class="flex-1 bg-white rounded-3xl border-2 border-slate-200 shadow-inner p-4 my-2 overflow-y-auto scroll-interno">
+
+                <div class="flex-1 bg-white rounded-3xl border-2 border-slate-200 shadow-inner p-3 my-1 overflow-y-auto scroll-interno">
                     <div v-for="(item, idx) in history" :key="idx" class="flex items-center justify-between py-2 border-b border-slate-50 px-2 text-base font-black">
-                        <div class="flex items-center gap-3"><span class="text-slate-400 text-xs">{{ idx + 1 }}.</span><span>{{ item.q }} = <span :class="item.isCorrect ? 'text-green-600' : 'text-red-500'">{{ item.chosen }}</span></span></div>
-                        <CheckCircle v-if="item.isCorrect" class="text-green-500" size="20" /><XCircle v-else class="text-red-500" size="20" />
+                        <div class="flex items-center gap-2">
+                            <span class="text-slate-400 text-xs">{{ idx + 1 }}.</span>
+                            <span>{{ item.q }} = <span :class="item.isCorrect ? 'text-green-600' : 'text-red-500'">{{ item.chosen }}</span></span>
+                            
+                            <span v-if="!item.isCorrect" class="flex items-center gap-1 text-[13px] ml-1">
+                                <span class="text-slate-900 font-bold">Correcto</span>
+                                <span class="text-green-600 font-black">({{ item.correct }})</span>
+                            </span>
+                        </div>
+                        <CheckCircle v-if="item.isCorrect" class="text-green-500" size="22" />
+                        <XCircle v-else class="text-red-500" size="22" />
                     </div>
                 </div>
-                <div class="flex gap-4 pb-6 mt-4 shrink-0">
-                    <button @click="gameState = 'menu'" class="flex-1 bg-slate-200 text-slate-700 font-black py-4 rounded-2xl uppercase tracking-widest text-sm">Menú</button>
+
+                <div class="flex gap-4 pb-4 mt-2 shrink-0">
+                    <button @click="gameState = 'menu'" class="flex-1 bg-slate-200 text-slate-700 font-black py-4 rounded-2xl uppercase tracking-widest text-sm shadow-[0_4px_0_rgb(203,213,225)]">Menú</button>
                     <button @click="startGame(selectedOperation)" 
                             class="flex-1 bg-gradient-to-b from-[#3B82F6] to-[#1D4ED8] 
-                                   text-white font-black py-4 rounded-2xl border-b-[6px] border-[#1E3A8A] 
-                                   shadow-lg active:translate-y-[4px] active:border-b-[2px] transition-all 
-                                   uppercase tracking-widest italic text-sm">
+                                    text-white font-black py-4 rounded-2xl border-b-[6px] border-[#1E3A8A] 
+                                    shadow-lg active:translate-y-[4px] active:border-b-[2px] transition-all 
+                                    uppercase tracking-widest italic text-sm">
                         ¡OTRO!
                     </button>
                 </div>
@@ -282,7 +290,7 @@ onUnmounted(() => clearInterval(timerInterval));
 </template>
 
 <style scoped>
-/* LEY DE HIERRO v2.9.4 - BLINDAJE DVH */
+/* ESTILOS LEY DE HIERRO */
 .master-container {
     position: fixed; inset: 0;
     width: 100vw; height: 100dvh;

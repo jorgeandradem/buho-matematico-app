@@ -488,8 +488,11 @@ const isFinalRemainder = (row, col) => {
                     <ArrowLeft :size="24" /> Volver
                 </button>
                 <h1 class="text-xl font-extrabold flex items-center gap-2 uppercase tracking-tighter">División</h1>
-                <button @click="resetSequence" class="p-1.5 rounded-lg bg-yellow-500 shadow-md">
-                    <RefreshCw :size="18" />
+                
+                <button @click="resetSequence" 
+                        :class="['p-1.5 rounded-lg shadow-md transition-all duration-500', 
+                                 showCoinRain ? 'btn-amarillo-latencia' : 'bg-yellow-500']">
+                    <RefreshCw :size="18" :class="showCoinRain ? 'text-white' : ''" />
                 </button>
             </div>
             
@@ -561,7 +564,7 @@ const isFinalRemainder = (row, col) => {
                                               :class="getCellClass(`grid-${r}-${c}`)"
                                               @click="activeKey.value = `grid-${r}-${c}`" />
                                           <div v-if="solutionSteps.some(s => s.type === 'product' && s.row === r && c >= s.colEnd - s.value.toString().length + 1 && c <= s.colEnd)" 
-                                              class="absolute bottom-0 left-0 right-0 border-b-2 border-slate-800 pointer-events-none"></div>
+                                            class="absolute bottom-0 left-0 right-0 border-b-2 border-slate-800 pointer-events-none"></div>
                                       </div>
                                   </template>
                               </div>
@@ -612,6 +615,20 @@ const isFinalRemainder = (row, col) => {
 </template>
 
 <style scoped>
+/* ESTILO ESPECIAL PARA EL BOTÓN AMARILLO CON LATENCIA */
+.btn-amarillo-latencia {
+  background-color: #facc15 !important; /* Amarillo de la imagen image_c49641.png */
+  border: 2px solid #eab308 !important;
+  animation: pulso-victoria-amarillo 1.5s infinite ease-in-out;
+  transform-origin: center;
+}
+
+@keyframes pulso-victoria-amarillo {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(250, 204, 21, 0.6); }
+  50% { transform: scale(1.2); box-shadow: 0 0 20px 10px rgba(250, 204, 21, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(250, 204, 21, 0); }
+}
+
 .animate-shake { animation: shake 0.4s; }
 @keyframes shake { 0%,100%{transform:translateX(0);} 25%{transform:translateX(-5px);} 75%{transform:translateX(5px);} }
 .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }

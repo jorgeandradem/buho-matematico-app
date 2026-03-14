@@ -1,6 +1,6 @@
 /** * ARCHIVO: useGamificationStore.js
- * NOTA INTERNA: BANCO CENTRAL v2.9.5 - SISTEMA ANTIFRAUDE + BAJA POR CREDENCIALES (FIX ERROR MSG)
- * LOGICA: Conversión bidireccional + Transacciones Atómicas + Validación Forzada.
+ * NOTA INTERNA: BANCO CENTRAL v2.9.8 - REPARTO MIXTO + BLINDAJE ANTIFRAUDE
+ * LOGICA: Conversión bidireccional + Redondeo Pedagógico + Sincronización Delta.
  */
 import { defineStore } from 'pinia';
 import { missionsData } from '../data/missions'; 
@@ -17,39 +17,40 @@ const STORAGE_KEY = 'buho-matematico-tesoro-v1';
 
 export const useGamificationStore = defineStore('gamification', {
   state: () => ({
-    // Saldo Actual
+    // --- 💰 BÓVEDA DE MONEDAS ---
     copper: 0,
     silver: 0,
     gold: 0,
     
-    // Marcas de Sincronización (Para Protocolo Delta)
+    // --- 🔄 MARCAS DE SINCRONIZACIÓN (Protocolo Delta) ---
     lastSyncedCopper: 0,
     lastSyncedSilver: 0,
     lastSyncedGold: 0,
 
-    // Estadísticas de Sesión
+    // --- 📊 ESTADÍSTICAS DE SESIÓN ---
     sessionCopperEarned: 0,
     sessionSilverEarned: 0,
     sessionGoldEarned: 0,
     
-    // Inventario y Progreso
+    // --- 🎒 INVENTARIO Y PROGRESO ---
     purchasedItems: [],
     pirateLevel: 1,
     completedIslands: [],
     worldTourLevel: 0, 
     
-    // Racha y Notificaciones
+    // --- 🔥 RACHA Y NOTIFICACIONES ---
     currentStreak: 0,
     lastPlayedDate: null, 
     activeMissions: [],
     bubbleMessage: '',
     
-    // Control de Sincronización
+    // --- 🛡️ CONTROL DE RED ---
     isSyncing: false,
     syncTimeout: null
   }),
 
   getters: {
+    /** Calcula la riqueza total en la unidad base (Cobre) para validaciones de compra */
     totalWealthInCopper: (state) => {
       return state.copper + (state.silver * 100) + (state.gold * 10000);
     },
@@ -58,6 +59,7 @@ export const useGamificationStore = defineStore('gamification', {
 
   actions: {
     // --- 🛡️ PROTOCOLO DELTA: CONCILIACIÓN NUBE-LOCAL ---
+    /** Sincroniza monedas evitando que el lag de la red borre ganancias locales recientes */
     setCoinsFromCloud(stats) {
       if (!stats || this.isSyncing) return; 
       
@@ -85,6 +87,7 @@ export const useGamificationStore = defineStore('gamification', {
       this.saveToStorage();
     },
 
+    /** Empuja el estado local a Firebase mediante transacciones atómicas */
     async syncAllToCloud() {
         if (this.syncTimeout) clearTimeout(this.syncTimeout);
 
@@ -127,7 +130,29 @@ export const useGamificationStore = defineStore('gamification', {
         }, 2000);
     },
 
-    // --- 💰 GESTIÓN DE RIQUEZA ---
+    // --- 💰 GESTIÓN DE RIQUEZA (MOTOR MIXTO v2.9.8) ---
+
+    /** * ALGORITMO DE RECOMPENSA FINAL:
+     * Procesa el botín de una ronda, aplica castigos por errores y actualiza misiones.
+     */
+    async processEndGameRewards(rewards, errors) {
+      let finalGold = parseInt(rewards.gold || 0);
+      let finalSilver = parseInt(rewards.silver || 0);
+      let finalCopper = parseInt(rewards.copper || rewards.bronze || 0);
+
+      // Si hay más de 6 desaciertos, el botín se reduce a la mitad (Redondeo hacia arriba)
+      if (errors > 6) {
+        finalGold = Math.ceil(finalGold / 2);
+        finalSilver = Math.ceil(finalSilver / 2);
+        finalCopper = Math.ceil(finalCopper / 2);
+      }
+
+      // Añadir al total
+      this.addMultipleCoins({ gold: finalGold, silver: finalSilver, copper: finalCopper });
+      
+      // Registrar avance en misiones generales
+      this.updateMissionProgress('play_any_game', 1);
+    },
 
     addMultipleCoins(rewards) {
       if (!rewards) return;
@@ -135,9 +160,20 @@ export const useGamificationStore = defineStore('gamification', {
       const s = parseInt(rewards.silver || 0);
       const g = parseInt(rewards.gold || 0);
 
-      if (c > 0) { this.copper += c; this.sessionCopperEarned += c; this.updateMissionProgress('earn_copper', c); }
-      if (s > 0) { this.silver += s; this.sessionSilverEarned += s; this.updateMissionProgress('earn_silver', s); }
-      if (g > 0) { this.gold += g; this.sessionGoldEarned += g; }
+      if (c > 0) { 
+        this.copper += c; 
+        this.sessionCopperEarned += c; 
+        this.updateMissionProgress('earn_copper', c); 
+      }
+      if (s > 0) { 
+        this.silver += s; 
+        this.sessionSilverEarned += s; 
+        this.updateMissionProgress('earn_silver', s); 
+      }
+      if (g > 0) { 
+        this.gold += g; 
+        this.sessionGoldEarned += g; 
+      }
 
       this.processConversions();
       this.saveToStorage();
@@ -186,6 +222,7 @@ export const useGamificationStore = defineStore('gamification', {
       return true;
     },
 
+    /** Mantiene la economía limpia: 100 Cobre -> 1 Plata | 100 Plata -> 1 Oro */
     processConversions() {
       while (this.copper >= 100) { this.copper -= 100; this.silver += 1; }
       while (this.silver >= 100) { this.silver -= 100; this.gold += 1; }
@@ -231,20 +268,15 @@ export const useGamificationStore = defineStore('gamification', {
         }
     },
 
-    // --- 🚨 PROCESO DE BAJA PERMANENTE (v2.9.5: FIX PROTOCOLO ERROR) ---
+    // --- 🚨 SEGURIDAD Y BAJA PERMANENTE ---
     async deleteAccountPermanently(email, password) {
       try {
-          // 1. Validar identidad (Sesión fresca)
           const userCredential = await signInWithEmailAndPassword(auth, email, password);
           const user = userCredential.user;
 
-          // 2. Borrar rastro en Firestore
           await deleteDoc(doc(db, "users", user.uid));
-          
-          // 3. Borrar cuenta de Firebase Auth
           await deleteUser(user);
           
-          // 4. Limpiar rastro local
           this.$reset();
           localStorage.removeItem(STORAGE_KEY);
           localStorage.removeItem('buho_last_login');
@@ -252,7 +284,6 @@ export const useGamificationStore = defineStore('gamification', {
           return { success: true };
       } catch (error) {
           console.error("Error en baja:", error.code);
-          // Manejo específico de cuenta inexistente o datos erróneos
           if (error.code === 'auth/invalid-credential' || 
               error.code === 'auth/user-not-found' || 
               error.code === 'auth/wrong-password') {

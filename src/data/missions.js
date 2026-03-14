@@ -1,5 +1,5 @@
 // src/data/missions.js
-// 🦉 Configuración v2.9.4 - Sincronización Total con Juegos Blindados
+// 🦉 Configuración v2.9.7 - Sincronización Total (Relojero + Detective + Bóveda)
 
 export const missionsData = [
     // --- 🟠 RETOS DE COBRE (Premio: 15 Monedas) ---
@@ -32,6 +32,16 @@ export const missionsData = [
         rewardAmount: 15,
         rewardType: 'copper',
         icon: '🛍️'
+    },
+    {
+        id: 'm_c_4',
+        title: 'Detective de Datos',
+        desc: 'Resuelve 5 desafíos de conteo en el Detective 3D.',
+        type: 'detective_3d_solve',
+        target: 5,
+        rewardAmount: 15,
+        rewardType: 'copper',
+        icon: '🧱'
     },
 
     // --- ⚪ RETOS DE PLATA (Premio: 10 Monedas) ---
@@ -75,13 +85,23 @@ export const missionsData = [
         rewardType: 'silver',
         icon: '🚀'
     },
+    {
+        id: 'm_s_5',
+        title: 'Ingeniero del Tiempo',
+        desc: 'Logra 10 ajustes de precisión en El Relojero.',
+        type: 'watchmaker_correct',
+        target: 10,
+        rewardAmount: 10,
+        rewardType: 'silver',
+        icon: '🕰️'
+    },
 
     // --- 🟡 RETOS DE ORO (Premio: 3 Monedas) ---
     {
         id: 'm_g_1',
         title: 'Genio del Quiz',
         desc: 'Logra 20 aciertos totales en el Quiz Time.',
-        type: 'quiz_correct_answer', // Sincronizado con QuizModule.vue
+        type: 'quiz_correct_answer',
         target: 20,
         rewardAmount: 3,
         rewardType: 'gold',
@@ -101,7 +121,7 @@ export const missionsData = [
         id: 'm_g_3',
         title: 'Arquitecto de Puzzles',
         desc: 'Desbloquea 10 piezas del Puzzle Mágico.',
-        type: 'solve_puzzle_piece', // Sincronizado con PuzzleChallenge.vue
+        type: 'solve_puzzle_piece',
         target: 10,
         rewardAmount: 3,
         rewardType: 'gold',
@@ -111,10 +131,20 @@ export const missionsData = [
         id: 'm_g_4',
         title: 'Capitán de Ruta',
         desc: 'Abre 10 cofres en la Ruta del Tesoro.',
-        type: 'treasure_chest_opened', // Sincronizado con TreasureHunt.vue
+        type: 'treasure_chest_opened',
         target: 10,
         rewardAmount: 3,
         rewardType: 'gold',
         icon: '🏴‍☠️'
+    },
+    {
+        id: 'm_g_5',
+        title: 'Maestro de la Bóveda',
+        desc: 'Logra 5 aperturas exitosas en La Bóveda.',
+        type: 'vault_solve',
+        target: 5,
+        rewardAmount: 3,
+        rewardType: 'gold',
+        icon: '🏦'
     }
 ];

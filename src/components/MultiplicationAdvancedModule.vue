@@ -69,6 +69,7 @@ const helpTableData = computed(() => {
 // --- GENERADOR ---
 const generateNumbers = () => {
     isFinished.value = false;
+    showCoinRain.value = false; // Reset de la lluvia al generar nuevo
     userInputs.value = {};
     currentStepIdx.value = 0;
     isTransitioning.value = false;
@@ -441,7 +442,7 @@ onMounted(() => {
                 </div>
             </div>
         </div>
-
+        
         <div class="flex-none pt-2 px-4 pb-1 z-10 bg-white/90 backdrop-blur border-b border-slate-200 flex flex-col gap-1 md:gap-2">
             <div class="flex justify-between items-center h-10 md:h-14">
                 <div class="flex items-center gap-3">
@@ -455,7 +456,11 @@ onMounted(() => {
                     </div>
                 </div>
                 <div class="flex gap-2">
-                   <button @click="resetExercise" class="p-2 md:p-2.5 bg-white shadow-sm rounded-lg text-slate-500 active:scale-95 transition hover:text-indigo-600"><Eraser class="w-4 h-4 md:w-5 md:h-5" /></button>
+                   <button @click="resetExercise" 
+                           :class="['p-2 md:p-2.5 shadow-sm rounded-lg transition-all duration-500', 
+                                    showCoinRain ? 'goma-verde-latencia' : 'bg-white text-slate-500 hover:text-indigo-600']">
+                        <Eraser class="w-4 h-4 md:w-5 md:h-5" />
+                   </button>
                    <button @click="showSolution = true" :class="`p-2 md:p-2.5 rounded-lg shadow-sm transition active:scale-95 ${showSolution ? 'bg-indigo-100 text-indigo-600 ring-2 ring-indigo-300' : 'bg-white text-slate-500 hover:text-indigo-600'}`">
                        <BookOpen class="w-4 h-4 md:w-5 md:h-5" />
                    </button>
@@ -560,6 +565,21 @@ onMounted(() => {
 </template>
 
 <style scoped>
+/* ESTILOS DE LA GOMA CON LATENCIA */
+.goma-verde-latencia {
+  background-color: #dcfce7 !important; /* Verde claro de la imagen */
+  color: #16a34a !important;            /* Texto verde intenso */
+  border: 2px solid #86efac !important; /* Borde verde suave */
+  animation: pulso-victoria 1.5s infinite ease-in-out;
+  transform-origin: center;
+}
+
+@keyframes pulso-victoria {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
+  50% { transform: scale(1.15); box-shadow: 0 0 20px 10px rgba(34, 197, 94, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+}
+
 /* ANIMACIÓN LATIDO */
 @keyframes heartbeat {
     0%, 100% { transform: scale(1); }

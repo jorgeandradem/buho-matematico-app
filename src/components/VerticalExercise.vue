@@ -504,7 +504,11 @@ const fullReset = () => {
                 </div>
                 <div class="text-xs md:text-sm font-bold text-slate-400 uppercase tracking-widest">Ej {{ activeExerciseIndex + 1 }} / 5</div>
                 <div class="flex gap-2">
-                    <button @click="fullReset" class="p-2 md:p-2.5 bg-white shadow-sm rounded-lg text-slate-500 active:scale-95 transition hover:text-indigo-600"><Eraser class="w-4 h-4 md:w-5 md:h-5" /></button>
+                    <button @click="fullReset" 
+                            :class="['p-2 md:p-2.5 shadow-sm rounded-lg transition-all duration-500', 
+                                     showCoinRain ? 'goma-verde-latencia' : 'bg-white text-slate-500 hover:text-indigo-600']">
+                        <Eraser class="w-4 h-4 md:w-5 md:h-5" />
+                    </button>
                     <button @click="showSolution = true" :class="`p-2 md:p-2.5 rounded-lg shadow-sm transition active:scale-95 ${showSolution ? 'bg-indigo-100 text-indigo-600 ring-2 ring-indigo-300' : 'bg-white text-slate-500 hover:text-indigo-600'}`"><BookOpen class="w-4 h-4 md:w-5 md:h-5" /></button>
                 </div>
             </div>
@@ -605,6 +609,22 @@ const fullReset = () => {
 </template>
 
 <style scoped>
+/* ESTILOS DE LA GOMA CON LATENCIA */
+.goma-verde-latencia {
+  background-color: #dcfce7 !important; /* Verde claro de la imagen */
+  color: #16a34a !important;            /* Texto verde intenso */
+  border: 2px solid #86efac !important; /* Borde verde suave */
+  animation: pulso-victoria 1.5s infinite ease-in-out;
+  transform-origin: center;
+}
+
+@keyframes pulso-victoria {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
+  50% { transform: scale(1.15); box-shadow: 0 0 20px 10px rgba(34, 197, 94, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+}
+
+/* RESTO DE ESTILOS EXISTENTES */
 .animate-shake { animation: shake 0.4s; }
 @keyframes shake { 0%,100%{transform:translateX(0);} 25%{transform:translateX(-5px);} 75%{transform:translateX(5px);} }
 .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
