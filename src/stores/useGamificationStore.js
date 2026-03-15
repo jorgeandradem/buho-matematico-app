@@ -1,13 +1,13 @@
 /** * ARCHIVO: useGamificationStore.js
- * NOTA INTERNA: BANCO CENTRAL v2.9.8 - REPARTO MIXTO + BLINDAJE ANTIFRAUDE
- * LOGICA: Conversión bidireccional + Redondeo Pedagógico + Sincronización Delta.
+ * NOTA INTERNA: BANCO CENTRAL v3.1.0 - INTEGRACIÓN TOTAL SEGURA
+ * LOGICA: Sincronización Privada (UID) + Todas las funciones v2.9.8 preservadas.
  */
 import { defineStore } from 'pinia';
 import { missionsData } from '../data/missions'; 
 
 // --- IMPORTACIONES FIREBASE ---
 import { auth, db } from '../firebaseConfig';
-import { doc, runTransaction, deleteDoc } from "firebase/firestore";
+import { doc, runTransaction, deleteDoc, getDoc, setDoc } from "firebase/firestore";
 import { 
   deleteUser, 
   signInWithEmailAndPassword 
@@ -58,6 +58,35 @@ export const useGamificationStore = defineStore('gamification', {
   },
 
   actions: {
+    // --- 🛡️ NUEVO: CARGA INICIAL DESDE CARPETA PRIVADA ---
+    /** 🦉 Recupera los datos del usuario logueado al arrancar */
+    async fetchUserStats() {
+      const user = auth.currentUser;
+      if (!user) {
+        this.loadFromStorage();
+        return;
+      }
+
+      try {
+        const userRef = doc(db, "users", user.uid);
+        const docSnap = await getDoc(userRef);
+
+        if (docSnap.exists()) {
+          const cloudData = docSnap.data().stats;
+          if (cloudData) {
+            this.setCoinsFromCloud(cloudData);
+          }
+        } else {
+          // Si es nuevo, inicializamos misiones y creamos el doc
+          this.generateNewMissions();
+          this.syncAllToCloud();
+        }
+      } catch (error) {
+        console.error("Error cargando desde nube:", error);
+        this.loadFromStorage();
+      }
+    },
+
     // --- 🛡️ PROTOCOLO DELTA: CONCILIACIÓN NUBE-LOCAL ---
     /** Sincroniza monedas evitando que el lag de la red borre ganancias locales recientes */
     setCoinsFromCloud(stats) {
@@ -101,7 +130,15 @@ export const useGamificationStore = defineStore('gamification', {
                 
                 await runTransaction(db, async (transaction) => {
                     const sfDoc = await transaction.get(userRef);
-                    if (!sfDoc.exists()) return;
+                    
+                    // Si el documento no existe (usuario nuevo), lo creamos
+                    if (!sfDoc.exists()) {
+                        transaction.set(userRef, {
+                            stats: this.buildStatsObject(),
+                            lastActivity: Date.now()
+                        });
+                        return;
+                    }
 
                     transaction.update(userRef, {
                         "stats.gold": this.gold,
@@ -130,27 +167,36 @@ export const useGamificationStore = defineStore('gamification', {
         }, 2000);
     },
 
+    /** Helper para construir el objeto de estadísticas */
+    buildStatsObject() {
+        return {
+            gold: this.gold,
+            silver: this.silver,
+            copper: this.copper,
+            racha: this.currentStreak,
+            lastPlayedDate: this.lastPlayedDate,
+            purchasedItems: this.purchasedItems,
+            activeMissions: this.activeMissions,
+            pirateLevel: this.pirateLevel,
+            completedIslands: this.completedIslands,
+            worldTourLevel: this.worldTourLevel
+        };
+    },
+
     // --- 💰 GESTIÓN DE RIQUEZA (MOTOR MIXTO v2.9.8) ---
 
-    /** * ALGORITMO DE RECOMPENSA FINAL:
-     * Procesa el botín de una ronda, aplica castigos por errores y actualiza misiones.
-     */
     async processEndGameRewards(rewards, errors) {
       let finalGold = parseInt(rewards.gold || 0);
       let finalSilver = parseInt(rewards.silver || 0);
       let finalCopper = parseInt(rewards.copper || rewards.bronze || 0);
 
-      // Si hay más de 6 desaciertos, el botín se reduce a la mitad (Redondeo hacia arriba)
       if (errors > 6) {
         finalGold = Math.ceil(finalGold / 2);
         finalSilver = Math.ceil(finalSilver / 2);
         finalCopper = Math.ceil(finalCopper / 2);
       }
 
-      // Añadir al total
       this.addMultipleCoins({ gold: finalGold, silver: finalSilver, copper: finalCopper });
-      
-      // Registrar avance en misiones generales
       this.updateMissionProgress('play_any_game', 1);
     },
 
@@ -222,7 +268,6 @@ export const useGamificationStore = defineStore('gamification', {
       return true;
     },
 
-    /** Mantiene la economía limpia: 100 Cobre -> 1 Plata | 100 Plata -> 1 Oro */
     processConversions() {
       while (this.copper >= 100) { this.copper -= 100; this.silver += 1; }
       while (this.silver >= 100) { this.silver -= 100; this.gold += 1; }
@@ -268,7 +313,6 @@ export const useGamificationStore = defineStore('gamification', {
         }
     },
 
-    // --- 🚨 SEGURIDAD Y BAJA PERMANENTE ---
     async deleteAccountPermanently(email, password) {
       try {
           const userCredential = await signInWithEmailAndPassword(auth, email, password);
@@ -284,11 +328,6 @@ export const useGamificationStore = defineStore('gamification', {
           return { success: true };
       } catch (error) {
           console.error("Error en baja:", error.code);
-          if (error.code === 'auth/invalid-credential' || 
-              error.code === 'auth/user-not-found' || 
-              error.code === 'auth/wrong-password') {
-              return { success: false, error: 'not-found' }; 
-          }
           return { success: false, error: 'unknown' };
       }
     },
@@ -327,9 +366,7 @@ export const useGamificationStore = defineStore('gamification', {
         if (user) {
           try {
             const userRef = doc(db, "users", user.uid);
-            await runTransaction(db, async (transaction) => {
-               transaction.update(userRef, { "stats": null });
-            });
+            await setDoc(userRef, { stats: null }, { merge: true });
           } catch (error) { console.error(error); }
         }
     },
