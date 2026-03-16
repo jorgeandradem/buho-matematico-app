@@ -1,7 +1,7 @@
 <script setup>
 /** * ARCHIVO: MechanicalVault.vue
- * NOTA INTERNA: v3.2.0 - FIX COMPILACIÓN + EFECTO 3D GHOST + MISSION SYNC
- * LOGICA: Registro de 'vault_solve' + Desplazamiento vertical con visibilidad periférica.
+ * NOTA INTERNA: v3.3.0 - SONIDOS MECÁNICOS REALISTAS + MISSION SYNC
+ * LOGICA: Registro de 'vault_solve' + Desplazamiento vertical.
  * DISEÑO: Intro/Fin en Beige, Acción en Slate. Números XL con sombra cilíndrica.
  */
 import { ref, computed } from 'vue';
@@ -12,6 +12,10 @@ import {
 import CoinRain from './CoinRain.vue';
 import { useGamificationStore } from '../stores/useGamificationStore';
 import { speak } from '../utils/voice';
+
+// --- IMPORTACIÓN DE SONIDOS MECÁNICOS ---
+import dialTickSound from '@/assets/sounds/boveda/dial-tick.mp3';
+import vaultOpenSound from '@/assets/sounds/boveda/vault-open.mp3';
 
 const emit = defineEmits(['close']);
 const store = useGamificationStore();
@@ -31,9 +35,9 @@ const isDragging = ref(null);
 const startY = ref(0);
 const startDigitValue = ref(0);
 
-// ✅ MOTOR DE AUDIO (Instanciación directa para evitar mudez)
+// ✅ MOTOR DE AUDIO MECÁNICO
 const playTick = () => {
-    const snd = new Audio('/audios/pop.mp3');
+    const snd = new Audio(dialTickSound);
     snd.volume = 1.0;
     snd.play().catch(() => {});
 };
@@ -61,8 +65,8 @@ const handleStart = (e, index) => {
     startY.value = e.touches ? e.touches[0].clientY : e.clientY;
     startDigitValue.value = userDigits.value[index];
     
-    // Desbloqueo silencioso de audio
-    const unlock = new Audio('/audios/pop.mp3');
+    // Desbloqueo silencioso de audio para iOS
+    const unlock = new Audio(dialTickSound);
     unlock.volume = 0;
     unlock.play().catch(() => {});
 };
@@ -78,7 +82,7 @@ const handleMove = (e) => {
     
     if (userDigits.value[isDragging.value] !== nextDigit) {
         userDigits.value[isDragging.value] = nextDigit;
-        playTick(); // ✅ Sonido en cada paso de número
+        playTick(); // ✅ Sonido de engranaje metálico
         if (navigator.vibrate) navigator.vibrate(10);
     }
 };
@@ -100,11 +104,12 @@ const gemStyles = [
 const checkCombination = () => {
     const isCorrect = userDigits.value.every((v, i) => v === targetCode.value[i]);
     if (isCorrect) {
-        new Audio('/audios/correct1.mp3').play().catch(() => {});
+        // ✅ SONIDO DE APERTURA PESADA
+        new Audio(vaultOpenSound).play().catch(() => {});
+        
         gameState.value = 'opening';
         speak("¡Acceso concedido!");
 
-        // ✅ ACTUALIZAR MISIÓN EN EL STORE
         store.updateMissionProgress('vault_solve', 1);
 
         setTimeout(() => {
@@ -170,7 +175,7 @@ const endGame = async () => {
 
         <div class="game-content flex-1 flex flex-col items-center justify-between py-6 relative">
             
-            <div v-if="gameState === 'rules'" class="flex-1 flex flex-col items-center justify-around animate-fade-in w-full max-w-[420px]">
+            <div v-if="gameState === 'rules'" class="flex-1 flex flex-col items-center justify-around animate-fade-in w-full max-w-[420px] -translate-y-4">
                 <button @click="emit('close')" class="absolute top-2 right-4 bg-white rounded-full p-2.5 text-blue-950 shadow-md active:scale-90 z-10">
                     <X size="28"/>
                 </button>
@@ -185,10 +190,22 @@ const endGame = async () => {
 
                 <div class="rules-panel shadow-xl border-4 border-amber-200">
                     <div class="rules-badge">INSTRUCCIONES</div>
-                    <p class="text-slate-700 font-bold text-center text-sm leading-relaxed mb-4">
-                        Ajusta cada valor posicional:<br>
-                        <span class="text-indigo-600 font-black">UM</span> Mil • <span class="text-indigo-600 font-black">C</span> Cien • <span class="text-indigo-600 font-black">D</span> Diez • <span class="text-indigo-600 font-black">U</span> Uno
-                    </p>
+                    <div class="text-slate-700 font-bold text-center text-sm leading-relaxed mb-4">
+                        <p class="mb-2">Este reto corresponde a <span class="text-indigo-700 font-black">LA BÓVEDA</span>.</p>
+                        <p class="text-xs text-slate-500 mb-3 uppercase tracking-tighter">Asocia cada dial con su valor posicional:</p>
+                        
+                        <div class="flex flex-col gap-1 text-[11px] bg-slate-50 p-3 rounded-xl border border-slate-100">
+                            <div class="flex justify-between px-2">
+                                <span><span class="text-red-600 font-black">UM</span> = Unidad de Mil</span>
+                                <span><span class="text-emerald-600 font-black">C</span> = Centena</span>
+                            </div>
+                            <div class="flex justify-between px-2">
+                                <span><span class="text-blue-600 font-black">D</span> = Decena</span>
+                                <span><span class="text-amber-600 font-black">U</span> = Unidad</span>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <div class="grid grid-cols-4 gap-2">
                         <div v-for="g in gemStyles" :key="g.short" class="flex flex-col items-center">
                             <div :class="['w-14 h-9 rounded-lg bg-gradient-to-br border-2 border-white/40 shadow-lg flex items-center justify-center font-black text-white text-xs', g.color, g.shadow]">
@@ -283,7 +300,7 @@ const endGame = async () => {
 .rules-panel { width: 92%; background: white; padding: 1.5rem; border-radius: 2rem; position: relative; }
 .rules-badge { position: absolute; top: -12px; left: 1.5rem; background: #4f46e5; color: white; font-size: 10px; font-weight: 900; padding: 3px 12px; border-radius: 9999px; }
 
-.plasma-terminal-light { background: white; padding: 1.2rem 2.5rem; border-radius: 2rem; border-b: 6px solid #94a3b8; text-align: center; }
+.plasma-terminal-light { background: white; padding: 1.2rem 2.5rem; border-radius: 2rem; border-bottom: 6px solid #94a3b8; text-align: center; }
 .mechanical-console { border-bottom: 12px solid #1e293b; }
 
 .btn-primary-vault { background: linear-gradient(to bottom, #f59e0b, #b45309); color: white; padding: 1.25rem 2.5rem; border-radius: 1.5rem; border-bottom: 6px solid #78350f; font-weight: 900; text-transform: uppercase; display: flex; align-items: center; }

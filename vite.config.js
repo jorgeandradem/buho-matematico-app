@@ -9,10 +9,10 @@ export default defineConfig({
     vue(),
     vueDevTools(),
     VitePWA({
-      // 🔑 CLAVE DE SINCRONIZACIÓN: 
-      // Usamos 'prompt' para que el Service Worker espere nuestra orden 
-      // desde el botón "¡REINICIAR AHORA!" de ReloadPrompt.vue.
-      registerType: 'prompt', 
+      // 🚀 BLINDAJE DE ACTUALIZACIÓN AUTOMÁTICA: 
+      // Cambiamos 'prompt' por 'autoUpdate' para que el iPhone 
+      // actualice la app en silencio sin pedir permiso.
+      registerType: 'autoUpdate', 
       
       injectRegister: 'auto',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
@@ -46,12 +46,14 @@ export default defineConfig({
       workbox: {
         cleanupOutdatedCaches: true,
         
-        // 🚀 Aunque sea modo 'prompt', estas dos opciones ayudan a que 
-        // la transición sea inmediata una vez que tocamos el botón.
+        // ⚡ Estas dos opciones son el motor de la actualización inmediata.
+        // Hacen que la nueva versión tome el mando del navegador al instante.
         skipWaiting: true, 
         clientsClaim: true,
 
-        navigateFallbackDenylist: [/^\/__/],
+        // 🛡️ Denylist mejorada para evitar que Firebase y APIs se queden "atrapadas"
+        navigateFallbackDenylist: [/^\/__/, /^\/api/],
+        
         globPatterns: ['**/*.{js,css,html,ico,png,svg,json}'],
         maximumFileSizeToCacheInBytes: 5000000 
       },

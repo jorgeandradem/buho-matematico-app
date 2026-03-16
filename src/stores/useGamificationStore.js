@@ -1,6 +1,6 @@
 /** * ARCHIVO: useGamificationStore.js
- * NOTA INTERNA: BANCO CENTRAL v3.1.0 - INTEGRACIÓN TOTAL SEGURA
- * LOGICA: Sincronización Privada (UID) + Todas las funciones v2.9.8 preservadas.
+ * NOTA INTERNA: BANCO CENTRAL v3.2.0 - INTEGRACIÓN NEWS SCANNER
+ * LOGICA: Sincronización Privada (UID) + Memoria de Actualizaciones.
  */
 import { defineStore } from 'pinia';
 import { missionsData } from '../data/missions'; 
@@ -44,13 +44,13 @@ export const useGamificationStore = defineStore('gamification', {
     activeMissions: [],
     bubbleMessage: '',
     
-    // --- 🛡️ CONTROL DE RED ---
+    // --- 🛡️ CONTROL DE RED Y NOVEDADES ---
     isSyncing: false,
-    syncTimeout: null
+    syncTimeout: null,
+    lastSeenUpdateId: null // 👈 Memoria para el News Scanner
   }),
 
   getters: {
-    /** Calcula la riqueza total en la unidad base (Cobre) para validaciones de compra */
     totalWealthInCopper: (state) => {
       return state.copper + (state.silver * 100) + (state.gold * 10000);
     },
@@ -58,8 +58,7 @@ export const useGamificationStore = defineStore('gamification', {
   },
 
   actions: {
-    // --- 🛡️ NUEVO: CARGA INICIAL DESDE CARPETA PRIVADA ---
-    /** 🦉 Recupera los datos del usuario logueado al arrancar */
+    // --- 🛡️ CARGA INICIAL DESDE CARPETA PRIVADA ---
     async fetchUserStats() {
       const user = auth.currentUser;
       if (!user) {
@@ -77,7 +76,6 @@ export const useGamificationStore = defineStore('gamification', {
             this.setCoinsFromCloud(cloudData);
           }
         } else {
-          // Si es nuevo, inicializamos misiones y creamos el doc
           this.generateNewMissions();
           this.syncAllToCloud();
         }
@@ -88,7 +86,6 @@ export const useGamificationStore = defineStore('gamification', {
     },
 
     // --- 🛡️ PROTOCOLO DELTA: CONCILIACIÓN NUBE-LOCAL ---
-    /** Sincroniza monedas evitando que el lag de la red borre ganancias locales recientes */
     setCoinsFromCloud(stats) {
       if (!stats || this.isSyncing) return; 
       
@@ -111,12 +108,12 @@ export const useGamificationStore = defineStore('gamification', {
       this.pirateLevel = stats.pirateLevel || 1;
       this.completedIslands = stats.completedIslands || [];
       this.worldTourLevel = stats.worldTourLevel || 0;
+      this.lastSeenUpdateId = stats.lastSeenUpdateId || null; // Sincroniza visto de noticias
       
       this.processConversions();
       this.saveToStorage();
     },
 
-    /** Empuja el estado local a Firebase mediante transacciones atómicas */
     async syncAllToCloud() {
         if (this.syncTimeout) clearTimeout(this.syncTimeout);
 
@@ -131,7 +128,6 @@ export const useGamificationStore = defineStore('gamification', {
                 await runTransaction(db, async (transaction) => {
                     const sfDoc = await transaction.get(userRef);
                     
-                    // Si el documento no existe (usuario nuevo), lo creamos
                     if (!sfDoc.exists()) {
                         transaction.set(userRef, {
                             stats: this.buildStatsObject(),
@@ -151,6 +147,7 @@ export const useGamificationStore = defineStore('gamification', {
                         "stats.pirateLevel": this.pirateLevel,
                         "stats.completedIslands": this.completedIslands,
                         "stats.worldTourLevel": this.worldTourLevel,
+                        "stats.lastSeenUpdateId": this.lastSeenUpdateId,
                         lastActivity: Date.now()
                     });
                 });
@@ -167,7 +164,6 @@ export const useGamificationStore = defineStore('gamification', {
         }, 2000);
     },
 
-    /** Helper para construir el objeto de estadísticas */
     buildStatsObject() {
         return {
             gold: this.gold,
@@ -179,12 +175,12 @@ export const useGamificationStore = defineStore('gamification', {
             activeMissions: this.activeMissions,
             pirateLevel: this.pirateLevel,
             completedIslands: this.completedIslands,
-            worldTourLevel: this.worldTourLevel
+            worldTourLevel: this.worldTourLevel,
+            lastSeenUpdateId: this.lastSeenUpdateId
         };
     },
 
-    // --- 💰 GESTIÓN DE RIQUEZA (MOTOR MIXTO v2.9.8) ---
-
+    // --- 💰 GESTIÓN DE RIQUEZA ---
     async processEndGameRewards(rewards, errors) {
       let finalGold = parseInt(rewards.gold || 0);
       let finalSilver = parseInt(rewards.silver || 0);
@@ -408,7 +404,8 @@ export const useGamificationStore = defineStore('gamification', {
           lastSyncedCopper: this.lastSyncedCopper, lastSyncedSilver: this.lastSyncedSilver, lastSyncedGold: this.lastSyncedGold,
           pirateLevel: this.pirateLevel, completedIslands: this.completedIslands, worldTourLevel: this.worldTourLevel,
           purchasedItems: this.purchasedItems, currentStreak: this.currentStreak,
-          lastPlayedDate: this.lastPlayedDate, activeMissions: this.activeMissions
+          lastPlayedDate: this.lastPlayedDate, activeMissions: this.activeMissions,
+          lastSeenUpdateId: this.lastSeenUpdateId
         }));
       } catch (e) { console.error("Error localStorage:", e); }
     },
