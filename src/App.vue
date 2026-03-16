@@ -8,7 +8,6 @@ import GenericTableModule from './components/GenericTableModule.vue';
 import DivisionModule from './components/DivisionModule.vue';
 import ReloadPrompt from './components/ReloadPrompt.vue';
 
-// IMPORTAMOS EL STORE PARA INICIALIZAR EL BANCO
 import { useGamificationStore } from '@/stores/useGamificationStore';
 
 const currentView = ref('cover'); 
@@ -16,20 +15,14 @@ const previousView = ref(null);
 const currentConfig = ref({}); 
 const gamificationStore = useGamificationStore();
 
-// LÓGICA DE IGNICIÓN AL ARRANCAR
 onMounted(() => {
-  // 1. Cargamos lo que el usuario tenía guardado en el bolsillo (LocalStorage)
   gamificationStore.loadFromStorage();
-  
-  // 2. Verificamos si hoy le toca premio por racha diaria
   gamificationStore.checkDailyStreak();
 });
 
 const navigateTo = (viewName, config) => {
   const safeConfig = config || {}; 
-  
   previousView.value = currentView.value; 
-  
   if (safeConfig.id) {
       currentConfig.value = safeConfig;
       currentView.value = safeConfig.id;
@@ -44,7 +37,6 @@ const navigateTo = (viewName, config) => {
     <ReloadPrompt />
     
     <main class="app-canvas">
-      
       <CoverScreen 
         v-if="currentView === 'cover'" 
         @start="navigateTo('index')" 
@@ -82,28 +74,25 @@ const navigateTo = (viewName, config) => {
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Nunito:wght@400;700;800;900&display=swap');
 
-/* RESET Y ESTRUCTURA BASE */
 html, body {
   margin: 0 !important;
   padding: 0 !important;
   width: 100% !important;
   height: 100% !important;
-  overflow: auto; /* Permite scroll del navegador si la ventana es menor al min-height */
+  overflow: auto;
   background-color: #ffffff !important; 
   -webkit-font-smoothing: antialiased;
 }
 
-/* EL CASCO: Centra el lienzo y da el fondo de contraste sutil */
 #master-wrapper {
   min-height: 100dvh;
   width: 100vw;
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: #f8fafc; /* Contraste sutil tipo Apple */
+  background-color: #f8fafc;
 }
 
-/* EL LIENZO QUIRÚRGICO */
 .app-canvas {
   background-color: #ffffff;
   position: relative;
@@ -111,39 +100,30 @@ html, body {
   flex-direction: column;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  overflow: hidden; /* Mantiene el juego dentro de los bordes del lienzo */
-
-  /* ESCENARIO SMARTPHONE (Por defecto) */
+  overflow: hidden;
   width: 100%;
   height: 100dvh;
 
-  /* ESCENARIO PC & TABLETS (Desde 600px) */
   @media (min-width: 600px) {
-    width: 500px; /* Cintura generosa de 500px */
+    width: 500px;
     height: 90dvh; 
-    
-    /* BLOQUEO DE REDUCCIÓN (PC) */
     min-width: 500px; 
     min-height: 800px;
-    
     border-radius: 40px;
-    border: 8px solid #f1f5f9; /* Marco físico sutil */
+    border: 8px solid #f1f5f9;
     margin: 20px;
   }
 
-  /* AJUSTE ESPECIAL PARA TABLETS ANCHAS */
   @media (min-width: 900px) and (max-width: 1200px) {
-    width: 80%; /* Respiro lateral en tablets */
+    width: 80%;
     max-width: 700px; 
     min-width: 600px;
   }
 }
 
-/* UTILIDADES GLOBALES */
 .font-handwriting { font-family: 'Patrick Hand', cursive; }
 .font-numbers { font-family: 'Nunito', sans-serif; font-weight: 800; }
 
-/* Evita selección de texto accidental en el juego */
 * {
   user-select: none;
   -webkit-touch-callout: none;
