@@ -1,7 +1,7 @@
 /**
- * 🦉 BÚHO SCANNER v3.5 - ACUMULADOR HISTÓRICO
+ * 🦉 BÚHO SCANNER v3.6 - ACUMULADOR HISTÓRICO (EDICIÓN LOCAL)
  * LÓGICA: Mantiene un registro cronológico de los cambios en public/update-history.json
- * SOLO registra si hay cambio de VERSIÓN + RELEVANCIA LÓGICA.
+ * SOLO registra si hay cambio de VERSIÓN + RELEVANCIA LÓGICA en el 'Stage' de Git.
  */
 import { execSync } from 'child_process';
 import fs from 'fs';
@@ -38,8 +38,8 @@ try {
     process.exit(0); 
   }
 
-  // 2. Análisis de Relevancia mediante GIT DIFF
-  const rawDiff = execSync('git diff --unified=0 HEAD').toString();
+  // 2. Análisis de Relevancia mediante GIT DIFF (Modificado para leer el "Stage")
+  const rawDiff = execSync('git diff --cached --unified=0').toString();
   const changesByFile = {};
   const lines = rawDiff.split('\n');
   let currentFile = '';
@@ -82,7 +82,11 @@ try {
     const limitedHistory = history.slice(0, 10);
 
     fs.writeFileSync(HISTORY_FILE, JSON.stringify(limitedHistory, null, 2));
-    console.log(`🚀 Búho Scanner: Versión ${currentVersion} añadida a la bitácora histórica.`);
+    
+    // 🚨 PASO CRÍTICO: Agregar el archivo JSON autogenerado al commit actual
+    execSync(`git add ${HISTORY_FILE}`);
+    
+    console.log(`🚀 Búho Scanner: Versión ${currentVersion} añadida a la bitácora histórica y empaquetada para Vercel.`);
   } else {
     console.log('🍃 Búho Scanner: Cambios detectados pero sin relevancia estructural para el alumno.');
   }

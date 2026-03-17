@@ -1,11 +1,11 @@
 {
   "name": "buho-matematico-app",
-  "version": "2.9.7",
+  "version": "2.9.8",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "node scanner.js && vite build",
+    "build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {

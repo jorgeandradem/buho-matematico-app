@@ -363,9 +363,11 @@ onMounted(async () => {
                   <ChevronLeft :size="16"/> Volver
               </button>
               <div v-else class="w-8"></div>
+              
               <h2 class="text-xs font-black text-indigo-900 uppercase tracking-widest text-center flex-1 px-2">
-                  {{ showRecovery ? 'RECUPERAR' : (authMode === 'register' ? 'Nuevo Alumno' : 'Entrar al Nido') }}
+                  {{ activeSubView === 'settings' ? 'DARSE DE BAJA' : (showRecovery ? 'RECUPERAR' : (authMode === 'register' ? 'Nuevo Alumno' : 'Entrar al Nido')) }}
               </h2>
+              
               <button @click="closeAndReset" class="bg-indigo-50 text-indigo-900 p-2 rounded-full shadow-md active:scale-90 transition-transform">
                 <X :size="24" stroke-width="3.5" />
               </button>
@@ -406,7 +408,15 @@ onMounted(async () => {
 
                         <div>
                           <label class="text-[10px] font-black uppercase text-slate-400 ml-2 tracking-widest">Correo Electrónico</label>
-                          <input v-model="form.email" type="email" autocapitalize="none" placeholder="email@ejemplo.com" class="w-full p-2.5 bg-slate-50 border-2 border-slate-100 rounded-xl outline-none font-bold focus:border-indigo-500" />
+                          <input 
+                             v-model="form.email" 
+                             type="email" 
+                             autocapitalize="none" 
+                             autocorrect="off" 
+                             spellcheck="false" 
+                             placeholder="email@ejemplo.com" 
+                             class="lowercase w-full p-2.5 bg-slate-50 border-2 border-slate-100 rounded-xl outline-none font-bold focus:border-indigo-500" 
+                          />
                         </div>
 
                         <div class="relative">
@@ -422,7 +432,7 @@ onMounted(async () => {
                         </div>
                     </div>
 
-                    <div class="mt-5 space-y-3 mb-2">
+                    <div class="mt-5 space-y-3 mb-[100px]">
                         <button @click="handleAuth" :disabled="isLoading" class="w-full bg-indigo-600 text-white font-black italic text-lg uppercase rounded-[2rem] border-b-[8px] border-indigo-900 py-3 shadow-lg active:translate-y-2 flex items-center justify-center transition-all">
                           <span v-if="!isLoading">{{ authMode === 'register' ? 'CREAR CUENTA' : 'ENTRAR AL NIDO' }}</span>
                           <RefreshCw v-else class="animate-spin" />
@@ -431,9 +441,16 @@ onMounted(async () => {
                           <button @click="activeSubView = 'guide'" class="flex-1 bg-indigo-50 text-indigo-600 font-black text-[9px] uppercase py-3 rounded-full border border-indigo-100 flex items-center justify-center gap-1"><Info :size="14"/> GUÍA</button>
                           <button @click="activeSubView = 'settings'" class="flex-1 bg-slate-100 text-slate-600 font-black text-[9px] uppercase py-3 rounded-full border border-slate-200 flex items-center justify-center gap-1"><Settings :size="14"/> CUENTA</button>
                         </div>
-                        <div class="text-center">
-                          <button v-if="authMode === 'login'" @click="showRecovery = true; clearMessages()" class="text-orange-700 font-black underline text-[10px] uppercase italic">¿Olvidaste algo?</button>
-                          <p class="text-[10px] text-slate-500 mt-2 font-bold uppercase">{{ authMode === 'register' ? '¿Ya tienes cuenta?' : '¿Eres nuevo?' }} <button @click="authMode = authMode === 'register' ? 'login' : 'register'; clearMessages()" class="text-indigo-700 font-black underline ml-1 uppercase">{{ authMode === 'register' ? 'ENTRA' : 'SUSCRÍBETE' }}</button></p>
+                        <div class="text-center pt-2">
+                          <button v-if="authMode === 'login'" @click="showRecovery = true; clearMessages()" class="text-orange-700 font-black underline text-[11px] uppercase italic">¿Olvidaste algo?</button>
+                          
+                          <div class="text-[11px] text-slate-500 mt-3 font-bold uppercase flex items-center justify-center gap-2">
+                             <span>{{ authMode === 'register' ? '¿Ya tienes cuenta?' : '¿Eres nuevo?' }}</span>
+                             <button @click="authMode = authMode === 'register' ? 'login' : 'register'; clearMessages()" class="text-indigo-700 font-black px-3 py-1.5 uppercase border-2 border-yellow-400 rounded-lg animate-latent-gold bg-white shadow-sm active:scale-95 transition-all">
+                                {{ authMode === 'register' ? 'ENTRA' : 'SUSCRÍBETE' }}
+                             </button>
+                          </div>
+
                         </div>
                     </div>
                   </template>
@@ -448,12 +465,27 @@ onMounted(async () => {
                         </div>
                         
                         <div v-if="recoveryMode === 'email'" class="space-y-3">
-                          <input v-model="form.username" placeholder="Nombre Alumno" class="w-full p-3 border-2 border-orange-200 rounded-2xl text-center font-bold text-sm outline-none" />
+                          <input 
+                             v-model="form.username" 
+                             placeholder="Nombre Alumno" 
+                             autocapitalize="none" 
+                             autocorrect="off" 
+                             spellcheck="false" 
+                             class="lowercase w-full p-3 border-2 border-orange-200 rounded-2xl text-center font-bold text-sm outline-none" 
+                          />
                           <button @click="findEmailClue" class="w-full bg-orange-500 text-white font-black py-3.5 rounded-2xl shadow-lg uppercase text-xs">BUSCAR PISTA 🦉</button>
                         </div>
                         
                         <div v-else class="space-y-3">
-                          <input v-model="form.email" type="email" autocapitalize="none" placeholder="Correo de Registro" class="w-full p-3 border-2 border-orange-200 rounded-2xl text-center font-bold text-sm outline-none" />
+                          <input 
+                             v-model="form.email" 
+                             type="email" 
+                             autocapitalize="none" 
+                             autocorrect="off" 
+                             spellcheck="false" 
+                             placeholder="Correo de Registro" 
+                             class="lowercase w-full p-3 border-2 border-orange-200 rounded-2xl text-center font-bold text-sm outline-none" 
+                          />
                           <button @click="findUsernameClue" class="w-full bg-orange-500 text-white font-black py-3.5 rounded-2xl shadow-lg uppercase text-xs">¿QUIÉN SOY? 🦉</button>
                         </div>
                         
@@ -580,12 +612,23 @@ onMounted(async () => {
 
 .animate-pop-in { animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
 @keyframes popIn { from { opacity: 0; transform: scale(0.9) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+
+/* ANIMACION LATENTE VERDE (ORIGINAL) */
 .animate-latent { animation: latent-pulse 2s infinite; }
 @keyframes latent-pulse {
   0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
   70% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
   100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
 }
+
+/* ANIMACION LATENTE ORO (NUEVA) */
+.animate-latent-gold { animation: latent-gold-pulse 2s infinite; }
+@keyframes latent-gold-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(250, 204, 21, 0.7); }
+  70% { box-shadow: 0 0 0 8px rgba(250, 204, 21, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(250, 204, 21, 0); }
+}
+
 .fade-enter-active, .fade-leave-active { transition: opacity 0.3s; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
 </style>

@@ -1,6 +1,6 @@
 <script setup>
 /** * ARCHIVO: TimeWatchmaker.vue
- * NOTA INTERNA: ESTRUCTURA v1.3.2 - FIX CONTRASTE DINÁMICO (X REACCIONARIA)
+ * NOTA INTERNA: EL RELOJERO - ESTRUCTURA v1.3.2 - FIX CONTRASTE DINÁMICO (X REACCIONARIA)
  * LOGICA: Movimiento radial + Snapping + Inversión de color en Header.
  * DISEÑO: Steampunk 2D con visibilidad garantizada en ciclo Día/Noche.
  */

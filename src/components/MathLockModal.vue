@@ -112,7 +112,7 @@ const handleCheck = (val) => {
   if (val === currentChallenge.value.value) {
     isCorrect.value = true;
 
-    // --- LÓGICA DE RECOMPENSAS ALEATORIAS SEGÚN OPERACIÓN ---
+    // --- LA BOVEDA - LÓGICA DE RECOMPENSAS ALEATORIAS SEGÚN OPERACIÓN ---
     let rewardType = 'copper';
     let rewardAmount = 0;
 

@@ -1,6 +1,6 @@
 <script setup>
 /** * ARCHIVO: DataDetective3D.vue
- * NOTA INTERNA: ESTRUCTURA MAESTRA v5.0.0 - MOTOR MATEMÁTICO INFINITO
+ * NOTA INTERNA: DETECTIVE FRUTAL -ESTRUCTURA MAESTRA v5.0.0 - MOTOR MATEMÁTICO INFINITO
  * LOGICA: Generación procedimental de (+, -, *, /) con inventario persistente.
  * DISEÑO: Fusión de frutas, Círculo Dorado y texto natural.
  */
