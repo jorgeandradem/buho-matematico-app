@@ -1,6 +1,6 @@
 <script setup>
 /** * ARCHIVO: IndexScreen.vue
- * NOTA INTERNA: TORRE DE CONTROL v2.9.8 + OJITO GUÍA CONTEXTUAL
+ * NOTA INTERNA: TORRE DE CONTROL v2.9.8 + OJITO GUÍA CONTEXTUAL + ZOOM ACCESIBILIDAD
  * LOGICA: Punto de entrada principal, gestión de racha diaria y micro-guía en modales.
  */
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue'; 
@@ -48,6 +48,18 @@ const bubbleText = computed(() => gamificationStore.bubbleMessage);
 
 // 👁️ ESTADO DEL DESPLEGABLE DEL OJITO
 const showQuickGuide = ref(false);
+
+// 🔍 ESTADO DEL ZOOM DE TEXTO (ACCESIBILIDAD)
+const showTextZoom = ref(false);
+const guideFontSize = ref(14); // Tamaño base por defecto
+
+const zoomIn = () => { if (guideFontSize.value < 24) guideFontSize.value += 2; };
+const zoomOut = () => { if (guideFontSize.value > 10) guideFontSize.value -= 2; };
+
+// Si cerramos el ojito, también escondemos los controles de zoom
+watch(showQuickGuide, (newVal) => {
+    if (!newVal) showTextZoom.value = false;
+});
 
 watch(bubbleText, (newVal) => {
     if (newVal) {
@@ -340,30 +352,51 @@ const currentSubjectLabel = computed(() => {
         <div v-if="showConfigModal" class="absolute inset-0 z-[150] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
             <div class="bg-white rounded-[2.5rem] w-full max-w-sm p-8 shadow-2xl relative border-4 border-indigo-100 flex flex-col max-h-[90vh]">
                 
-                <button @click="showQuickGuide = !showQuickGuide" 
-                  class="absolute top-4 left-4 p-2 bg-blue-50 text-blue-600 rounded-full hover:bg-blue-100 transition-all z-[160] animate-eye-pulse shadow-sm">
-                  <component :is="showQuickGuide ? EyeOff : Eye" :size="20" :stroke-width="2.5" />
-                </button>
+                <div class="absolute top-4 left-4 flex gap-2 z-[160]">
+                    <button @click="showQuickGuide = !showQuickGuide" 
+                      class="p-2 bg-blue-50 text-blue-600 rounded-full hover:bg-blue-100 transition-all animate-eye-pulse shadow-sm h-10 w-10 flex items-center justify-center">
+                      <component :is="showQuickGuide ? EyeOff : Eye" :size="20" :stroke-width="2.5" />
+                    </button>
+                    
+                    <Transition name="fade">
+                        <button v-if="showQuickGuide" @click="showTextZoom = !showTextZoom" 
+                          :class="`rounded-full font-black text-sm transition-all shadow-sm h-10 w-10 flex items-center justify-center border-2 border-transparent ${showTextZoom ? 'bg-indigo-600 text-white' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border-indigo-100'}`">
+                          Aa
+                        </button>
+                    </Transition>
+                </div>
 
-                <button @click="showConfigModal = false" class="absolute top-4 right-4 bg-slate-100 p-2 rounded-full text-slate-400 hover:text-red-500 transition-colors z-[160]"><CloseIcon :size="20" /></button>
+                <Transition name="fade-slide">
+                    <div v-if="showTextZoom && showQuickGuide" class="absolute top-16 left-4 z-[170] bg-white rounded-xl shadow-xl border-2 border-indigo-100 flex items-center gap-2 p-2 mt-1">
+                        <button @click="zoomOut" class="w-8 h-8 flex items-center justify-center bg-slate-50 rounded-lg text-slate-500 hover:bg-red-50 hover:text-red-600 transition-colors font-black text-lg">-</button>
+                        <span class="text-[13px] font-black text-indigo-900 w-5 text-center">{{ guideFontSize }}</span>
+                        <button @click="zoomIn" class="w-8 h-8 flex items-center justify-center bg-slate-50 rounded-lg text-slate-500 hover:bg-green-50 hover:text-green-600 transition-colors font-black text-lg">+</button>
+                    </div>
+                </Transition>
+
+                <button @click="showConfigModal = false" class="absolute top-4 right-4 bg-slate-100 p-2 rounded-full text-slate-400 hover:text-red-500 transition-colors z-[160] h-10 w-10 flex items-center justify-center"><CloseIcon :size="20" /></button>
                 
-                <div class="text-center mb-6 shrink-0 mt-2">
+                <div class="text-center mb-6 shrink-0 mt-8">
                     <h3 class="text-3xl font-black text-slate-800 uppercase tracking-tighter leading-none mb-1">{{ currentSubjectLabel }}</h3>
                     <p class="text-indigo-500 text-[10px] font-black uppercase tracking-widest">¿Cómo quieres practicar?</p>
                 </div>
 
                 <Transition name="slide-down">
                   <div v-if="showQuickGuide" class="mb-4 bg-slate-50 border-2 border-blue-100 rounded-[1.5rem] overflow-hidden shadow-inner shrink-0">
-                    <div class="p-5 max-h-[180px] overflow-y-auto font-inter text-slate-600 leading-relaxed text-left space-y-4">
-                      <p class="text-sm font-light">
-                        <strong class="font-black text-blue-600 text-xs">⌨️ TECLADO VIRTUAL:</strong> Hemos integrado un teclado numérico exclusivo dentro de la app para que resolver los ejercicios sea rápido, cómodo y táctil, sin que el teclado del móvil te estorbe. No intentes insertar datos en las celdas con bordes amarillos latentes, están bloqueadas y son automáticas.
+                    <div class="p-5 max-h-[180px] overflow-y-auto font-inter text-slate-600 text-left space-y-4">
+                      
+                      <p :style="{ fontSize: guideFontSize + 'px', lineHeight: '1.5' }" class="font-light transition-all duration-200">
+                        <strong :style="{ fontSize: (guideFontSize * 0.85) + 'px' }" class="font-black text-blue-600 uppercase">⌨️ TECLADO VIRTUAL:</strong> Hemos integrado un teclado numérico exclusivo dentro de la app para que resolver los ejercicios sea rápido, cómodo y táctil, sin que el teclado del móvil te estorbe. No intentes insertar datos en las celdas con bordes amarillos latentes, están bloqueadas y son automáticas.
                       </p>
-                      <p class="text-sm font-light">
-                        <strong class="font-black text-blue-600 text-xs">🎯 FOCO INTELIGENTE:</strong> No perderás tiempo buscando dónde pulsar. Verás un foco guía con bordes amarillos que late suavemente para orientarte. No insertes datos en las celdas con bordes amarillo latente, están bloqueadas, y son automásticas.  Además, el cursor salta solo a la siguiente casilla al responder correctamente.
+                      
+                      <p :style="{ fontSize: guideFontSize + 'px', lineHeight: '1.5' }" class="font-light transition-all duration-200">
+                        <strong :style="{ fontSize: (guideFontSize * 0.85) + 'px' }" class="font-black text-blue-600 uppercase">🎯 FOCO INTELIGENTE:</strong> No perderás tiempo buscando dónde pulsar. Verás un foco guía con bordes amarillos que late suavemente para orientarte. No insertes datos en las celdas con bordes amarillo latente, están bloqueadas, y son automáticas.  Además, el cursor salta solo a la siguiente casilla al responder correctamente.
                       </p>
-                      <p class="text-[10px] font-bold text-blue-400 italic bg-blue-50/50 p-2 rounded-lg text-center border border-blue-50">
+                      
+                      <p :style="{ fontSize: (guideFontSize * 0.75) + 'px' }" class="font-bold text-blue-400 italic bg-blue-50/50 p-3 rounded-xl text-center border border-blue-50 transition-all duration-200">
                         Si quieres saber más lee la GUÍA que se encuentra en la entrada a la app.
                       </p>
+
                     </div>
                   </div>
                 </Transition>
@@ -451,6 +484,13 @@ const currentSubjectLabel = computed(() => {
 .slide-down-enter-active { animation: slideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
 .slide-down-leave-active { animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) reverse; }
 @keyframes slideIn { from { height: 0; opacity: 0; transform: translateY(-10px); } to { height: 180px; opacity: 1; transform: translateY(0); } }
+
+/* TRANSICIONES DEL ZOOM */
+.fade-enter-active, .fade-leave-active { transition: opacity 0.2s ease; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
+
+.fade-slide-enter-active, .fade-slide-leave-active { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+.fade-slide-enter-from, .fade-slide-leave-to { opacity: 0; transform: translateY(-5px) scale(0.95); }
 
 .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
