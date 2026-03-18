@@ -1,14 +1,15 @@
 <script setup>
 /**
  * NOTA INFORMATIVA: PORTAL DE DESAFÍOS (CHALLENGE HUB)
- * Gestión de los 15 retos especiales con navegación paginada.
- * Política de Cero Scroll v2.9.6
+ * Gestión de los 18 retos especiales con navegación paginada.
+ * Política de Cero Scroll v2.9.8
  */
 import { ref, computed } from 'vue';
 import { 
   X as CloseIcon, Zap, Trophy, Brain, Search, Puzzle, 
   Rocket, Plane, Anchor, Globe, ChevronLeft, ChevronRight,
-  Scale, PieChart, Waves, Dribbble, Box, Clock, Lock // 🔐 ICONO NUEVO
+  Scale, PieChart, Waves, Dribbble, Box, Clock, Lock,
+  Layout, ShoppingCart, Compass // 🔐 ICONOS PARA NUEVOS RETOS
 } from 'lucide-vue-next';
 
 // --- IMPORTACIÓN DE JUEGOS ---
@@ -26,7 +27,12 @@ import SubmarineAlgebra from './SubmarineAlgebra.vue';
 import SoccerAlgebra from './SoccerAlgebra.vue'; 
 import DataDetective3D from './DataDetective3D.vue';
 import TimeWatchmaker from './TimeWatchmaker.vue';
-import MechanicalVault from './MechanicalVault.vue'; // 🔐 COMPONENTE NUEVO
+import MechanicalVault from './MechanicalVault.vue';
+
+// 🏗️ IMPORTACIÓN DE NUEVOS RETOS
+import ArchitectOfShapes from './ArchitectOfShapes.vue';
+import DecimalMarket from './DecimalMarket.vue';
+import AngleNavigation from './AngleNavigation.vue';
 
 const emit = defineEmits(['close', 'update-coins']);
 const activeGame = ref(null); 
@@ -49,7 +55,11 @@ const games = [
   { id: 'soccer', name: 'Estadio de Ecuaciones', icon: Dribbble, color: 'bg-lime-600', desc: 'Anota goles resolviendo incógnitas' },
   { id: 'detective', name: 'Detective 3D', icon: Box, color: 'bg-indigo-600', desc: 'Analiza columnas de datos y gana Cobre' },
   { id: 'watchmaker', name: 'El Relojero', icon: Clock, color: 'bg-amber-500', desc: 'Domina las manecillas y gana Plata' },
-  { id: 'vault', name: 'La Bóveda', icon: Lock, color: 'bg-slate-600', desc: 'Hackea el valor posicional y gana Oro' } // 🔐 NUEVO
+  { id: 'vault', name: 'La Bóveda', icon: Lock, color: 'bg-slate-600', desc: 'Hackea el valor posicional y gana Oro' },
+  { id: 'architect', name: 'Arquitecto de Formas', icon: Layout, color: 'bg-blue-500', desc: 'Cuerpos Geométricos y Mármol' },
+  // 🆕 RETOS EN CONSTRUCCIÓN (VOLANDO)
+  { id: 'market', name: 'VOLANDO / Mercado Decimal', icon: ShoppingCart, color: 'bg-amber-700', desc: 'Cambio Steampunk y la Regla del 100', isVolando: true },
+  { id: 'angles', name: 'VOLANDO / Navegación de Ángulos', icon: Compass, color: 'bg-cyan-500', desc: 'Navega esquivando icebergs', isVolando: true }
 ];
 
 const totalPages = computed(() => Math.ceil(games.length / gamesPerPage));
@@ -93,14 +103,22 @@ const handleCoins = (amount) => {
         <div class="grid-games">
           <button v-for="game in paginatedGames" :key="game.id" @click="openGame(game.id)"
             class="game-card group">
-            <div class="card-inner">
+            <div class="card-inner relative">
+              
               <div :class="`icon-box ${game.color}`">
                 <component :is="game.icon" :size="28" fill="currentColor" />
               </div>
-              <div class="text-left flex-1 min-w-0">
+              
+              <div class="text-left flex-1 min-w-0" :class="{ 'pr-16': game.isVolando }">
                 <h3 class="game-name truncate">{{ game.name }}</h3>
                 <p class="game-desc truncate">{{ game.desc }}</p>
               </div>
+
+              <div v-if="game.isVolando" class="absolute right-3 top-1/2 -translate-y-1/2 flex flex-col items-center justify-center">
+                <span class="text-3xl animate-bounce">🦉</span>
+                <span class="text-[8px] font-black text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded-full mt-1 shadow-sm">VOLANDO</span>
+              </div>
+
             </div>
           </button>
         </div>
@@ -136,7 +154,25 @@ const handleCoins = (amount) => {
         <DataDetective3D v-if="activeGame === 'detective'" @close="closeGame" />
         <TimeWatchmaker v-if="activeGame === 'watchmaker'" @close="closeGame" />
         <MechanicalVault v-if="activeGame === 'vault'" @close="closeGame" />
-      </div>
+
+        <ArchitectOfShapes v-if="activeGame === 'architect'" @close="closeGame" />
+        
+        <div v-if="activeGame === 'market' || activeGame === 'angles'" class="w-full h-full flex flex-col items-center justify-center bg-slate-50 relative rounded-[2rem] overflow-hidden">
+            <button @click="closeGame" class="absolute top-6 left-6 flex items-center gap-2 bg-indigo-600 text-white px-5 py-3 rounded-2xl font-black shadow-lg hover:bg-indigo-700 transition z-10">
+                <ChevronLeft size="24" /> AL PORTAL DE DESAFÍOS
+            </button>
+            <div class="text-center flex flex-col items-center">
+                <span class="text-[120px] inline-block animate-bounce mb-2">🦉</span>
+                <h1 class="text-5xl font-black text-indigo-900 uppercase italic">VOLANDO</h1>
+                <h2 class="text-2xl font-bold text-slate-600 mt-2">{{ activeGame === 'market' ? 'Mercado Decimal' : 'Navegación de Ángulos' }}</h2>
+                <div class="mt-8 bg-white px-6 py-3 rounded-full border-2 border-indigo-100 shadow-sm flex items-center gap-3">
+                    <component :is="activeGame === 'market' ? ShoppingCart : Compass" class="text-indigo-500" size="24"/>
+                    <span class="font-bold text-slate-700">El búho está preparando este reto...</span>
+                </div>
+            </div>
+        </div>
+
+        </div>
     </div>
   </div>
 </template>
@@ -222,6 +258,7 @@ const handleCoins = (amount) => {
   flex: 1;
   max-height: 110px;
   min-height: 80px;
+  cursor: pointer;
 }
 
 .card-inner {
@@ -268,15 +305,21 @@ const handleCoins = (amount) => {
   text-transform: uppercase;
 }
 
-.btn-nav.active { background: #4f46e5; color: white; box-shadow: 0 5px 0 #312e81; }
+.btn-nav.active { background: #4f46e5; color: white; box-shadow: 0 5px 0 #312e81; cursor: pointer; }
 .btn-nav.active:active { transform: translateY(3px); box-shadow: 0 2px 0 #312e81; }
-.btn-nav.disabled { background: #1e1b4b; color: #4338ca; opacity: 0.5; }
+.btn-nav.disabled { background: #1e1b4b; color: #4338ca; opacity: 0.5; cursor: not-allowed; }
 
 .btn-close-hub {
   background: rgba(255, 255, 255, 0.1);
   padding: 0.75rem;
   border-radius: 9999px;
   color: white;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.btn-close-hub:hover {
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .game-container-slot {

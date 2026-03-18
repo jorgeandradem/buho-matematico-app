@@ -1,13 +1,14 @@
 <script setup>
 /** * ARCHIVO: IndexScreen.vue
- * NOTA INTERNA: TORRE DE CONTROL v2.9.4 + SINCRONIZACIÓN DE RACHAS
- * LOGICA: Punto de entrada principal, gestión de racha diaria y sincronización Firebase.
+ * NOTA INTERNA: TORRE DE CONTROL v2.9.8 + OJITO GUÍA CONTEXTUAL
+ * LOGICA: Punto de entrada principal, gestión de racha diaria y micro-guía en modales.
  */
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue'; 
 import { 
   Plus, Minus, X as MultiplyIcon, Divide, LogOut, 
-  User, Pencil, Check, BookOpen, Play, X as CloseIcon,
-  ShoppingBag, Zap, Flame, Coffee, DoorOpen, BellRing, Target
+  User, Pencil, BookOpen, Play, X as CloseIcon,
+  ShoppingBag, Zap, Flame, Coffee, DoorOpen, BellRing, Target,
+  Eye, EyeOff // 👁️ ICONOS PARA EL OJITO
 } from 'lucide-vue-next';
 import OwlImage from './OwlImage.vue';
 import { playOwlHoot } from '../utils/sound'; 
@@ -45,6 +46,9 @@ const fullSignOutRequested = ref(false);
 const showBubble = ref(false);
 const bubbleText = computed(() => gamificationStore.bubbleMessage);
 
+// 👁️ ESTADO DEL DESPLEGABLE DEL OJITO
+const showQuickGuide = ref(false);
+
 watch(bubbleText, (newVal) => {
     if (newVal) {
         showBubble.value = true;
@@ -79,6 +83,7 @@ const openConfig = (subjectId) => {
     configMode.value = 'notebook';
     configDifficulty.value = 1;
     configTable.value = 'random';
+    showQuickGuide.value = false; // Resetear el ojo al abrir
     showConfigModal.value = true;
 };
 
@@ -162,11 +167,9 @@ const saveName = async () => {
 };
 
 onMounted(() => {
-  // 🛡️ SINCRONIZACIÓN PRIORITARIA DE RACHAS
   gamificationStore.loadFromStorage();
   gamificationStore.checkDailyStreak();
 
-  // Asegurar misiones activas al entrar
   if (!gamificationStore.activeMissions || gamificationStore.activeMissions.length === 0) {
       gamificationStore.generateNewMissions();
   }
@@ -335,28 +338,56 @@ const currentSubjectLabel = computed(() => {
         </div>
 
         <div v-if="showConfigModal" class="absolute inset-0 z-[150] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-            <div class="bg-white rounded-[2.5rem] w-full max-w-sm p-8 shadow-2xl relative border-4 border-indigo-100">
-                <button @click="showConfigModal = false" class="absolute top-4 right-4 bg-slate-100 p-2 rounded-full text-slate-400 hover:text-red-500 transition-colors"><CloseIcon :size="20" /></button>
-                <div class="text-center mb-6">
-                    <h3 class="text-3xl font-black text-slate-800 uppercase tracking-tighter">{{ currentSubjectLabel }}</h3>
-                    <p class="text-indigo-500 text-xs font-black uppercase tracking-widest">¿Cómo quieres practicar?</p>
+            <div class="bg-white rounded-[2.5rem] w-full max-w-sm p-8 shadow-2xl relative border-4 border-indigo-100 flex flex-col max-h-[90vh]">
+                
+                <button @click="showQuickGuide = !showQuickGuide" 
+                  class="absolute top-4 left-4 p-2 bg-blue-50 text-blue-600 rounded-full hover:bg-blue-100 transition-all z-[160] animate-eye-pulse shadow-sm">
+                  <component :is="showQuickGuide ? EyeOff : Eye" :size="20" :stroke-width="2.5" />
+                </button>
+
+                <button @click="showConfigModal = false" class="absolute top-4 right-4 bg-slate-100 p-2 rounded-full text-slate-400 hover:text-red-500 transition-colors z-[160]"><CloseIcon :size="20" /></button>
+                
+                <div class="text-center mb-6 shrink-0 mt-2">
+                    <h3 class="text-3xl font-black text-slate-800 uppercase tracking-tighter leading-none mb-1">{{ currentSubjectLabel }}</h3>
+                    <p class="text-indigo-500 text-[10px] font-black uppercase tracking-widest">¿Cómo quieres practicar?</p>
                 </div>
-                <div class="grid grid-cols-2 gap-4 mb-6">
-                    <button @click="configMode = 'quick'" :class="`p-4 rounded-3xl border-4 font-black text-sm transition-all flex flex-col items-center gap-2 ${configMode === 'quick' ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-slate-100 text-slate-400 opacity-60'}`">
-                      <Zap :size="24" /> RÁPIDA
-                    </button>
-                    <button @click="configMode = 'notebook'" :class="`p-4 rounded-3xl border-4 font-black text-sm transition-all flex flex-col items-center gap-2 ${configMode === 'notebook' ? 'border-yellow-500 bg-yellow-50 text-yellow-700' : 'border-slate-100 text-slate-400 opacity-60'}`">
-                      <BookOpen :size="24" /> CUADERNO
-                    </button>
-                </div>
-                <div v-if="configMode === 'quick'" class="flex flex-col gap-3 animate-fade-in mb-6 p-4 bg-slate-50 rounded-3xl border-2 border-slate-100">
-                    <p class="text-slate-400 text-[10px] font-black uppercase tracking-widest text-center">Selecciona una Tabla</p>
-                    <button @click="configTable = 'random'" :class="`w-full py-3 rounded-xl font-black text-xs border-2 transition-all ${configTable === 'random' ? 'bg-indigo-600 border-indigo-600 text-white shadow-md' : 'bg-white border-slate-200 text-slate-500'}`">🎲 ALEATORIAS</button>
-                    <div class="grid grid-cols-5 gap-2">
-                        <button v-for="n in 10" :key="n" @click="configTable = n" :class="`aspect-square rounded-xl font-black text-sm border-2 transition-all flex items-center justify-center ${configTable === n ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-white border-slate-200 text-slate-500'}`">{{ n }}</button>
+
+                <Transition name="slide-down">
+                  <div v-if="showQuickGuide" class="mb-4 bg-slate-50 border-2 border-blue-100 rounded-[1.5rem] overflow-hidden shadow-inner shrink-0">
+                    <div class="p-5 max-h-[180px] overflow-y-auto font-inter text-slate-600 leading-relaxed text-left space-y-4">
+                      <p class="text-sm font-light">
+                        <strong class="font-black text-blue-600 text-xs">⌨️ TECLADO VIRTUAL:</strong> Hemos integrado un teclado numérico exclusivo dentro de la app para que resolver los ejercicios sea rápido, cómodo y táctil, sin que el teclado del móvil te estorbe. No intentes insertar datos en las celdas con bordes amarillos latentes, están bloqueadas y son automáticas.
+                      </p>
+                      <p class="text-sm font-light">
+                        <strong class="font-black text-blue-600 text-xs">🎯 FOCO INTELIGENTE:</strong> No perderás tiempo buscando dónde pulsar. Verás un foco guía con bordes amarillos que late suavemente para orientarte. No insertes datos en las celdas con bordes amarillo latente, están bloqueadas, y son automásticas.  Además, el cursor salta solo a la siguiente casilla al responder correctamente.
+                      </p>
+                      <p class="text-[10px] font-bold text-blue-400 italic bg-blue-50/50 p-2 rounded-lg text-center border border-blue-50">
+                        Si quieres saber más lee la GUÍA que se encuentra en la entrada a la app.
+                      </p>
                     </div>
+                  </div>
+                </Transition>
+
+                <div class="flex-1 overflow-y-auto no-scrollbar">
+                  <div class="grid grid-cols-2 gap-4 mb-6">
+                      <button @click="configMode = 'quick'" :class="`p-4 rounded-3xl border-4 font-black text-sm transition-all flex flex-col items-center gap-2 ${configMode === 'quick' ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-slate-100 text-slate-400 opacity-60'}`">
+                        <Zap :size="24" /> RÁPIDA
+                      </button>
+                      <button @click="configMode = 'notebook'" :class="`p-4 rounded-3xl border-4 font-black text-sm transition-all flex flex-col items-center gap-2 ${configMode === 'notebook' ? 'border-yellow-500 bg-yellow-50 text-yellow-700' : 'border-slate-100 text-slate-400 opacity-60'}`">
+                        <BookOpen :size="24" /> CUADERNO
+                      </button>
+                  </div>
+
+                  <div v-if="configMode === 'quick'" class="flex flex-col gap-3 animate-fade-in mb-6 p-4 bg-slate-50 rounded-3xl border-2 border-slate-100">
+                      <p class="text-slate-400 text-[10px] font-black uppercase tracking-widest text-center">Selecciona una Tabla</p>
+                      <button @click="configTable = 'random'" :class="`w-full py-3 rounded-xl font-black text-xs border-2 transition-all ${configTable === 'random' ? 'bg-indigo-600 border-indigo-600 text-white shadow-md' : 'bg-white border-slate-200 text-slate-500'}`">🎲 ALEATORIAS</button>
+                      <div class="grid grid-cols-5 gap-2">
+                          <button v-for="n in 10" :key="n" @click="configTable = n" :class="`aspect-square rounded-xl font-black text-sm border-2 transition-all flex items-center justify-center ${configTable === n ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-white border-slate-200 text-slate-500'}`">{{ n }}</button>
+                      </div>
+                  </div>
                 </div>
-                <button @click="startGame" class="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-xl shadow-[0_6px_0_rgb(49,46,129)] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-3 uppercase tracking-widest">
+
+                <button @click="startGame" class="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-xl shadow-[0_6px_0_rgb(49,46,129)] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-3 uppercase tracking-widest shrink-0">
                     <Play :size="24" fill="currentColor" /> ¡JUGAR!
                 </button>
             </div>
@@ -366,7 +397,7 @@ const currentSubjectLabel = computed(() => {
 </template>
 
 <style scoped>
-/* 🛡️ LEY DE HIERRO v2.9.4 - INDEX SCREEN BLINDADO */
+/* 🛡️ LEY DE HIERRO v2.9.8 - INDEX SCREEN BLINDADO */
 
 .master-container {
   height: 100dvh;
@@ -375,7 +406,7 @@ const currentSubjectLabel = computed(() => {
   justify-content: center;
   align-items: center;
   overflow: hidden;
-  background-color: #f1f5f9;
+  background-color: #f1f5f9; 
   position: fixed;
   top: 0;
   left: 0;
@@ -390,72 +421,36 @@ const currentSubjectLabel = computed(() => {
   overflow: hidden;
   background: linear-gradient(to bottom right, #6366f1, #a855f7);
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  
-  /* BLINDAJE TÁCTIL TOTAL */
   user-select: none;
   touch-action: none !important;
   -webkit-tap-highlight-color: transparent;
-  
   width: 100vw;
   height: 100dvh;
 }
 
-/* TABLETS: Escala Proporcional */
+/* ADAPTACIÓN PROGRESIVA */
 @media (min-width: 600px) and (max-width: 1024px) {
-  .app-canvas {
-    width: 85vw;
-    height: 95dvh;
-    border-radius: 35px;
-    box-shadow: 0 25px 50px rgba(0,0,0,0.2);
-  }
+  .app-canvas { width: 85vw; height: 95dvh; border-radius: 35px; box-shadow: 0 25px 50px rgba(0,0,0,0.2); }
 }
 
-/* PC: LEY DE ADAPTACIÓN PROGRESIVA */
 @media (min-width: 1025px) {
-  .app-canvas {
-    width: 1024px;
-    height: 90dvh;
-    border-radius: 45px;
-    box-shadow: 0 40px 100px rgba(0,0,0,0.25);
-    border: 6px solid rgba(255, 255, 255, 0.1);
-  }
+  .app-canvas { width: 1024px; height: 90dvh; border-radius: 45px; box-shadow: 0 40px 100px rgba(0,0,0,0.25); border: 6px solid rgba(255, 255, 255, 0.1); }
 }
 
-/* ELEMENTOS DE UI */
-.header-main {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1.5rem 1.2rem 1rem;
-  z-index: 50;
+.header-main { display: flex; justify-content: space-between; align-items: center; padding: 1.5rem 1.2rem 1rem; z-index: 50; }
+.btn-circular-action { width: 2.8rem; height: 2.8rem; border-radius: 9999px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border-width: 2px; position: relative; transition: transform 0.2s; }
+.content-hero-area { display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 0; padding-bottom: 1rem; }
+
+/* ANIMACIONES Y OJITO */
+.animate-eye-pulse { animation: eyePulse 2s infinite; }
+@keyframes eyePulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
+  50% { transform: scale(1.1); box-shadow: 0 0 0 8px rgba(59, 130, 246, 0); }
 }
 
-.btn-circular-action {
-  width: 2.8rem;
-  height: 2.8rem;
-  border-radius: 9999px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  border-width: 2px;
-  position: relative;
-  transition: transform 0.2s;
-}
-
-.content-hero-area {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  min-height: 0;
-  padding-bottom: 1rem;
-}
-
-.footer-anclado {
-  width: 100%;
-  z-index: 40;
-}
+.slide-down-enter-active { animation: slideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+.slide-down-leave-active { animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) reverse; }
+@keyframes slideIn { from { height: 0; opacity: 0; transform: translateY(-10px); } to { height: 180px; opacity: 1; transform: translateY(0); } }
 
 .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -465,4 +460,7 @@ const currentSubjectLabel = computed(() => {
 .bubble-pop-enter-active { animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
 .bubble-pop-leave-active { animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) reverse; }
 @keyframes popIn { from { opacity: 0; transform: translate(-50%, -20px) scale(0.8); } to { opacity: 1; transform: translate(-50%, 0) scale(1); } }
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 </style>
