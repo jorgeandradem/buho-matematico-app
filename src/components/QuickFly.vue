@@ -1,10 +1,10 @@
 <script setup>
-/** * ARCHIVO: QuickFly.vue
- * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.4 + BLINDAJE DVH + AUDIO QUIRÚRGICO
+/** * ARCHIVO: TABLAS RÁPIDAS - QuickFly.vue
+ * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.4 + BLINDAJE DVH + AUDIO QUIRÚRGICO + CSS 3D
  * LOGICA: Desafío rápido con sonidos correct1/wrong1 y reporte de misiones.
  */
 import { ref, onMounted, computed } from 'vue';
-import { X as CloseIcon, Trophy, Coins, Sparkles, MousePointer2, PlayCircle, BookOpen, ChevronRight } from 'lucide-vue-next';
+import { X as CloseIcon, Trophy, Coins, MousePointer2, PlayCircle, BookOpen, ChevronRight } from 'lucide-vue-next';
 import CoinRain from './CoinRain.vue';
 import { useGamificationStore } from '../stores/useGamificationStore';
 import { speak } from '../utils/voice';
@@ -174,7 +174,7 @@ onMounted(() => { if (gameState.value === 'playing') generateQuestion(); });
 
 <template>
   <div class="master-container font-inter">
-    <main class="app-canvas !bg-white shadow-smartphone">
+    <main class="app-canvas shadow-smartphone bg-gradient-to-br from-[#f8fafc] via-[#e2e8f0] to-[#cbd5e1]">
       
       <div v-if="showCoinRain" class="absolute inset-0 z-[400] pointer-events-none">
           <CoinRain :type="getCurrencyType(activeOp)" :count="40" />
@@ -200,16 +200,27 @@ onMounted(() => { if (gameState.value === 'playing') generateQuestion(); });
       <div class="game-content flex-1 flex flex-col items-center justify-between py-4 overflow-hidden relative">
           
           <div v-if="gameState === 'rules'" class="flex-1 flex flex-col items-center justify-between p-6 w-full animate-fade-in z-50">
-              <button @click="closeQuickFly" class="absolute top-4 right-4 bg-slate-100 w-10 h-10 rounded-full flex items-center justify-center text-slate-600 active:scale-75 transition-all">
+              <button @click="closeQuickFly" class="absolute top-4 right-4 bg-white/50 w-10 h-10 rounded-full flex items-center justify-center text-slate-600 active:scale-75 transition-all shadow-sm">
                   <CloseIcon size="24" stroke-width="3" />
               </button>
 
               <div class="flex flex-col items-center mt-6">
-                  <Sparkles size="60" class="text-indigo-600 animate-bounce mb-2" />
-                  <h1 class="game-title text-4xl uppercase font-black italic text-indigo-900">Tablas Rápidas</h1>
+                  <div class="rocket-3d-wrap animate-rocket-float">
+                      <div class="rocket-body">
+                          <div class="rocket-window">
+                              <div class="rocket-glass"></div>
+                          </div>
+                      </div>
+                      <div class="rocket-fin left"></div>
+                      <div class="rocket-fin right"></div>
+                      <div class="rocket-thruster"></div>
+                      <div class="rocket-fire"></div>
+                  </div>
+                  
+                  <h1 class="game-title text-4xl uppercase font-black italic text-indigo-900 mt-4 drop-shadow-md">Tablas Rápidas</h1>
               </div>
 
-              <div class="rules-panel-fly shadow-2xl w-full">
+              <div class="rules-panel-fly shadow-2xl w-full bg-white">
                   <div class="rules-badge uppercase font-black tracking-widest">Manual del Piloto</div>
                   <div class="flex flex-col gap-5 p-2">
                       <div class="flex gap-4 items-start">
@@ -232,7 +243,7 @@ onMounted(() => { if (gameState.value === 'playing') generateQuestion(); });
                              text-white font-black italic text-xl uppercase rounded-[2rem] 
                              border-b-[8px] border-[#1E3A8A] shadow-lg shadow-[#1D4ED8]/40 
                              active:translate-y-[4px] active:border-b-[4px] transition-all 
-                             flex items-center justify-center py-4 group">
+                             flex items-center justify-center py-4 group mt-4">
                   ¡INICIAR VUELO! 
                   <div class="ml-3 bg-white p-1 rounded-full flex items-center justify-center shadow-inner">
                       <ChevronRight class="text-[#1D4ED8]" size="20" stroke-width="4" />
@@ -241,24 +252,24 @@ onMounted(() => { if (gameState.value === 'playing') generateQuestion(); });
           </div>
 
           <template v-else-if="gameState === 'playing'">
-              <h1 class="title-fly shrink-0">Vuelo en Curso</h1>
+              <h1 class="title-fly shrink-0 drop-shadow-sm">Vuelo en Curso</h1>
 
               <div class="question-container-fly">
-                  <div :class="['op-box-fly shadow-lg', opColorClass]">
+                  <div :class="['op-box-fly shadow-2xl', opColorClass]">
                       <span>{{ currentQuestion?.num1 }}</span>
                       <span class="text-3xl opacity-50">{{ currentQuestion?.symbol }}</span>
                       <span>{{ currentQuestion?.num2 }}</span>
                   </div>
 
                   <div class="feedback-area">
-                      <span v-if="feedbackMessage" :class="[feedbackColor, 'feedback-text animate-ping-once']">
+                      <span v-if="feedbackMessage" :class="[feedbackColor, 'feedback-text animate-ping-once drop-shadow-md']">
                           {{ feedbackMessage }}
                       </span>
                   </div>
 
                   <div class="grid grid-cols-1 gap-3 w-full px-8">
                       <button v-for="opt in options" :key="opt" @click="selectOption(opt)" 
-                              class="btn-option-fly shadow-md active:shadow-none bg-white border-b-6 border-slate-200 text-3xl font-black p-3 rounded-2xl active:translate-y-1 active:border-b-2 transition-all">
+                              class="btn-option-fly shadow-lg active:shadow-none bg-white border-b-6 border-slate-300 text-3xl font-black p-3 rounded-2xl active:translate-y-1 active:border-b-2 transition-all text-slate-800">
                           {{ opt }}
                       </button>
                   </div>
@@ -266,7 +277,7 @@ onMounted(() => { if (gameState.value === 'playing') generateQuestion(); });
               <div class="h-10"></div>
           </template>
 
-          <div v-else class="flex-1 flex flex-col items-center justify-center p-6 bg-slate-50 w-full animate-fade-in uppercase">
+          <div v-else class="flex-1 flex flex-col items-center justify-center p-6 bg-slate-50/90 backdrop-blur-sm w-full animate-fade-in uppercase z-50">
               <Trophy class="w-24 h-24 text-yellow-500 mb-4 drop-shadow-xl animate-bounce" />
               <h2 class="victory-title text-indigo-950 font-black italic">¡Misión Cumplida!</h2>
               
@@ -285,7 +296,7 @@ onMounted(() => { if (gameState.value === 'playing') generateQuestion(); });
                                  border-b-[6px] border-[#1E3A8A] shadow-lg active:translate-y-[2px] active:border-b-[2px] transition-all">
                       OTRA CARRERA
                   </button>
-                  <button @click="emit('close')" class="text-slate-400 py-2 font-bold text-xs tracking-widest hover:text-indigo-600">SALIR AL PORTAL</button>
+                  <button @click="emit('close')" class="text-slate-500 py-2 font-bold text-xs tracking-widest hover:text-indigo-600">SALIR AL PORTAL</button>
               </div>
           </div>
 
@@ -310,28 +321,129 @@ onMounted(() => { if (gameState.value === 'playing') generateQuestion(); });
 
 @media (min-width: 1025px) { .app-canvas { width: 1024px; height: 90dvh; border-radius: 45px; border: 8px solid white; box-shadow: 0 40px 100px rgba(0,0,0,0.2); } }
 
-.header-fly { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.25rem; background: white; border-bottom: 2px solid #f1f5f9; z-index: 50; }
+/* HEADER */
+.header-fly { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.25rem; background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); border-bottom: 2px solid rgba(255,255,255,0.5); z-index: 50; }
+.session-loot-capsule { display: flex; align-items: center; background: white; padding: 6px 16px; border-radius: 9999px; border: 2px solid #f1f5f9; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+.coin-stat { display: flex; align-items: center; gap: 0.4rem; padding: 0 8px; font-weight: 900; color: #1e293b; }
+.coin-stat img { width: 1.2rem; height: 1.2rem; }
+.btn-close-fly { background: #fee2e2; color: #ef4444; width: 36px; height: 36px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
 
-.session-loot-capsule {
-    display: flex; align-items: center; background: white; padding: 6px 16px;
-    border-radius: 9999px; border: 2px solid #f1f5f9;
+/* --- 🚀 COHETE 3D CSS --- */
+.rocket-3d-wrap {
+    position: relative;
+    width: 60px;
+    height: 100px;
+    margin-bottom: 20px;
+    transform: rotate(15deg);
 }
 
-.coin-stat { display: flex; align-items: center; gap: 0.4rem; padding: 0 8px; font-weight: 900; }
-.coin-stat img { width: 1.2rem; height: 1.2rem; }
+.rocket-body {
+    position: absolute;
+    top: 0;
+    left: 10px;
+    width: 40px;
+    height: 80px;
+    background: linear-gradient(90deg, #e2e8f0 0%, #ffffff 50%, #cbd5e1 100%);
+    border-radius: 50% 50% 10px 10px / 100% 100% 10px 10px;
+    border: 2px solid #94a3b8;
+    box-shadow: inset -5px -5px 10px rgba(0,0,0,0.1);
+    z-index: 2;
+}
 
-.btn-close-fly { background: #fee2e2; color: #ef4444; width: 36px; height: 36px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; }
+.rocket-window {
+    position: absolute;
+    top: 25px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 20px;
+    height: 20px;
+    background: #94a3b8;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
 
+.rocket-glass {
+    width: 14px;
+    height: 14px;
+    background: radial-gradient(circle at 30% 30%, #bae6fd, #3b82f6);
+    border-radius: 50%;
+    box-shadow: inset -2px -2px 4px rgba(0,0,0,0.2);
+}
+
+.rocket-fin {
+    position: absolute;
+    bottom: 20px;
+    width: 20px;
+    height: 30px;
+    background: linear-gradient(90deg, #ef4444, #b91c1c);
+    border: 2px solid #9f1239;
+    z-index: 1;
+}
+
+.rocket-fin.left {
+    left: -5px;
+    border-radius: 20px 0 0 5px;
+    transform: skewY(-20deg);
+}
+
+.rocket-fin.right {
+    right: -5px;
+    border-radius: 0 20px 5px 0;
+    transform: skewY(20deg);
+}
+
+.rocket-thruster {
+    position: absolute;
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 20px;
+    height: 10px;
+    background: #475569;
+    border-radius: 0 0 5px 5px;
+    z-index: 1;
+}
+
+.rocket-fire {
+    position: absolute;
+    bottom: -15px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 14px;
+    height: 30px;
+    background: linear-gradient(180deg, #facc15, #ef4444, transparent);
+    border-radius: 50% 50% 20% 20%;
+    z-index: 0;
+    animation: exhaust 0.1s infinite alternate;
+}
+
+@keyframes exhaust {
+    0% { height: 25px; background: linear-gradient(180deg, #fde047, #f97316, transparent); }
+    100% { height: 35px; background: linear-gradient(180deg, #fef08a, #ef4444, transparent); }
+}
+
+.animate-rocket-float {
+    animation: rfloat 3s ease-in-out infinite;
+}
+
+@keyframes rfloat {
+    0%, 100% { transform: translateY(0) rotate(15deg); }
+    50% { transform: translateY(-10px) rotate(18deg); }
+}
+
+/* UI GENERAL */
 .title-fly { font-size: 1.5rem; font-weight: 900; color: #312e81; text-transform: uppercase; font-style: italic; margin-bottom: 0.5rem; }
 
 .question-container-fly { width: 100%; max-width: 400px; display: flex; flex-direction: column; align-items: center; }
-.op-box-fly { display: flex; align-items: center; justify-content: center; gap: 1rem; width: 90%; padding: 1.5rem; border-radius: 2.5rem; border-width: 6px; font-size: 3.5rem; font-weight: 900; }
+.op-box-fly { display: flex; align-items: center; justify-content: center; gap: 1rem; width: 90%; padding: 1.5rem; border-radius: 2.5rem; border-width: 6px; font-size: 3.5rem; font-weight: 900; background: white; }
 
-.rules-panel-fly { width: 92%; max-width: 400px; background: white; padding: 2rem 1.5rem; border-radius: 2.5rem; border: 2px solid #e2e8f0; position: relative; }
+.rules-panel-fly { width: 92%; max-width: 400px; padding: 2rem 1.5rem; border-radius: 2.5rem; border: 2px solid #e2e8f0; position: relative; }
 .rules-badge { position: absolute; top: -14px; left: 1.5rem; background: #4f46e5; color: white; font-size: 11px; padding: 5px 15px; border-radius: 9999px; }
 
 .victory-title { font-size: 2.5rem; line-height: 1; margin-bottom: 1.5rem; text-align: center; }
-.prize-card-fly { background: white; border: 4px solid #f1f5f9; border-radius: 3rem; padding: 2rem; width: 100%; max-width: 320px; margin-bottom: 2rem; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+.prize-card-fly { border: 4px solid #f1f5f9; border-radius: 3rem; padding: 2rem; width: 100%; max-width: 320px; margin-bottom: 2rem; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
 .loot-item-final { display: flex; flex-direction: column; align-items: center; }
 .loot-item-final img { width: 2.5rem; height: 2.5rem; }
 

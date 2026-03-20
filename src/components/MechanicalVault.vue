@@ -1,6 +1,6 @@
 <script setup>
-/** * ARCHIVO: MechanicalVault.vue
- * NOTA INTERNA: v3.3.0 - SONIDOS MECÁNICOS REALISTAS + MISSION SYNC
+/** * ARCHIVO: LA BÓVEDA -MechanicalVault.vue
+ * NOTA INTERNA: v3.4.0 - SONIDOS MECÁNICOS + BÓVEDA 3D ANIMADA + MISSION SYNC
  * LOGICA: Registro de 'vault_solve' + Desplazamiento vertical.
  * DISEÑO: Intro/Fin en Beige, Acción en Slate. Números XL con sombra cilíndrica.
  */
@@ -181,10 +181,27 @@ const endGame = async () => {
                 </button>
 
                 <div class="flex flex-col items-center">
-                    <div class="vault-door-3d bg-slate-800 p-8 rounded-[3rem] border-8 border-slate-700 shadow-2xl mb-4 relative overflow-hidden">
-                        <div class="rotating-gear-bg"></div>
-                        <Lock size="70" class="text-amber-500 relative z-10" />
+                    
+                    <div class="vault-3d-epic animate-vault-float mb-6">
+                        <div class="vault-frame">
+                            <div class="vault-door">
+                                <div class="vault-bars">
+                                    <div class="v-bar b1"></div>
+                                    <div class="v-bar b2"></div>
+                                    <div class="v-bar b3"></div>
+                                    <div class="v-bar b4"></div>
+                                </div>
+                                <div class="vault-wheel animate-wheel-turn">
+                                    <div class="wheel-center"></div>
+                                    <div class="spoke s1"></div>
+                                    <div class="spoke s2"></div>
+                                    <div class="spoke s3"></div>
+                                    <div class="spoke s4"></div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
+
                     <h1 class="game-title text-4xl uppercase font-black text-amber-900 tracking-tighter italic">La Bóveda</h1>
                 </div>
 
@@ -215,7 +232,7 @@ const endGame = async () => {
                     </div>
                 </div>
 
-                <button @click="startGame" class="btn-primary-vault">ABRIR CONSOLA <PlayCircle class="ml-2"/></button>
+                <button @click="startGame" class="btn-primary-vault mt-4">ABRIR CONSOLA <PlayCircle class="ml-2"/></button>
             </div>
 
             <div v-else-if="gameState === 'playing' || gameState === 'opening'" class="w-full flex flex-col items-center justify-around flex-1 animate-fade-in">
@@ -286,7 +303,7 @@ const endGame = async () => {
 
 @media (min-width: 1025px) { .app-canvas { width: 1024px; height: 90dvh; border-radius: 45px; box-shadow: 0 40px 100px rgba(0,0,0,0.15); border: 8px solid white; } }
 
-.bg-beige { background-color: #f5f5dc !important; }
+.bg-beige { background-color: #fdfbf7 !important; }
 .bg-slate-900 { background-color: #0f172a !important; }
 
 /* HEADER */
@@ -294,6 +311,121 @@ const endGame = async () => {
 .session-loot-capsule { display: flex; align-items: center; padding: 4px 16px; border-radius: 9999px; border: 2px solid #cbd5e1; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
 .loot-item { display: flex; align-items: center; gap: 6px; padding: 0 10px; font-weight: 900; color: #334155; }
 .btn-close-circle { border-radius: 9999px; width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; }
+
+/* --- 🛡️ BÓVEDA 3D CSS HIPERREALISTA --- */
+.vault-3d-epic {
+  position: relative;
+  width: 130px;
+  height: 130px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.vault-frame {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #94a3b8, #334155);
+  box-shadow: 
+    inset 4px 4px 10px rgba(255,255,255,0.4),
+    inset -6px -6px 15px rgba(0,0,0,0.6),
+    0 15px 25px rgba(0,0,0,0.3);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.vault-door {
+  width: 75%;
+  height: 75%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #cbd5e1, #64748b 60%, #1e293b);
+  border: 4px solid #0f172a;
+  box-shadow: inset -5px -5px 15px rgba(0,0,0,0.5), inset 5px 5px 15px rgba(255,255,255,0.8);
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.vault-bars {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.v-bar {
+  position: absolute;
+  background: linear-gradient(90deg, #1e293b, #475569, #1e293b);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}
+
+.b1 { width: 14px; height: 30px; top: -10px; left: 50%; transform: translateX(-50%); border-radius: 0 0 5px 5px; }
+.b2 { width: 14px; height: 30px; bottom: -10px; left: 50%; transform: translateX(-50%); border-radius: 5px 5px 0 0; }
+.b3 { width: 30px; height: 14px; left: -10px; top: 50%; transform: translateY(-50%); border-radius: 0 5px 5px 0; }
+.b4 { width: 30px; height: 14px; right: -10px; top: 50%; transform: translateY(-50%); border-radius: 5px 0 0 5px; }
+
+/* Manija central giratoria */
+.vault-wheel {
+  position: absolute;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  border: 6px solid #eab308; /* Anillo dorado exterior */
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.4), 0 4px 6px rgba(0,0,0,0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.wheel-center {
+  width: 16px;
+  height: 16px;
+  background: radial-gradient(circle, #fef08a, #b45309);
+  border-radius: 50%;
+  z-index: 10;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}
+
+.spoke {
+  position: absolute;
+  background: linear-gradient(90deg, #ca8a04, #facc15, #ca8a04);
+  z-index: 5;
+  border-radius: 2px;
+}
+
+.s1 { width: 4px; height: 60px; }
+.s2 { width: 60px; height: 4px; }
+.s3 { width: 4px; height: 60px; transform: rotate(45deg); }
+.s4 { width: 60px; height: 4px; transform: rotate(45deg); }
+
+/* Animación del giro de intento de apertura */
+.animate-wheel-turn {
+  animation: wheel-crack 3s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
+}
+
+@keyframes wheel-crack {
+  0% { transform: rotate(0deg); }
+  20% { transform: rotate(45deg); }
+  40% { transform: rotate(-20deg); }
+  60% { transform: rotate(15deg); }
+  80% { transform: rotate(-5deg); }
+  100% { transform: rotate(0deg); }
+}
+
+.animate-vault-float {
+  animation: vaultFloat 4s ease-in-out infinite;
+}
+
+@keyframes vaultFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+/* -------------------------------------- */
 
 /* ELEMENTOS VISUALES */
 .game-title { font-weight: 900; text-transform: uppercase; letter-spacing: -0.05em; }
@@ -303,11 +435,9 @@ const endGame = async () => {
 .plasma-terminal-light { background: white; padding: 1.2rem 2.5rem; border-radius: 2rem; border-bottom: 6px solid #94a3b8; text-align: center; }
 .mechanical-console { border-bottom: 12px solid #1e293b; }
 
-.btn-primary-vault { background: linear-gradient(to bottom, #f59e0b, #b45309); color: white; padding: 1.25rem 2.5rem; border-radius: 1.5rem; border-bottom: 6px solid #78350f; font-weight: 900; text-transform: uppercase; display: flex; align-items: center; }
+.btn-primary-vault { background: linear-gradient(to bottom, #f59e0b, #b45309); color: white; padding: 1.25rem 2.5rem; border-radius: 1.5rem; border-bottom: 6px solid #78350f; font-weight: 900; text-transform: uppercase; display: flex; align-items: center; justify-content: center; }
 .btn-unlock-light { background: linear-gradient(to bottom, #10b981, #065f46); color: white; padding: 1.2rem 2.5rem; border-radius: 1.5rem; border-bottom: 6px solid #064e3b; font-weight: 900; text-transform: uppercase; display: flex; align-items: center; box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3); }
 
-.rotating-gear-bg { position: absolute; inset: -20px; border: 8px dotted rgba(245, 158, 11, 0.1); border-radius: 50%; animation: spin 15s linear infinite; }
-@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 .animate-fade-in { animation: fadeIn 0.6s ease-out forwards; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 </style>

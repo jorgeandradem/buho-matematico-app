@@ -1,5 +1,5 @@
 <script setup>
-/** * ARCHIVO: RunnerChallenge.vue
+/** * ARCHIVO: VUELO MATEMÁTICO RunnerChallenge.vue
  * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.4 + AUDIO QUIRÚRGICO + REPORTE VIVO
  * LOGICA: Runner con física de gravedad + Sonidos correct1/wrong1 + Avance de misiones.
  */

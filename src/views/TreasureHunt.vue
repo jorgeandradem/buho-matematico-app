@@ -1,12 +1,12 @@
 <script setup>
-/** * ARCHIVO: TreasureHunt.vue
- * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.3 + CONEXIÓN LLAMITA (RACHAS)
+/** * ARCHIVO: RUTA DEL TESORO TreasureHunt.vue
+ * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.3 + MAPA 3D ÉPICO + CONEXIÓN LLAMITA (RACHAS)
  * LOGICA: Reporte de cofres abiertos y fin de partida al Banco Central.
  */
 import { ref, computed, onMounted } from 'vue';
 import { useGamificationStore } from '../stores/useGamificationStore';
 import { pirateLevels } from '../data/pirateLevels';
-import { X as CloseIcon, Trophy, Anchor, Zap, AlertCircle, Flag, Ship, MousePointer2, PlayCircle, ChevronRight } from 'lucide-vue-next';
+import { X as CloseIcon, Trophy, Zap, AlertCircle, Flag, Ship, MousePointer2, PlayCircle, ChevronRight } from 'lucide-vue-next';
 import SimpleConfetti from '../components/SimpleConfetti.vue';
 import CoinRain from '../components/CoinRain.vue';
 import { playOwlHoot, playCoinSound } from '../utils/sound';
@@ -171,9 +171,31 @@ onMounted(() => { document.body.style.overflow = 'hidden'; });
                 <CloseIcon size="24" stroke-width="3" />
             </button>
 
-            <div class="flex flex-col items-center mt-6 text-center">
-                <Anchor size="80" class="text-blue-600 mb-4 drop-shadow-xl animate-float" />
-                <h1 class="game-title text-center text-4xl uppercase italic font-black text-indigo-900">Ruta del Tesoro</h1>
+            <div class="flex flex-col items-center mt-4 text-center">
+                
+                <div class="map-3d-epic animate-float">
+                    <div class="map-scroll-top"></div>
+                    <div class="map-surface">
+                        <svg viewBox="0 0 100 100" class="w-full h-full drop-shadow-md p-1">
+                            <path d="M 10 85 Q 30 90 40 70 T 70 55 T 40 30 T 80 15" fill="none" stroke="#78350f" stroke-width="2" stroke-dasharray="3 3" class="animate-map-dash" />
+                            
+                            <circle cx="10" cy="85" r="4" fill="#22c55e" stroke="#14532d" stroke-width="1.5"/>
+                            <circle cx="25" cy="82" r="3" fill="#22c55e" stroke="#14532d" stroke-width="1"/>
+                            <circle cx="40" cy="70" r="3.5" fill="#22c55e" stroke="#14532d" stroke-width="1"/>
+                            <circle cx="55" cy="62" r="3" fill="#22c55e" stroke="#14532d" stroke-width="1"/>
+                            <circle cx="70" cy="55" r="3.5" fill="#22c55e" stroke="#14532d" stroke-width="1"/>
+                            <circle cx="60" cy="42" r="3" fill="#22c55e" stroke="#14532d" stroke-width="1"/>
+                            <circle cx="45" cy="35" r="3.5" fill="#22c55e" stroke="#14532d" stroke-width="1"/>
+                            <circle cx="40" cy="30" r="3" fill="#22c55e" stroke="#14532d" stroke-width="1"/>
+                            <circle cx="60" cy="22" r="3.5" fill="#22c55e" stroke="#14532d" stroke-width="1"/>
+                            
+                            <path d="M 76 11 L 84 19 M 84 11 L 76 19" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round" />
+                        </svg>
+                    </div>
+                    <div class="map-scroll-bottom"></div>
+                </div>
+
+                <h1 class="game-title text-center text-4xl uppercase italic font-black text-indigo-900 drop-shadow-sm mt-2">Ruta del Tesoro</h1>
             </div>
 
             <div class="rules-panel shadow-2xl w-full">
@@ -293,6 +315,64 @@ onMounted(() => { document.body.style.overflow = 'hidden'; });
 .loot-item { display: flex; align-items: center; gap: 6px; padding: 0 10px; font-weight: 900; }
 .loot-item img { width: 1.2rem; height: 1.2rem; }
 .btn-close-circle { background: #fee2e2; color: #ef4444; width: 36px; height: 36px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; }
+
+/* --- 🗺️ MAPA DEL TESORO 3D CSS --- */
+.map-3d-epic {
+    position: relative;
+    width: 110px;
+    height: 110px;
+    margin-bottom: 1.5rem;
+    transform: rotateX(40deg) rotateZ(-15deg) rotateY(15deg);
+    transform-style: preserve-3d;
+}
+
+.map-surface {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at center, #fef08a 0%, #facc15 100%);
+    border: 4px solid #92400e;
+    border-radius: 6px;
+    box-shadow:
+        -1px 1px 0px #78350f,
+        -2px 2px 0px #78350f,
+        -3px 3px 0px #78350f,
+        -4px 4px 0px #78350f,
+        -5px 5px 0px #78350f,
+        -15px 15px 25px rgba(0,0,0,0.4);
+    overflow: hidden;
+    z-index: 5;
+}
+
+.map-scroll-top {
+    position: absolute;
+    top: -12px; left: -10px; right: -10px; height: 24px;
+    background: linear-gradient(to bottom, #f59e0b, #b45309);
+    border: 3px solid #78350f;
+    border-radius: 12px;
+    box-shadow: -4px 4px 0 #451a03;
+    z-index: 10;
+}
+
+.map-scroll-bottom {
+    position: absolute;
+    bottom: -12px; left: -10px; right: -10px; height: 24px;
+    background: linear-gradient(to top, #f59e0b, #b45309);
+    border: 3px solid #78350f;
+    border-radius: 12px;
+    box-shadow: -4px 4px 0 #451a03;
+    z-index: 10;
+}
+
+@keyframes mapDash {
+    to { stroke-dashoffset: -20; }
+}
+
+.animate-map-dash {
+    stroke-dashoffset: 0;
+    animation: mapDash 1.5s linear infinite;
+}
+
+/* ------------------------------------- */
 
 .mission-tag-surgical { background: #312e81; color: #fde047; padding: 6px 24px; border-radius: 9999px; font-weight: 900; text-transform: uppercase; font-size: 14px; letter-spacing: 2px; border: 2px solid #fde047; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
 

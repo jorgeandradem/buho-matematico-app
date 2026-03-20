@@ -1,6 +1,6 @@
 <script setup>
-/** * ARCHIVO: SubmarineAlgebra.vue
- * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.3 + BLINDAJE DVH + REPORTE VIVO
+/** * ARCHIVO: SUBMARINE ALGEBRA - SubmarineAlgebra.vue
+ * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.3 + BLINDAJE DVH + CSS 3D SUBMARINO
  * LOGICA: Burbujas ascendentes con reporte de aciertos al Store para misiones.
  */
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
@@ -189,14 +189,33 @@ onBeforeUnmount(() => { clearInterval(bubbleInterval); soundAmbient.pause(); });
         <button @click.prevent.stop="returnToRules" class="btn-close-circle"><X size="20" /></button>
       </header>
 
-      <div v-if="gameState === 'rules'" class="flex-1 flex flex-col items-center justify-between p-6 bg-[#0ea5e9] relative animate-fade-in">
-        <button @click.prevent.stop="emit('close')" class="absolute top-4 right-4 bg-white/30 w-12 h-12 rounded-full flex items-center justify-center text-white active:scale-75 transition-all z-[300]">
+      <div v-if="gameState === 'rules'" class="flex-1 flex flex-col items-center justify-between p-6 bg-[#0ea5e9] relative animate-fade-in z-50">
+        <button @click.prevent.stop="emit('close')" class="absolute top-4 right-4 bg-white/30 w-12 h-12 rounded-full flex items-center justify-center text-white active:scale-75 transition-all z-[300] border-2 border-white/50">
           <X size="28" stroke-width="3" />
         </button>
 
         <div class="flex flex-col items-center mt-6 text-center">
-          <div class="text-7xl mb-4 animate-bounce">🌊</div>
-          <h1 class="game-title text-white text-4xl uppercase font-black italic tracking-tighter">Submarine Algebra</h1>
+          
+          <div class="submarine-3d-epic animate-sub-float">
+              <div class="sub-periscope"></div>
+              <div class="sub-cabin"></div>
+              <div class="sub-body">
+                  <div class="sub-window">
+                      <div class="glass-reflection"></div>
+                  </div>
+                  <div class="sub-stripe"></div>
+              </div>
+              <div class="sub-propeller-box">
+                  <div class="propeller animate-spin-fast"></div>
+              </div>
+              <div class="sub-bubbles">
+                  <div class="s-bub b1"></div>
+                  <div class="s-bub b2"></div>
+                  <div class="s-bub b3"></div>
+              </div>
+          </div>
+
+          <h1 class="game-title text-white text-4xl uppercase font-black italic tracking-tighter drop-shadow-lg mt-2">Submarine Algebra</h1>
         </div>
 
         <div class="rules-panel shadow-2xl w-full bg-[#0f172a]/90 border-2 border-[#38bdf8] backdrop-blur-md">
@@ -231,7 +250,7 @@ onBeforeUnmount(() => { clearInterval(bubbleInterval); soundAmbient.pause(); });
                        text-white font-black italic text-xl uppercase rounded-[2rem] 
                        border-b-[8px] border-[#1E3A8A] shadow-lg shadow-[#1D4ED8]/40 
                        active:translate-y-[4px] active:border-b-[4px] transition-all 
-                       flex items-center justify-center py-4 group mb-4">
+                       flex items-center justify-center py-4 group mb-4 mt-2">
             ¡EMPEZAR MISIÓN! 
             <div class="ml-3 bg-white p-1 rounded-full flex items-center justify-center shadow-inner">
                 <ChevronRight class="text-[#1D4ED8]" size="20" stroke-width="4" />
@@ -301,6 +320,159 @@ onBeforeUnmount(() => { clearInterval(bubbleInterval); soundAmbient.pause(); });
 .loot-item { display: flex; align-items: center; gap: 6px; padding: 0 10px; font-weight: 900; }
 .loot-item img { width: 1.2rem; height: 1.2rem; object-fit: contain; }
 .btn-close-circle { background: #fee2e2; color: #ef4444; width: 36px; height: 36px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+
+/* --- 🌊 SUBMARINO 3D CSS ESPECTACULAR --- */
+.submarine-3d-epic {
+    position: relative;
+    width: 140px;
+    height: 100px;
+    margin-bottom: 1.5rem;
+}
+
+.sub-body {
+    position: absolute;
+    bottom: 10px;
+    left: 20px;
+    width: 120px;
+    height: 60px;
+    background: linear-gradient(180deg, #fde047 0%, #eab308 40%, #b45309 100%);
+    border-radius: 40px 60px 60px 40px;
+    border: 4px solid #451a03;
+    box-shadow: inset -5px -5px 15px rgba(0,0,0,0.3), 0 15px 20px rgba(0,0,0,0.4);
+    z-index: 3;
+    overflow: hidden;
+}
+
+.sub-stripe {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 100%;
+    height: 8px;
+    background: #451a03;
+    transform: translateY(-50%);
+    opacity: 0.8;
+}
+
+.sub-cabin {
+    position: absolute;
+    top: 10px;
+    left: 60px;
+    width: 45px;
+    height: 25px;
+    background: linear-gradient(180deg, #facc15, #ca8a04);
+    border: 4px solid #451a03;
+    border-bottom: none;
+    border-radius: 15px 15px 0 0;
+    z-index: 2;
+}
+
+.sub-periscope {
+    position: absolute;
+    top: -10px;
+    left: 75px;
+    width: 8px;
+    height: 25px;
+    background: #94a3b8;
+    border: 2px solid #0f172a;
+    z-index: 1;
+}
+
+.sub-periscope::after {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: 0px;
+    width: 16px;
+    height: 8px;
+    background: #ef4444;
+    border-radius: 4px;
+    border: 2px solid #0f172a;
+}
+
+.sub-window {
+    position: absolute;
+    top: 10px;
+    left: 60px;
+    width: 32px;
+    height: 32px;
+    background: radial-gradient(circle at 30% 30%, #bae6fd, #0284c7);
+    border-radius: 50%;
+    border: 4px solid #451a03;
+    box-shadow: inset -2px -2px 5px rgba(0,0,0,0.5), 0 0 0 2px #facc15;
+    z-index: 4;
+}
+
+.glass-reflection {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    width: 10px;
+    height: 6px;
+    background: rgba(255,255,255,0.6);
+    border-radius: 50%;
+    transform: rotate(-30deg);
+}
+
+.sub-propeller-box {
+    position: absolute;
+    bottom: 25px;
+    left: 5px;
+    width: 20px;
+    height: 30px;
+    background: #475569;
+    border: 4px solid #0f172a;
+    border-radius: 5px 0 0 5px;
+    z-index: 2;
+}
+
+.propeller {
+    position: absolute;
+    top: -5px;
+    left: -10px;
+    width: 10px;
+    height: 32px;
+    background: #94a3b8;
+    border-radius: 5px;
+    border: 2px solid #0f172a;
+}
+
+.animate-spin-fast {
+    animation: prop-spin 0.08s linear infinite alternate;
+}
+
+@keyframes prop-spin {
+    0% { transform: scaleY(1); }
+    100% { transform: scaleY(0.2); }
+}
+
+.animate-sub-float {
+    animation: subFloat 3s ease-in-out infinite;
+}
+
+@keyframes subFloat {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-15px) rotate(-2deg); }
+}
+
+/* Burbujas del motor */
+.sub-bubbles .s-bub {
+    position: absolute;
+    background: rgba(255,255,255,0.6);
+    border-radius: 50%;
+    bottom: 30px;
+    left: -10px;
+    animation: sBubbles 1.5s linear infinite;
+}
+.sub-bubbles .b1 { width: 8px; height: 8px; animation-delay: 0s; }
+.sub-bubbles .b2 { width: 12px; height: 12px; animation-delay: 0.5s; left: -15px; }
+.sub-bubbles .b3 { width: 6px; height: 6px; animation-delay: 1s; left: -5px; }
+
+@keyframes sBubbles {
+    0% { transform: translate(0, 0) scale(1); opacity: 1; }
+    100% { transform: translate(-30px, -40px) scale(1.5); opacity: 0; }
+}
+/* ------------------------------------------- */
 
 .equation-board { text-align: center; width: 100%; padding: 0 20px; }
 .equation-badge-surgical { color: #ffffff; font-weight: 900; text-align: center; text-transform: uppercase; letter-spacing: 0.15em; font-size: 1rem; margin-bottom: 1rem; text-shadow: 0 4px 8px rgba(0,0,0,0.6); }

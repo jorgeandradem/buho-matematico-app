@@ -1,10 +1,10 @@
 <script setup>
-/** * ARCHIVO: WorldTourChallenge.vue
- * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.3 + BLINDAJE DVH + REPORTE VIVO
+/** * ARCHIVO: EXPEDICIÓN MUNDIAL - WorldTourChallenge.vue
+ * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.3 + CSS GLOBO 3D + ORBITAS DE VUELO 3D
  * LOGICA: Expedición mundial con reporte de misiones por cada país completado.
  */
 import { ref, computed, onMounted } from 'vue';
-import { Trophy, X, Globe, MapPin, Zap, AlertTriangle, ChevronRight, PlayCircle, BookOpen } from 'lucide-vue-next';
+import { Trophy, X, MapPin, Zap, AlertTriangle, ChevronRight, PlayCircle, BookOpen } from 'lucide-vue-next';
 import { worldTourData } from '../data/worldTourData';
 import { useGamificationStore } from '../stores/useGamificationStore';
 import { playSound } from '../utils/sound';
@@ -123,7 +123,7 @@ const checkAnswer = (val) => {
     }
   } else {
     isWrong.value = true; totalErrors.value++;
-    playCustomSound('wrong1.mp3'); // Sincronizado v2.9.3
+    playCustomSound('wrong1.mp3'); 
     setTimeout(() => { selectedAnswer.value = null; }, 600);
   }
 };
@@ -194,12 +194,26 @@ const getButtonClass = (opt) => {
       <div class="game-content flex-1 flex flex-col relative overflow-hidden">
         
         <div v-if="gameState === 'rules'" class="flex-1 flex flex-col items-center justify-between p-6 w-full animate-fade-in z-50">
-            <button @click="closeExpedition" class="absolute top-4 right-4 bg-slate-100 w-10 h-10 rounded-full flex items-center justify-center text-slate-600 active:scale-75 transition-all">
+            <button @click="closeExpedition" class="absolute top-4 right-4 bg-slate-100 w-10 h-10 rounded-full flex items-center justify-center text-slate-600 active:scale-75 transition-all z-[100]">
                 <X size="24" stroke-width="3" />
             </button>
-            <div class="flex flex-col items-center mt-6">
-                <Globe size="80" class="text-indigo-600 mb-4 animate-pulse drop-shadow-xl" />
-                <h1 class="game-title text-center text-4xl uppercase italic font-black text-indigo-900 tracking-tighter">Expedición Mundial</h1>
+            <div class="flex flex-col items-center mt-6 w-full relative">
+                
+                <div class="globe-wrapper mb-6">
+                    <div class="orbit-ring ring-1">
+                        <div class="flight-dot"></div>
+                    </div>
+                    <div class="orbit-ring ring-2">
+                        <div class="flight-dot"></div>
+                    </div>
+                    
+                    <div class="globe-3d-epic drop-shadow-2xl relative z-10">
+                        <div class="globe-surface animate-spin-earth"></div>
+                        <div class="globe-lighting"></div>
+                    </div>
+                </div>
+
+                <h1 class="game-title text-center text-4xl uppercase italic font-black text-indigo-900 tracking-tighter relative z-10">Expedición Mundial</h1>
             </div>
             <div class="rules-panel shadow-2xl w-full">
                 <div class="rules-badge uppercase font-black tracking-widest">Bitácora de Viaje</div>
@@ -234,12 +248,10 @@ const getButtonClass = (opt) => {
                 <div class="mission-tag-surgical z-20 mt-4 italic font-black">MISIÓN: {{ currentChallenge?.continente }}</div>
 
                 <section class="w-full relative z-20 shrink-0 mt-6">
-                  <div class="absolute -top-12 -left-2 w-24 h-24 globe-wrapper z-30 drop-shadow-2xl">
-                    <div :class="['relative w-full h-full transition-transform duration-1000', { 'rotate-y-360': isRotating }]">
-                      <svg viewBox="0 0 100 100" class="w-full h-full scale-90">
-                        <circle cx="50" cy="50" r="48" fill="#3b82f6" stroke="#1e40af" stroke-width="1"/>
-                        <path d="M30,40 Q35,30 45,35 T60,30 T75,45 T65,60 T50,70 T30,60 Z" fill="#22c55e" />
-                      </svg>
+                  <div class="absolute -top-12 -left-2 w-24 h-24 z-30 drop-shadow-xl" :class="{ 'animate-spin-fast': isRotating }">
+                    <div class="w-full h-full rounded-full border-4 border-white shadow-inner overflow-hidden relative">
+                       <div class="globe-surface animate-spin-earth w-[200%] h-full" style="transform: translateX(0);"></div>
+                       <div class="globe-lighting absolute inset-0"></div>
                     </div>
                   </div>
 
@@ -317,17 +329,119 @@ const getButtonClass = (opt) => {
 </template>
 
 <style scoped>
-/* 🛡️ BLINDAJE TÉCNICO MASTER-CONTAINER v2.9.3 */
 .master-container { position: fixed; inset: 0; z-index: 9999; display: flex; justify-content: center; align-items: center; background-color: #ffffff; overflow: hidden; touch-action: none !important; font-family: 'Inter', sans-serif !important; height: 100dvh; }
 .app-canvas { display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; background-color: #f8fafc; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); user-select: none; width: 100vw; height: 100dvh; }
 
 @media (min-width: 1025px) { .app-canvas { width: 1024px; height: 90dvh; border-radius: 45px; box-shadow: 0 40px 100px rgba(0,0,0,0.2); border: 8px solid white; } }
 
-.header-standard { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1.25rem; background: white; border-bottom: 2px solid #f1f5f9; }
+.header-standard { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1.25rem; background: white; border-bottom: 2px solid #f1f5f9; z-index: 100;}
 .session-loot-capsule { display: flex; align-items: center; background: white; padding: 6px 16px; border-radius: 9999px; border: 2px solid #f1f5f9; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
 .loot-item { display: flex; align-items: center; gap: 6px; padding: 0 10px; font-weight: 900; }
 .loot-item img { width: 1.3rem; height: 1.3rem; object-fit: contain; }
 .btn-close-circle { background: #fee2e2; color: #ef4444; width: 40px; height: 40px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; }
+
+/* --- ✈️ ORBITAS 3D Y ESTELAS DE VUELO --- */
+.globe-wrapper {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.orbit-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  border-radius: 50%;
+  border: 1.5px dashed rgba(56, 189, 248, 0.4); /* Línea ultradelgada de puntos azules */
+  z-index: 5;
+  transform-style: preserve-3d;
+}
+
+.ring-1 {
+  width: 160px;
+  height: 160px;
+  animation: orbit1 6s linear infinite;
+}
+
+.ring-2 {
+  width: 190px;
+  height: 190px;
+  animation: orbit2 8s linear infinite;
+}
+
+@keyframes orbit1 {
+  0% { transform: translate(-50%, -50%) rotateX(65deg) rotateY(-20deg) rotateZ(0deg); }
+  100% { transform: translate(-50%, -50%) rotateX(65deg) rotateY(-20deg) rotateZ(360deg); }
+}
+
+@keyframes orbit2 {
+  0% { transform: translate(-50%, -50%) rotateX(75deg) rotateY(15deg) rotateZ(360deg); }
+  100% { transform: translate(-50%, -50%) rotateX(75deg) rotateY(15deg) rotateZ(0deg); }
+}
+
+.flight-dot {
+  position: absolute;
+  top: -3px; /* Alineado al borde del anillo */
+  left: 50%;
+  transform: translateX(-50%);
+  width: 5px;
+  height: 5px;
+  background-color: #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 0 10px 4px #0ea5e9, 0 0 15px 6px #38bdf8; /* Resplandor microscópico de avión */
+}
+/* ------------------------------------------------- */
+
+
+/* --- 🌍 GLOBO TERRÁQUEO 3D HIPERREALISTA CSS --- */
+.globe-3d-epic {
+  position: absolute;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  overflow: hidden;
+  background-color: #0ea5e9; /* Océano profundo */
+  /* Sombra exterior pesada y resplandor sutil */
+  box-shadow: 0 20px 40px rgba(0,0,0,0.3), 0 0 20px rgba(14, 165, 233, 0.4);
+}
+
+.globe-surface {
+  position: absolute;
+  top: 0; left: 0;
+  width: 240px; /* Doble de ancho para el loop */
+  height: 120px;
+  /* Textura de mapa mundo SVG como background-image */
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100" viewBox="0 0 200 100"><path fill="%2322c55e" d="M20,30 Q30,20 40,40 T60,50 T40,70 T10,50 Z" /><path fill="%2316a34a" d="M120,40 Q130,20 150,30 T170,60 T140,80 T110,60 Z" /><path fill="%2322c55e" d="M80,80 Q90,70 100,85 T80,95 Z" /><path fill="%2315803d" d="M180,20 Q190,10 195,30 T175,40 Z" /></svg>');
+  background-size: 50% 100%;
+  background-repeat: repeat-x;
+}
+
+.globe-lighting {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  /* Volumen 3D: Sombra oscura abajo a la derecha, brillo blanco arriba a la izquierda */
+  box-shadow: inset -25px -25px 40px rgba(0,0,0,0.6), inset 15px 15px 25px rgba(255,255,255,0.8);
+  /* Resplandor especular central */
+  background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.4) 0%, transparent 40%);
+  pointer-events: none;
+}
+
+.animate-spin-earth {
+  animation: spin-earth 15s linear infinite;
+}
+@keyframes spin-earth {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.animate-spin-fast .animate-spin-earth {
+  animation: spin-earth 1s linear infinite;
+}
+
+/* ----------------------------------------------- */
 
 .mission-tag-surgical { background: #312e81; color: #fde047; padding: 6px 24px; border-radius: 9999px; font-weight: 900; text-transform: uppercase; font-size: 14px; letter-spacing: 2px; border: 2px solid #fde047; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
 
@@ -335,8 +449,6 @@ const getButtonClass = (opt) => {
 .rules-badge { position: absolute; top: -12px; left: 1.5rem; background: #4f46e5; color: white; font-size: 10px; font-weight: 900; padding: 4px 12px; border-radius: 9999px; }
 
 .game-title { letter-spacing: -0.05em; }
-.globe-wrapper { perspective: 1000px; }
-.rotate-y-360 { transform: rotateY(360deg); }
 
 .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }

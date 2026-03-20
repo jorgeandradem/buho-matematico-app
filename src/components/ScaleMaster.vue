@@ -1,10 +1,10 @@
 <script setup>
-/** * ARCHIVO: ScaleMaster.vue
- * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.3 + BLINDAJE DVH + REPORTE VIVO
+/** * ARCHIVO: SCALE MASTER - ScaleMaster.vue
+ * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.3 + BLINDAJE DVH + REPORTE VIVO + CSS 3D PREMIUM
  * LOGICA: Desafío de equilibrio con reporte de niveles al Store para la llamita.
  */
 import { ref, computed, watch, onMounted } from 'vue';
-import { X, Trophy, Scale, CheckCircle2, AlertCircle, PlayCircle, Coins, BookOpen, ChevronRight, RotateCcw } from 'lucide-vue-next';
+import { X, Trophy, CheckCircle2, AlertCircle, Coins, ChevronRight } from 'lucide-vue-next';
 import { gsap } from 'gsap'; 
 import { useGamificationStore } from '@/stores/useGamificationStore'; 
 
@@ -66,7 +66,7 @@ watch(totalRight, (newTotal) => {
     isVictory.value = true; 
     playSound('correct1');
 
-    // 🛡️ REPORTE QUIRÚRGICO A MISIONES: Cada balanza equilibrada avanza la llamita
+    // 🛡️ REPORTE QUIRÚRGICO A MISIONES
     store.updateMissionProgress('scale_balanced', 1);
     
     if (currentLevel.value < 7) sessionCoins.value.copper++;
@@ -110,7 +110,7 @@ const autoNextLevel = () => {
 const finishGame = async () => {
   gameState.value = 'finished';
   
-  // 🛡️ REPORTE DE PARTIDA COMPLETA:
+  // 🛡️ REPORTE DE PARTIDA COMPLETA
   store.updateMissionProgress('play_any_game', 1);
 
   if (sessionCoins.value.silver > 0) await store.addCoins('silver', sessionCoins.value.silver);
@@ -175,37 +175,48 @@ const triggerRemove = (id, event) => {
 
 <template>
   <div class="master-container font-inter">
-    <main class="app-canvas shadow-smartphone !bg-slate-50">
+    
+    <main class="app-canvas shadow-smartphone bg-gradient-to-br from-[#fdfbf7] via-[#f8f6f0] to-[#f3f0e6]">
       
-      <header v-if="gameState === 'playing'" class="header-standard shrink-0">
+      <header v-if="gameState === 'playing'" class="header-standard shrink-0 bg-white/70 backdrop-blur-sm">
         <div class="trophy-section">
           <Trophy size="22" class="text-yellow-500" />
           <span class="text-xl font-black text-indigo-900">{{ currentLevel }}/10</span>
         </div>
         <div class="session-loot-capsule">
           <div class="loot-item"><img src="/images/coin-gold.png" /><span>{{ sessionCoins.gold }}</span></div>
-          <div class="loot-item border-x border-slate-100"><img src="/images/coin-silver.png" /><span>{{ sessionCoins.silver }}</span></div>
+          <div class="loot-item border-x border-slate-200"><img src="/images/coin-silver.png" /><span>{{ sessionCoins.silver }}</span></div>
           <div class="loot-item"><img src="/images/coin-copper.png" /><span>{{ sessionCoins.copper }}</span></div>
         </div>
         <button @click="closeScaleMaster" class="btn-close-circle"><X size="20" /></button>
       </header>
 
-      <div v-if="gameState === 'rules'" class="flex-1 flex flex-col items-center justify-between p-6 bg-slate-50 relative animate-fade-in">
-        <button @click="emit('close')" class="absolute top-4 right-4 bg-slate-200/50 w-10 h-10 rounded-full flex items-center justify-center text-slate-600 active:scale-75 transition-all z-50">
+      <div v-if="gameState === 'rules'" class="flex-1 flex flex-col items-center justify-between p-6 relative animate-fade-in w-full h-full">
+        <button @click="emit('close')" class="absolute top-4 right-4 bg-white/60 backdrop-blur-md w-10 h-10 rounded-full flex items-center justify-center text-slate-600 active:scale-75 transition-all z-50 shadow-sm border border-slate-200">
           <X size="24" stroke-width="3" />
         </button>
 
-        <div class="w-24 h-24 bg-indigo-100 rounded-full flex items-center justify-center mt-8 animate-bounce shadow-inner">
-          <Scale size="50" class="text-indigo-600" />
+        <div class="flex flex-col items-center justify-center mt-4">
+            <div class="scale-3d-wrap">
+                <div class="scale-arm-group animate-scale-balance">
+                    <div class="scale-arm"></div>
+                    <div class="plate-group left"><div class="string left"></div><div class="string right"></div><div class="plate"></div></div>
+                    <div class="plate-group right"><div class="string left"></div><div class="string right"></div><div class="plate"></div></div>
+                </div>
+                <div class="scale-pillar"></div>
+                <div class="scale-base"></div>
+                <div class="scale-pin"></div>
+            </div>
+
+            <h1 class="game-title text-4xl italic uppercase font-black text-indigo-900 mt-4 drop-shadow-sm">Scale Master</h1>
         </div>
-        <h1 class="game-title text-4xl italic uppercase font-black text-indigo-900">Scale Master</h1>
         
-        <div class="rules-panel-large shadow-2xl">
+        <div class="rules-panel-large shadow-xl bg-white/80 backdrop-blur-sm w-full max-w-[400px]">
           <div class="rules-badge uppercase font-black tracking-widest">Manual del Equilibrio</div>
-          <div class="rules-grid-content p-2">
-            <div class="rule-row"><CheckCircle2 class="text-green-500" size="24" /><p class="text-sm font-bold text-slate-700 leading-tight">Iguala el peso objetivo colocando pesas en el plato derecho.</p></div>
-            <div class="rule-row"><AlertCircle class="text-indigo-500" size="24" /><p class="text-sm font-bold text-slate-700 leading-tight">Si te pasas del peso, toca una pesa en el plato para eliminarla.</p></div>
-            <div class="rule-row"><Coins class="text-amber-500" size="24" /><p class="text-sm font-bold text-slate-700 leading-tight">Niveles 7 al 10 activan el **Modo Oro** con mejores premios.</p></div>
+          <div class="rules-grid-content p-2 mt-2">
+            <div class="rule-row"><CheckCircle2 class="text-green-500 shrink-0" size="24" /><p class="text-sm font-bold text-slate-700 leading-tight">Iguala el peso objetivo colocando pesas en el plato derecho.</p></div>
+            <div class="rule-row"><AlertCircle class="text-indigo-500 shrink-0" size="24" /><p class="text-sm font-bold text-slate-700 leading-tight">Si te pasas del peso, toca una pesa en el plato para eliminarla.</p></div>
+            <div class="rule-row"><Coins class="text-amber-500 shrink-0" size="24" /><p class="text-sm font-bold text-slate-700 leading-tight">Niveles 7 al 10 activan el **Modo Oro** con mejores premios.</p></div>
           </div>
         </div>
         
@@ -214,7 +225,7 @@ const triggerRemove = (id, event) => {
                        text-white font-black italic text-xl uppercase rounded-[2rem] 
                        border-b-[8px] border-[#1E3A8A] shadow-lg shadow-[#1D4ED8]/40 
                        active:translate-y-[4px] active:border-b-[4px] transition-all 
-                       flex items-center justify-center py-4 group mb-6">
+                       flex items-center justify-center py-4 group mb-6 z-10">
           ¡AL SUPERMERCADO! 
           <div class="ml-3 bg-white p-1 rounded-full flex items-center justify-center shadow-inner">
             <ChevronRight class="text-[#1D4ED8]" size="20" stroke-width="4" />
@@ -222,7 +233,7 @@ const triggerRemove = (id, event) => {
         </button>
       </div>
 
-      <div v-else-if="gameState === 'playing'" class="game-content flex-1 flex flex-col items-center p-2 relative">
+      <div v-else-if="gameState === 'playing'" class="game-content flex-1 flex flex-col items-center p-2 relative w-full h-full">
         <div class="w-full flex flex-col items-center z-[250] py-4 bg-white/40 backdrop-blur-sm border-b border-slate-200">
           <svg width="200" height="34" viewBox="0 0 200 34" class="drop-shadow-md">
             <rect x="2" y="2" width="196" height="30" rx="15" fill="white" fill-opacity="0.2" stroke="black" stroke-width="2" />
@@ -240,6 +251,7 @@ const triggerRemove = (id, event) => {
         <div class="relative w-full flex-1 flex flex-col items-center justify-center -mt-4">
           <img :src="getAssetUrl('scale-base.png')" class="absolute w-[260px] bottom-28 z-[10] pointer-events-none opacity-80" />
           <div class="relative w-full flex justify-between items-end transition-transform duration-100 px-4" :style="{ transform: `rotate(${currentRotation}deg)` }">
+            
             <div class="relative w-36 flex flex-col items-center origin-top z-[20]" :style="{ transform: `rotate(${-currentRotation}deg)` }">
               <div class="relative z-[100] -mb-4 flex items-center justify-center scale-110">
                 <img :src="weightImage" class="w-16 drop-shadow-md" />
@@ -247,6 +259,7 @@ const triggerRemove = (id, event) => {
               </div>
               <img :src="getAssetUrl('scale-plate.png')" class="w-full z-[15]" />
             </div>
+            
             <div class="relative w-36 flex flex-col items-center origin-top plate-target-area z-[20]" :style="{ transform: `rotate(${-currentRotation}deg)` }">
               <img :src="getAssetUrl('scale-plate.png')" class="absolute bottom-0 w-full z-[15]" />
               <div class="absolute bottom-10 w-full flex flex-wrap-reverse justify-center gap-0.5 p-1 z-[400]">
@@ -257,10 +270,11 @@ const triggerRemove = (id, event) => {
                  </button>
               </div>
             </div>
+            
           </div>
         </div>
 
-        <div class="w-full bg-white/90 backdrop-blur-md p-6 rounded-t-[40px] border-t-4 border-slate-100 shadow-2xl flex justify-around items-center z-[500]">
+        <div class="w-full bg-white/80 backdrop-blur-lg p-6 rounded-t-[40px] border-t-4 border-slate-100 shadow-2xl flex justify-around items-center z-[500]">
           <button v-for="w in inventory" :key="w" @click="addWeight(w, $event)" class="relative active:scale-75 transition-all flex items-center justify-center hover:scale-110">
             <img :src="weightImage" class="w-14 drop-shadow-lg" />
             <span class="absolute inset-0 flex items-center justify-center font-black text-slate-800 text-lg z-40">{{ w }}</span>
@@ -268,27 +282,27 @@ const triggerRemove = (id, event) => {
         </div>
       </div>
 
-      <div v-else class="flex-1 flex flex-col items-center justify-center p-6 bg-indigo-950 text-center font-inter uppercase italic">
-          <div class="bg-white/10 p-8 rounded-[4rem] border-4 border-amber-400 backdrop-blur-sm flex flex-col items-center w-full max-w-sm animate-fade-in relative shadow-2xl">
+      <div v-else class="flex-1 flex flex-col items-center justify-center p-6 text-center font-inter uppercase italic w-full h-full relative">
+          <div class="bg-white/70 p-8 rounded-[4rem] border-4 border-amber-400 backdrop-blur-md flex flex-col items-center w-full max-w-sm animate-fade-in relative shadow-2xl z-10">
             
             <img :src="getAssetUrl('medal-gold.png')" class="w-40 h-40 object-contain mb-4 animate-bounce drop-shadow-2xl" />
             
-            <h2 class="text-3xl font-black text-white mb-2 italic tracking-tight">¡ESCALA DOMINADA!</h2>
+            <h2 class="text-3xl font-black text-indigo-950 mb-2 italic tracking-tight">¡ESCALA DOMINADA!</h2>
             
-            <div class="prize-card-large w-full bg-white/10 rounded-3xl p-6 mb-8 text-center border border-white/20">
-              <p class="text-[10px] text-white/70 uppercase font-bold tracking-widest mb-3">Tu Botín</p>
+            <div class="prize-card-large w-full bg-white/60 rounded-3xl p-6 mb-8 text-center border border-white shadow-sm">
+              <p class="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-3">Tu Botín</p>
               <div class="flex justify-around items-center">
-                  <div class="flex flex-col items-center"><img src="/images/coin-silver.png" class="w-10 h-10" /><span class="text-xl font-black text-white">+{{ sessionCoins.silver }}</span></div>
-                  <div class="flex flex-col items-center"><img src="/images/coin-copper.png" class="w-10 h-10" /><span class="text-xl font-black text-white">+{{ sessionCoins.copper }}</span></div>
+                  <div class="flex flex-col items-center"><img src="/images/coin-silver.png" class="w-10 h-10" /><span class="text-xl font-black text-indigo-950">+{{ sessionCoins.silver }}</span></div>
+                  <div class="flex flex-col items-center"><img src="/images/coin-copper.png" class="w-10 h-10" /><span class="text-xl font-black text-indigo-950">+{{ sessionCoins.copper }}</span></div>
               </div>
             </div>
 
             <div class="w-full flex flex-col gap-4">
               <button @click="startGame" 
-                      class="w-full py-5 rounded-[2rem] text-2xl font-black italic uppercase text-white bg-gradient-to-b from-[#3B82F6] to-[#1D4ED8] border-b-[8px] border-[#1E3A8A] shadow-lg active:translate-y-[4px] active:border-b-[4px] transition-all">
+                      class="w-full py-5 rounded-[2rem] text-xl font-black italic uppercase text-white bg-gradient-to-b from-[#3B82F6] to-[#1D4ED8] border-b-[8px] border-[#1E3A8A] shadow-lg active:translate-y-[4px] active:border-b-[4px] transition-all">
                 VOLVER A JUGAR
               </button>
-              <button @click="emit('close')" class="text-white/40 py-2 font-black text-sm hover:text-white uppercase tracking-widest">SALIR AL PORTAL</button>
+              <button @click="emit('close')" class="text-slate-400 py-2 font-black text-xs hover:text-indigo-600 uppercase tracking-widest transition-colors">SALIR AL PORTAL</button>
             </div>
           </div>
       </div>
@@ -302,24 +316,140 @@ const triggerRemove = (id, event) => {
     position: fixed; inset: 0; z-index: 9999; 
     display: flex; justify-content: center; align-items: center; 
     background-color: #ffffff; overflow: hidden; 
-    height: 100dvh; /* Blindaje Viewport Dinámico */
+    height: 100dvh; width: 100vw;
 }
 
 .app-canvas { 
     display: flex; flex-direction: column; position: relative; overflow: hidden; 
-    background-color: #f8fafc; transition: all 0.4s; 
-    width: 100vw; height: 100dvh; /* Blindaje Viewport Dinámico */
+    transition: all 0.4s; width: 100vw; height: 100dvh; 
 }
 
 @media (min-width: 1025px) { .app-canvas { width: 1024px; height: 90dvh; border-radius: 45px; box-shadow: 0 40px 100px rgba(0,0,0,0.2); border: 8px solid white; } }
 
-.header-standard { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1.25rem; background: white; border-bottom: 2px solid #f1f5f9; }
-.session-loot-capsule { display: flex; align-items: center; background: white; padding: 6px 14px; border-radius: 9999px; border: 2px solid #f1f5f9; }
-.loot-item { display: flex; align-items: center; gap: 4px; padding: 0 8px; font-weight: 900; }
+.header-standard { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1.25rem; border-bottom: 1px solid rgba(226, 232, 240, 0.6); }
+.session-loot-capsule { display: flex; align-items: center; background: white; padding: 6px 14px; border-radius: 9999px; border: 2px solid #f1f5f9; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+.loot-item { display: flex; align-items: center; gap: 4px; padding: 0 8px; font-weight: 900; color: #1e293b; }
 .loot-item img { width: 1.1rem; height: 1.1rem; object-fit: contain; }
-.btn-close-circle { background: #fee2e2; color: #ef4444; width: 36px; height: 36px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; }
+.btn-close-circle { background: #fee2e2; color: #ef4444; width: 36px; height: 36px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; border: 2px solid #fca5a5; }
 
-.rules-panel-large { width: 95%; background: white; padding: 2.2rem 1.5rem; border-radius: 2.5rem; border: 2px solid #e2e8f0; position: relative; }
+/* --- ⚖️ BALANZA 3D CSS EN PORTADA --- */
+.scale-3d-wrap {
+    position: relative;
+    width: 140px;
+    height: 120px;
+    margin-bottom: 10px;
+}
+
+.scale-base {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80px;
+    height: 15px;
+    background: linear-gradient(180deg, #94a3b8, #475569);
+    border-radius: 10px 10px 4px 4px;
+    border-bottom: 4px solid #1e293b;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    z-index: 1;
+}
+
+.scale-pillar {
+    position: absolute;
+    bottom: 15px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 14px;
+    height: 80px;
+    background: linear-gradient(90deg, #64748b, #cbd5e1, #475569);
+    border-radius: 2px;
+    z-index: 2;
+}
+
+.scale-pin {
+    position: absolute;
+    top: 25px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 16px;
+    height: 16px;
+    background: radial-gradient(circle, #fde047, #b45309);
+    border-radius: 50%;
+    z-index: 5;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.scale-arm-group {
+    position: absolute;
+    top: 30px;
+    width: 100%;
+    height: 90px;
+    transform-origin: top center;
+    z-index: 3;
+}
+
+.animate-scale-balance {
+    animation: scale-swing 4s ease-in-out infinite alternate;
+}
+
+@keyframes scale-swing {
+    0% { transform: rotate(-8deg); }
+    100% { transform: rotate(8deg); }
+}
+
+.scale-arm {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 6px;
+    background: linear-gradient(180deg, #94a3b8, #334155);
+    border-radius: 3px;
+    box-shadow: 0 3px 5px rgba(0,0,0,0.2);
+}
+
+.plate-group {
+    position: absolute;
+    top: 3px;
+    width: 40px;
+    height: 70px;
+}
+.plate-group.left { left: 5px; }
+.plate-group.right { right: 5px; }
+
+/* El contra-giro anula la rotación del brazo para mantener el platillo horizontal */
+.plate-group.left { animation: counter-swing 4s ease-in-out infinite alternate; transform-origin: top center; }
+.plate-group.right { animation: counter-swing 4s ease-in-out infinite alternate; transform-origin: top center; }
+
+@keyframes counter-swing {
+    0% { transform: rotate(8deg); }
+    100% { transform: rotate(-8deg); }
+}
+
+.string {
+    position: absolute;
+    top: 0;
+    width: 2px;
+    height: 60px;
+    background: #cbd5e1;
+}
+.string.left { left: 5px; transform: rotate(-15deg); transform-origin: top; }
+.string.right { right: 5px; transform: rotate(15deg); transform-origin: top; }
+
+.plate {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    height: 12px;
+    background: radial-gradient(ellipse at top, #f8fafc, #94a3b8);
+    border-radius: 50% 50% 10px 10px;
+    border-bottom: 2px solid #475569;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+}
+
+/* ------------------------------------- */
+
+.rules-panel-large { width: 95%; padding: 2.2rem 1.5rem; border-radius: 2.5rem; border: 2px solid rgba(226, 232, 240, 0.8); position: relative; }
 .rules-badge { position: absolute; top: -12px; left: 1.5rem; background: #4f46e5; color: white; font-size: 10px; font-weight: 900; padding: 4px 12px; border-radius: 9999px; }
 .rule-row { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.4rem; text-align: left; }
 

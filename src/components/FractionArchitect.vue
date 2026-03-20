@@ -1,6 +1,6 @@
 <script setup>
 /** * ARCHIVO: FractionArchitect.vue
- * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.2 + BOTÓN 3D AZUL + ICONO QUIRÚRGICO
+ * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.3 + BOTÓN 3D HOMOLOGADO + PIZZA 3D CSS
  * LOGICA: 3 Niveles Progresivos (Aprendiz, Chef, Maestro) con inyección atómica.
  */
 
@@ -22,6 +22,15 @@ const gameState = ref('rules');
 const currentLevel = ref(1);
 const totalLevels = 10;
 const isVictoryLevel = ref(false); 
+
+// --- NAVEGACIÓN HOMOLOGADA QUIRÚRGICA ---
+const handleCloseSurgical = () => {
+    if (gameState.value === 'playing' || gameState.value === 'finished') {
+        gameState.value = 'rules';
+    } else {
+        emit('close');
+    }
+};
 
 // --- 3. LÓGICA DE FRACCIONES ---
 const targetNumerator = ref(1);
@@ -175,32 +184,48 @@ onMounted(() => generateNewOrder());
   <div class="master-container font-inter">
     <main class="app-canvas shadow-smartphone !bg-slate-50">
       
-      <header v-if="gameState === 'playing'" class="header-standard shrink-0">
-        <div class="trophy-section">
+      <header class="header-standard shrink-0" :class="{ '!bg-transparent !border-transparent absolute w-full z-50': gameState !== 'playing' }">
+        <div class="trophy-section" :style="{ visibility: gameState === 'playing' ? 'visible' : 'hidden' }">
           <Trophy size="22" class="text-yellow-500" />
           <span class="text-xl font-black text-indigo-900">{{ currentLevel }}/10</span>
         </div>
-        <div class="session-loot-capsule">
+        
+        <div class="session-loot-capsule" :style="{ visibility: gameState === 'playing' ? 'visible' : 'hidden' }">
           <div class="loot-item"><img src="/images/coin-gold.png" /><span>{{ sessionCoins.gold }}</span></div>
           <div class="loot-item border-x border-slate-100"><img src="/images/coin-silver.png" /><span>{{ sessionCoins.silver }}</span></div>
           <div class="loot-item"><img src="/images/coin-copper.png" /><span>{{ sessionCoins.copper }}</span></div>
         </div>
-        <button @click="gameState = 'rules'" class="btn-close-circle"><X size="20" /></button>
-      </header>
-
-      <div v-if="gameState === 'rules'" class="flex-1 flex flex-col items-center justify-between p-6 bg-slate-50 overflow-y-auto relative animate-fade-in">
-        <button @click="emit('close')" class="absolute top-4 right-4 bg-slate-200/50 w-10 h-10 rounded-full flex items-center justify-center text-slate-600 active:scale-75 transition-all z-50">
+        
+        <button @click="handleCloseSurgical" class="btn-close-circle ml-auto">
           <X size="24" stroke-width="3" />
         </button>
+      </header>
 
-        <div class="flex flex-col items-center mt-6 text-center">
-          <ChefHat size="60" class="text-indigo-600 animate-bounce mb-2" />
-          <h1 class="game-title text-4xl uppercase font-black italic text-indigo-950 tracking-tighter">Pizza Architect</h1>
+      <div v-if="gameState === 'rules'" class="flex-1 flex flex-col items-center justify-start p-6 pt-16 bg-slate-50 overflow-y-auto relative animate-fade-in gap-6">
+
+        <div class="flex flex-col items-center text-center -mt-8">
+          
+          <div class="pizza-3d-container animate-float-slow">
+            <div class="pizza-board"></div>
+            <div class="pizza-board-inner"></div>
+            <div class="pizza-crust"></div>
+            <div class="pizza-cheese">
+                <div class="pepperoni p1"></div>
+                <div class="pepperoni p2"></div>
+                <div class="pepperoni p3"></div>
+                <div class="pepperoni p4"></div>
+                <div class="basil b1"></div>
+                <div class="basil b2"></div>
+                <div class="basil b3"></div>
+            </div>
+          </div>
+
+          <h1 class="game-title text-4xl uppercase font-black italic text-indigo-950 tracking-tighter mt-4">Pizza Architect</h1>
         </div>
 
         <div class="rules-panel shadow-2xl w-full">
           <div class="rules-badge uppercase font-black tracking-widest">Manual del Chef</div>
-          <div class="p-5 space-y-6">
+          <div class="p-5 space-y-6 mt-2">
             <div class="flex gap-4 items-start">
               <div class="bg-orange-100 p-2 rounded-lg shrink-0"><Pizza class="text-orange-600" size="24" /></div>
               <div>
@@ -298,8 +323,8 @@ onMounted(() => generateNewOrder());
            <div class="flex flex-col items-center"><img src="/images/coin-copper.png" class="w-12 h-12 mb-1" /><span class="text-2xl font-black">+{{ sessionCoins.copper }}</span></div>
         </div>
         
-        <div class="w-full max-w-[280px] flex flex-col gap-4">
-          <button @click="emit('close')" 
+        <div class="w-full max-w-[280px] flex flex-col gap-4 relative z-10">
+          <button @click="handleCloseSurgical" 
                   class="w-full py-4 rounded-[2rem] text-2xl font-black italic uppercase text-white bg-gradient-to-b from-[#3B82F6] to-[#1D4ED8] border-b-[8px] border-[#1E3A8A] shadow-lg active:translate-y-[4px] active:border-b-[4px] transition-all">
             TERMINAR
           </button>
@@ -316,16 +341,110 @@ onMounted(() => generateNewOrder());
 .app-canvas { display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; background-color: #f8fafc; transition: all 0.4s; width: 100vw; height: 100dvh; }
 @media (min-width: 1025px) { .app-canvas { width: 1024px; height: 90dvh; border-radius: 45px; box-shadow: 0 40px 100px rgba(0,0,0,0.2); border: 8px solid white; } }
 
-.header-standard { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1.25rem; background: white; border-bottom: 2px solid #f1f5f9; }
+/* CABECERA Y BOTONES (Homologado) */
+.header-standard { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1.25rem; background: white; border-bottom: 2px solid #f1f5f9; transition: all 0.3s ease; }
 .session-loot-capsule { display: flex; align-items: center; background: white; padding: 6px 16px; border-radius: 9999px; border: 2px solid #f1f5f9; }
 .loot-item { display: flex; align-items: center; gap: 6px; padding: 0 10px; font-weight: 900; }
 .loot-item img { width: 1.2rem; height: 1.2rem; }
-.btn-close-circle { background: #fee2e2; color: #ef4444; width: 36px; height: 36px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; }
 
+/* NUEVO BOTÓN 'X' SOBRE CÍRCULO BLANCO HOMOLOGADO */
+.btn-close-circle { background: white; color: #ef4444; border: 2px solid #fca5a5; width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.2s; position: relative; z-index: 1001; flex-shrink: 0; }
+.btn-close-circle:active { transform: scale(0.9); }
+
+/* 🍕 PIZZA 3D CSS ESPECTACULAR */
+.pizza-3d-container {
+    width: 160px;
+    height: 120px;
+    position: relative;
+    margin-top: 10px;
+    margin-bottom: 5px;
+}
+
+.animate-float-slow { animation: floatSlow 4s ease-in-out infinite; }
+@keyframes floatSlow { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+
+/* Tabla de madera */
+.pizza-board {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 160px;
+    height: 60px;
+    background: #8b5a2b;
+    border-radius: 50%;
+    box-shadow: 0 10px 0 #5c3a21, 0 15px 15px rgba(0,0,0,0.4);
+    z-index: 1;
+}
+
+/* Interior de la tabla */
+.pizza-board-inner {
+    position: absolute;
+    bottom: 5px;
+    left: 5px;
+    width: 150px;
+    height: 50px;
+    background: #cd853f;
+    border-radius: 50%;
+    z-index: 2;
+}
+
+/* Borde crujiente (Crust) */
+.pizza-crust {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    width: 140px;
+    height: 50px;
+    background: #f4a460;
+    border-radius: 50%;
+    box-shadow: inset 0 -4px 0 #d2691e;
+    z-index: 3;
+}
+
+/* Queso derretido */
+.pizza-cheese {
+    position: absolute;
+    bottom: 14px;
+    left: 15px;
+    width: 130px;
+    height: 42px;
+    background: radial-gradient(circle at 50% 50%, #ffdf00, #ffcc00);
+    border-radius: 50%;
+    box-shadow: inset 0 -2px 0 #e6b800;
+    z-index: 4;
+    overflow: hidden;
+}
+
+/* Ingredientes: Pepperoni */
+.pepperoni {
+    position: absolute;
+    width: 24px;
+    height: 10px;
+    background: radial-gradient(circle at 30% 30%, #ff6b6b, #cc0000);
+    border-radius: 50%;
+    box-shadow: inset -2px -2px 4px rgba(0,0,0,0.3);
+}
+.p1 { top: 10px; left: 20px; }
+.p2 { top: 20px; left: 60px; }
+.p3 { top: 12px; left: 90px; }
+.p4 { top: 25px; left: 30px; }
+
+/* Ingredientes: Hojitas de Albahaca */
+.basil {
+    position: absolute;
+    width: 14px;
+    height: 6px;
+    background: #228b22;
+    border-radius: 50% 0 50% 0;
+    box-shadow: inset 0 -1px 0 #006400;
+}
+.b1 { top: 18px; left: 45px; transform: rotate(30deg); }
+.b2 { top: 28px; left: 80px; transform: rotate(-45deg); }
+.b3 { top: 15px; left: 70px; transform: rotate(70deg); }
+
+/* PANELES Y TEXTOS */
 .rules-panel { background: white; border-radius: 2.5rem; border: 2px solid #e2e8f0; position: relative; }
 .rules-badge { position: absolute; top: -12px; left: 1.5rem; background: #4f46e5; color: white; font-size: 10px; font-weight: 900; padding: 4px 12px; border-radius: 9999px; }
-
-/* Eliminado .btn-action-primary y .btn-action-finish de estilos para usar Tailwind directo */
 
 .game-title { font-weight: 900; color: #312e81; text-transform: uppercase; font-style: italic; letter-spacing: -0.05em; }
 .animate-pop-in { animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }

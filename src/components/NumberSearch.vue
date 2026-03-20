@@ -1,5 +1,5 @@
 <script setup>
-/** * ARCHIVO: NumberSearch.vue
+/** * ARCHIVO: SOPA DE NÚMEROS - NumberSearch.vue
  * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.3 + BLINDAJE DVH + REPORTE DE MISIONES
  * LOGICA: Sopa de números (Resultados algebraicos) + Comunicación viva con el Store.
  */
@@ -223,8 +223,14 @@ const triggerWin = async () => {
                 </button>
 
                 <div class="flex flex-col items-center mt-6">
-                    <Search size="60" class="text-indigo-600 animate-bounce mb-2" />
-                    <h1 class="game-title text-3xl">NÚMERO OCULTO</h1>
+                    <div class="magnifying-glass-3d animate-bounce">
+                        <div class="glass-frame">
+                            <div class="glass-reflection"></div>
+                        </div>
+                        <div class="glass-handle"></div>
+                    </div>
+                    
+                    <h1 class="game-title text-3xl mt-2">NÚMERO OCULTO</h1>
                 </div>
 
                 <div class="rules-panel-sopa shadow-xl w-full">
@@ -343,6 +349,59 @@ const triggerWin = async () => {
 .loot-indicator span { font-weight: 900; color: #1e293b; font-size: 0.9rem; }
 
 .btn-close-sopa { background: #fee2e2; color: #ef4444; width: 36px; height: 36px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; }
+
+/* --- LUPA 3D CSS --- */
+.magnifying-glass-3d {
+    position: relative;
+    width: 76px;
+    height: 76px;
+    margin-bottom: 10px;
+}
+.glass-frame {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.9), rgba(165,180,252,0.3));
+    border: 7px solid #4f46e5;
+    box-shadow: inset -3px -3px 6px rgba(0,0,0,0.15), 3px 5px 0px #312e81;
+    z-index: 2;
+    backdrop-filter: blur(2px);
+}
+.glass-reflection {
+    position: absolute;
+    top: 8px;
+    left: 12px;
+    width: 22px;
+    height: 14px;
+    background: rgba(255,255,255,0.7);
+    border-radius: 50%;
+    transform: rotate(-30deg);
+}
+.glass-handle {
+    position: absolute;
+    top: 48px;
+    left: 48px;
+    width: 16px;
+    height: 40px;
+    background: linear-gradient(90deg, #334155, #0f172a);
+    border-radius: 8px;
+    transform: rotate(-45deg);
+    box-shadow: 3px 4px 0px rgba(0,0,0,0.3);
+    z-index: 1;
+}
+.glass-handle::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 8px;
+    background: #facc15;
+    border-radius: 0 0 8px 8px;
+}
 
 /* OPTIMIZACIÓN DE TAMAÑO PARA MÓVILES */
 .sopa-grid-container { 

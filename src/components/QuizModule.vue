@@ -1,6 +1,6 @@
 <script setup>
 /** * ARCHIVO: QuizModule.vue
- * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.6 + REFUERZO HORIZONTAL QUIRÚRGICO
+ * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.6 + REFUERZO HORIZONTAL QUIRÚRGICO + CSS 3D
  * LOGICA: Desafío contra reloj. Feedback "Correcto (xx)" ubicado entre resultado e icono.
  */
 import { ref, onUnmounted, computed, onMounted } from 'vue';
@@ -173,7 +173,7 @@ onUnmounted(() => clearInterval(timerInterval));
 
 <template>
   <div class="master-container font-inter">
-    <main class="app-canvas !bg-slate-50 shadow-smartphone">
+    <main class="app-canvas shadow-smartphone bg-gradient-to-br from-[#f0fdf4] via-[#e2e8f0] to-[#f1f5f9]">
         <div v-for="coin in fallingCoins" :key="coin.id" class="absolute z-[60] w-12 h-12 pointer-events-none animate-coin-fall" :style="{ left: coin.left + '%', top: '-50px', animationDelay: coin.delay + 's' }">
             <img :src="coin.img" class="w-full h-full drop-shadow-lg" />
         </div>
@@ -193,17 +193,22 @@ onUnmounted(() => clearInterval(timerInterval));
 
         <div class="content-wrapper flex-1 flex flex-col overflow-hidden relative">
             
-            <div v-if="gameState === 'rules'" class="flex-1 flex flex-col items-center justify-between p-6 animate-fade-in relative">
-                <button @click="closeQuiz" class="absolute top-4 right-4 bg-slate-200/50 w-10 h-10 rounded-full flex items-center justify-center text-slate-600 active:scale-75 transition-all z-50">
-                    <X size="24" />
+            <div v-if="gameState === 'rules'" class="flex-1 flex flex-col items-center justify-between p-6 animate-fade-in relative z-10">
+                <button @click="closeQuiz" class="absolute top-4 right-4 bg-white/60 backdrop-blur-sm w-10 h-10 rounded-full flex items-center justify-center text-slate-600 active:scale-75 transition-all z-50 shadow-sm border border-slate-200">
+                    <X size="24" stroke-width="3" />
                 </button>
 
                 <div class="flex flex-col items-center mt-6">
-                    <Zap size="60" class="text-indigo-600 animate-bounce mb-2" />
-                    <h1 class="game-title text-4xl uppercase italic font-black text-indigo-900">QUIZ TIME</h1>
+                    <div class="zap-3d-wrap animate-float-zap">
+                        <div class="zap-glow"></div>
+                        <div class="zap-body-back"></div>
+                        <div class="zap-body-front"></div>
+                    </div>
+                    
+                    <h1 class="game-title text-5xl uppercase italic font-black text-indigo-900 mt-6 drop-shadow-md">QUIZ TIME</h1>
                 </div>
 
-                <div class="rules-panel shadow-2xl w-full">
+                <div class="rules-panel shadow-2xl w-full bg-white/90 backdrop-blur-sm">
                     <div class="rules-badge uppercase font-black tracking-widest">Manual de Misión</div>
                     <ul class="p-5 space-y-5 text-slate-700 font-bold list-none">
                         <li class="flex gap-4">⏱️ <span class="text-[15px] leading-tight">Responde 10 preguntas antes de que el tiempo se agote.</span></li>
@@ -217,14 +222,17 @@ onUnmounted(() => clearInterval(timerInterval));
                                text-white font-black italic text-xl uppercase rounded-[2rem] 
                                border-b-[8px] border-[#1E3A8A] shadow-lg shadow-[#1D4ED8]/40 
                                active:translate-y-[4px] active:border-b-[4px] transition-all 
-                               flex items-center justify-center py-4">
+                               flex items-center justify-center py-4 group">
                     ¡EMPEZAR DESAFÍO!
+                    <div class="ml-3 bg-white p-1 rounded-full flex items-center justify-center shadow-inner">
+                        <ChevronRight class="text-[#1D4ED8]" size="22" stroke-width="4" />
+                    </div>
                 </button>
             </div>
 
-            <div v-else-if="gameState === 'menu'" class="flex-1 flex flex-col items-center justify-center p-6 animate-fade-in w-full overflow-y-auto scroll-interno">
+            <div v-else-if="gameState === 'menu'" class="flex-1 flex flex-col items-center justify-center p-6 animate-fade-in w-full overflow-y-auto scroll-interno relative z-10">
                 <div class="text-center mb-8">
-                    <h3 class="text-4xl font-black text-indigo-900 uppercase italic">Elige tu Reto</h3>
+                    <h3 class="text-4xl font-black text-indigo-900 uppercase italic drop-shadow-sm">Elige tu Reto</h3>
                 </div>
                 <div class="grid grid-cols-2 gap-4 w-full px-2 max-w-2xl">
                     <button v-for="btn in quizButtons" :key="btn.s" @click="startGame(btn.s)" :class="`active:translate-y-1 rounded-3xl p-6 flex flex-col items-center gap-2 transition-all text-white ${btn.c}`">
@@ -233,14 +241,14 @@ onUnmounted(() => clearInterval(timerInterval));
                 </div>
             </div>
 
-            <div v-else-if="gameState === 'playing'" class="flex-1 flex flex-col p-4 animate-fade-in w-full justify-center gap-6 overflow-hidden">
+            <div v-else-if="gameState === 'playing'" class="flex-1 flex flex-col p-4 animate-fade-in w-full justify-center gap-6 overflow-hidden relative z-10">
                 <div class="flex justify-center">
-                    <div :class="`px-4 py-1.5 rounded-full flex items-center gap-2 border-2 shadow-sm ${timeLeft <= 10 ? 'bg-red-100 border-red-500 text-red-600 animate-pulse' : 'bg-white text-slate-600'}`">
+                    <div :class="`px-4 py-1.5 rounded-full flex items-center gap-2 border-2 shadow-md backdrop-blur-sm ${timeLeft <= 10 ? 'bg-red-100/90 border-red-500 text-red-600 animate-pulse' : 'bg-white/90 text-slate-600 border-slate-200'}`">
                         <Clock size="18" /><span>00:{{ timeLeft.toString().padStart(2, '0') }}</span>
                     </div>
                 </div>
                 
-                <div class="question-box h-1/3 min-h-[160px] flex items-center justify-center bg-blue-50 rounded-[40px] border-4 border-blue-100 shadow-sm text-indigo-900">
+                <div class="question-box h-1/3 min-h-[160px] flex items-center justify-center bg-white/80 backdrop-blur-md rounded-[40px] border-4 border-indigo-100 shadow-xl text-indigo-950">
                     <h1 class="text-6xl sm:text-7xl font-black text-center tracking-tighter">{{ currentQuestion.text }}</h1>
                 </div>
 
@@ -249,23 +257,24 @@ onUnmounted(() => clearInterval(timerInterval));
                 </div>
             </div>
 
-            <div v-else-if="gameState === 'finished'" class="flex-1 flex flex-col p-4 bg-slate-50 animate-fade-in w-full h-full overflow-hidden">
+            <div v-else-if="gameState === 'finished'" class="flex-1 flex flex-col p-4 bg-white/50 backdrop-blur-xl animate-fade-in w-full h-full overflow-hidden relative z-50">
                 <div class="text-center mb-2 shrink-0">
-                    <Medal size="42" class="text-yellow-500 mx-auto mb-1" /><h2 class="text-2xl font-black text-indigo-900 uppercase italic">¡Reto Terminado!</h2>
-                    <div :class="`mt-0.5 px-4 py-1 rounded-full inline-block ${performanceFeedback.bg}`">
-                        <p :class="`font-black text-xs ${performanceFeedback.color}`">{{ performanceFeedback.text }}</p>
+                    <Medal size="50" class="text-yellow-500 mx-auto mb-1 drop-shadow-xl animate-bounce" />
+                    <h2 class="text-3xl font-black text-indigo-900 uppercase italic">¡Reto Terminado!</h2>
+                    <div :class="`mt-1 px-4 py-1.5 rounded-full inline-block shadow-sm ${performanceFeedback.bg}`">
+                        <p :class="`font-black text-sm tracking-wide ${performanceFeedback.color}`">{{ performanceFeedback.text }}</p>
                     </div>
                 </div>
 
-                <div class="flex-1 bg-white rounded-3xl border-2 border-slate-200 shadow-inner p-3 my-1 overflow-y-auto scroll-interno">
+                <div class="flex-1 bg-white/90 rounded-3xl border-4 border-slate-100 shadow-inner p-3 my-2 overflow-y-auto scroll-interno">
                     <div v-for="(item, idx) in history" :key="idx" class="flex items-center justify-between py-2 border-b border-slate-50 px-2 text-base font-black">
                         <div class="flex items-center gap-2">
                             <span class="text-slate-400 text-xs">{{ idx + 1 }}.</span>
                             <span>{{ item.q }} = <span :class="item.isCorrect ? 'text-green-600' : 'text-red-500'">{{ item.chosen }}</span></span>
                             
-                            <span v-if="!item.isCorrect" class="flex items-center gap-1 text-[13px] ml-1">
-                                <span class="text-slate-900 font-bold">Correcto</span>
-                                <span class="text-green-600 font-black">({{ item.correct }})</span>
+                            <span v-if="!item.isCorrect" class="flex items-center gap-1 text-[13px] ml-1 bg-slate-100 px-2 py-0.5 rounded-lg">
+                                <span class="text-slate-600 font-bold">Era</span>
+                                <span class="text-green-600 font-black">{{ item.correct }}</span>
                             </span>
                         </div>
                         <CheckCircle v-if="item.isCorrect" class="text-green-500" size="22" />
@@ -274,7 +283,7 @@ onUnmounted(() => clearInterval(timerInterval));
                 </div>
 
                 <div class="flex gap-4 pb-4 mt-2 shrink-0">
-                    <button @click="gameState = 'menu'" class="flex-1 bg-slate-200 text-slate-700 font-black py-4 rounded-2xl uppercase tracking-widest text-sm shadow-[0_4px_0_rgb(203,213,225)]">Menú</button>
+                    <button @click="gameState = 'menu'" class="flex-1 bg-white border-2 border-slate-200 text-slate-700 font-black py-4 rounded-2xl uppercase tracking-widest text-sm shadow-[0_4px_0_rgb(203,213,225)] active:translate-y-[4px] active:shadow-none transition-all">Menú</button>
                     <button @click="startGame(selectedOperation)" 
                             class="flex-1 bg-gradient-to-b from-[#3B82F6] to-[#1D4ED8] 
                                     text-white font-black py-4 rounded-2xl border-b-[6px] border-[#1E3A8A] 
@@ -290,7 +299,7 @@ onUnmounted(() => clearInterval(timerInterval));
 </template>
 
 <style scoped>
-/* ESTILOS LEY DE HIERRO */
+/* 🛡️ BLINDAJE TÉCNICO */
 .master-container {
     position: fixed; inset: 0;
     width: 100vw; height: 100dvh;
@@ -304,7 +313,6 @@ onUnmounted(() => clearInterval(timerInterval));
     display: flex; flex-direction: column;
     justify-content: space-between;
     position: relative; overflow: hidden;
-    background: #f8fafc;
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     user-select: none;
     touch-action: none !important;
@@ -323,12 +331,12 @@ onUnmounted(() => clearInterval(timerInterval));
 
 .header-standard {
     width: 100%; display: flex; align-items: center; justify-content: space-between;
-    padding: 0.75rem 1.25rem; background: white; border-bottom: 2px solid #f1f5f9;
+    padding: 0.75rem 1.25rem; background: rgba(255,255,255,0.8); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(226,232,240,0.8);
 }
 
 .session-loot-capsule {
     display: flex; align-items: center; background: white; padding: 6px 16px;
-    border-radius: 9999px; border: 2px solid #f1f5f9;
+    border-radius: 9999px; border: 2px solid #f1f5f9; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
 .loot-item { display: flex; align-items: center; gap: 6px; padding: 0 10px; }
@@ -337,19 +345,81 @@ onUnmounted(() => clearInterval(timerInterval));
 
 .btn-close-circle { 
     background: #fee2e2; color: #ef4444; width: 36px; height: 36px; 
-    border-radius: 9999px; display: flex; align-items: center; justify-content: center;
+    border-radius: 9999px; display: flex; align-items: center; justify-content: center; border: 2px solid #fca5a5;
 }
+
+/* --- ⚡ RELÁMPAGO 3D CSS --- */
+.zap-3d-wrap {
+    position: relative;
+    width: 80px;
+    height: 100px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.zap-glow {
+    position: absolute;
+    width: 60px;
+    height: 60px;
+    background: #fde047;
+    border-radius: 50%;
+    filter: blur(25px);
+    opacity: 0.6;
+    animation: pulse-glow 2s infinite alternate;
+}
+
+.zap-body-back {
+    position: absolute;
+    width: 0;
+    height: 0;
+    /* Dibujo del rayo con clip-path (sombra base) */
+    clip-path: polygon(55% 0%, 100% 0%, 45% 55%, 75% 55%, 25% 100%, 35% 45%, 5% 45%);
+    background: linear-gradient(135deg, #d97706, #9a3412);
+    width: 70px;
+    height: 90px;
+    transform: translate(5px, 5px);
+    z-index: 1;
+}
+
+.zap-body-front {
+    position: absolute;
+    width: 0;
+    height: 0;
+    /* Dibujo del rayo con clip-path (brillo frontal) */
+    clip-path: polygon(55% 0%, 100% 0%, 45% 55%, 75% 55%, 25% 100%, 35% 45%, 5% 45%);
+    background: linear-gradient(135deg, #fef08a, #f59e0b);
+    width: 70px;
+    height: 90px;
+    z-index: 2;
+    /* Borde interior simulado con filter */
+    filter: drop-shadow(-2px -2px 0px #fef9c3);
+}
+
+.animate-float-zap { animation: floatZap 3s ease-in-out infinite; }
+
+@keyframes floatZap {
+    0%, 100% { transform: translateY(0) rotate(5deg) scale(1); }
+    50% { transform: translateY(-12px) rotate(8deg) scale(1.05); }
+}
+
+@keyframes pulse-glow {
+    0% { transform: scale(0.8); opacity: 0.4; }
+    100% { transform: scale(1.3); opacity: 0.8; }
+}
+
+/* -------------------------- */
 
 .game-title { font-weight: 900; color: #312e81; text-transform: uppercase; font-style: italic; letter-spacing: -0.05em; }
 
 .rules-panel {
-    width: 92%; background: white; padding: 1rem; border-radius: 2rem;
+    width: 92%; padding: 1rem; border-radius: 2rem;
     border: 2px solid #e2e8f0; position: relative;
 }
 
 .rules-badge {
-    position: absolute; top: -10px; left: 1.5rem; background: #4f46e5;
-    color: white; font-size: 10px; font-weight: 900; padding: 2px 12px; border-radius: 9999px;
+    position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: #4f46e5;
+    color: white; font-size: 10px; font-weight: 900; padding: 4px 15px; border-radius: 9999px; white-space: nowrap;
 }
 
 .scroll-interno { overflow-y: auto; -webkit-overflow-scrolling: touch; }
