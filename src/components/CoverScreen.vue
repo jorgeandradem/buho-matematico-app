@@ -1,8 +1,8 @@
 <script setup>
 /** * ARCHIVO: CoverScreen.vue
  * NOTA INTERNA: SISTEMA INTEGRAL v15.0.0 - LAYOUT COMPACTO & TOASTS FLOTANTES
- * LOGICA: Corrección de permisos Firestore (Lectura segura) + Corrección de eventos Vue.
- * ESTADO: UI Recuperación 100% funcional. Fallback antiguo sin violar reglas DB.
+ * LOGICA: Corrección de permisos Firestore + Vercel Preview Fix (CSS puro).
+ * ESTADO: UI Recuperación 100% funcional. Animaciones controladas por CSS.
  */
 import { ref, onMounted, reactive, watch, computed } from 'vue'; 
 import { auth, db } from '../firebaseConfig'; 
@@ -12,7 +12,7 @@ import {
   onAuthStateChanged,
   sendPasswordResetEmail 
 } from "firebase/auth";
-import { doc, setDoc, getDoc, collection, query, where, getDocs, limit } from "firebase/firestore";
+import { doc, setDoc, updateDoc, getDoc, collection, query, where, getDocs, limit } from "firebase/firestore";
 import { 
   X, ChevronLeft, Info, Eye, EyeOff, AlertCircle, CheckCircle, 
   Settings, RefreshCw, ChevronRight, Bell, HelpCircle, 
@@ -35,8 +35,6 @@ const emit = defineEmits(['start']);
 const store = useGamificationStore();
 
 // --- ESTADOS VISUALES ---
-const showOwl = ref(false);
-const showButton = ref(false);
 const showModal = ref(false);
 const activeSubView = ref('auth'); 
 
@@ -357,8 +355,6 @@ onMounted(async () => {
       if (historyData.value.length > 0 && store.lastSeenUpdateId !== historyData.value[0].updateId) hasUnseenNews.value = true;
     }
   } catch (e) {}
-  setTimeout(() => { showOwl.value = true; }, 100);
-  setTimeout(() => { showButton.value = true; }, 800);
 });
 </script>
 
@@ -390,8 +386,12 @@ onMounted(async () => {
 
       <div class="main-hero-area">
         <h1 class="main-title animate-pop-in">Búho <span class="block text-yellow-300">Matemático</span></h1>
-        <div v-if="showOwl" class="owl-hero-container animate-pop-in"><OwlImage customClass="owl-img-responsive" /></div>
-        <button v-if="showButton" @click="handleStartButton" class="btn-empezar bg-yellow-400 text-indigo-900 font-black py-4 rounded-full shadow-[0_8px_0_rgb(180,83,9)] animate-latent-button">
+        
+        <div class="owl-hero-container owl-delayed">
+            <OwlImage customClass="owl-img-responsive" />
+        </div>
+        
+        <button @click="handleStartButton" class="btn-empezar btn-delayed bg-yellow-400 text-indigo-900 font-black py-4 rounded-full shadow-[0_8px_0_rgb(180,83,9)]">
           <span class="uppercase">¡Empezar!</span>
         </button>
       </div>
@@ -761,4 +761,17 @@ onMounted(async () => {
 
 .fade-enter-active, .fade-leave-active { transition: opacity 0.3s; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
+
+/* Entradas controladas por CSS (Vercel Friendly) */
+.owl-delayed {
+  opacity: 0;
+  animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.1s forwards;
+}
+
+.btn-delayed {
+  opacity: 0;
+  /* Combina la entrada (0.8s de retraso) y el latido infinito (1.3s de retraso) */
+  animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.8s forwards,
+             latent-button 3s ease-in-out 1.3s infinite;
+}
 </style>
