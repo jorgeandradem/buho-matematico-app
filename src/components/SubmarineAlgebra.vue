@@ -2,7 +2,7 @@
 /** * ARCHIVO: SUBMARINE ALGEBRA - SubmarineAlgebra.vue
  * NOTA INTERNA: ESTRUCTURA MAESTRA v4.0 + BLINDAJE DVH + CSS 3D SUBMARINO
  * LOGICA: Burbujas ascendentes, pantalla de victoria retenida, CoinRain integrado.
- * ESTADO VISUAL: Capas opacas eliminadas. Transparencia y océano profundo restaurado.
+ * ESTADO VISUAL: Responsive arreglado. Full screen en móvil, ventana en PC.
  */
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { Trophy, X, PlayCircle, RotateCcw, Target, Coins, Zap, ChevronRight } from 'lucide-vue-next';
@@ -298,7 +298,7 @@ onBeforeUnmount(() => { clearInterval(bubbleInterval); soundAmbient.pause(); });
 </template>
 
 <style scoped>
-/* CONTENEDOR MAESTRO (FONDO PANTALLA EXTERIOR PC) */
+/* CONTENEDOR MAESTRO (FONDO PANTALLA EXTERIOR PC Y MÓVIL) */
 .master-container {
   position: fixed;
   inset: 0;
@@ -306,12 +306,12 @@ onBeforeUnmount(() => { clearInterval(bubbleInterval); soundAmbient.pause(); });
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: #f1f5f9; /* Fondo gris claro profesional fuera de la app */
+  background-color: #0f172a; /* Fondo oscuro por defecto (móviles sin notch visible blanco) */
   overflow: hidden;
   touch-action: none !important;
 }
 
-/* LIENZO DE LA APP (CANVAS) */
+/* LIENZO DE LA APP (CANVAS) - Móvil 100% por defecto */
 .app-canvas {
   display: flex;
   flex-direction: column;
@@ -322,8 +322,10 @@ onBeforeUnmount(() => { clearInterval(bubbleInterval); soundAmbient.pause(); });
   user-select: none;
   touch-action: none !important;
   -webkit-tap-highlight-color: transparent;
-  width: 100vw;
-  height: 100dvh;
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+  border: none;
 }
 
 /* GRADIENTE DEL OCÉANO PROFUNDO - Es el fondo real de toda la app */
@@ -331,8 +333,11 @@ onBeforeUnmount(() => { clearInterval(bubbleInterval); soundAmbient.pause(); });
   background: linear-gradient(180deg, #1e3a8a 0%, #080c14 100%); 
 }
 
-/* ADAPTACIÓN PROGRESIVA PC */
+/* ADAPTACIÓN PROGRESIVA PC (Solo aplica en pantallas anchas) */
 @media (min-width: 1025px) {
+  .master-container {
+      background-color: #f1f5f9; /* Gris claro en PC */
+  }
   .app-canvas {
     width: 1024px; 
     height: 90dvh;
@@ -342,7 +347,8 @@ onBeforeUnmount(() => { clearInterval(bubbleInterval); soundAmbient.pause(); });
   }
 }
 @media (min-width: 600px) and (max-width: 1024px) {
-  .app-canvas { width: 85vw; height: 95dvh; border-radius: 35px; }
+  .master-container { background-color: #f1f5f9; }
+  .app-canvas { width: 85vw; height: 95dvh; border-radius: 35px; border: 8px solid white; }
 }
 
 /* ESTILOS DE COMPONENTES HOMOLOGADOS */
