@@ -1,8 +1,8 @@
 <script setup>
 /** * ARCHIVO: CoverScreen.vue
  * NOTA INTERNA: SISTEMA INTEGRAL v15.0.0 - LAYOUT COMPACTO & TOASTS FLOTANTES
- * LOGICA: Popups Globales (Cero Scroll) + Interespaciado Optimizado + UI Impecable.
- * ESTADO: Lógica blindada. Cintura y UI intactas.
+ * LOGICA: Corrección de permisos Firestore (Lectura segura) + Corrección de eventos Vue.
+ * ESTADO: UI Recuperación 100% funcional. Fallback antiguo sin violar reglas DB.
  */
 import { ref, onMounted, reactive, watch, computed } from 'vue'; 
 import { auth, db } from '../firebaseConfig'; 
@@ -16,7 +16,8 @@ import { doc, setDoc, getDoc, collection, query, where, getDocs, limit } from "f
 import { 
   X, ChevronLeft, Info, Eye, EyeOff, AlertCircle, CheckCircle, 
   Settings, RefreshCw, ChevronRight, Bell, HelpCircle, 
-  History, Sparkles, Calendar as CalendarIcon, Zap, Search, ShieldAlert, AlertTriangle
+  History, Sparkles, Calendar as CalendarIcon, Zap, Search, ShieldAlert, AlertTriangle,
+  ArrowRight, ArrowDown
 } from 'lucide-vue-next';
 import OwlImage from './OwlImage.vue';
 import SimpleConfetti from './SimpleConfetti.vue';
@@ -47,17 +48,23 @@ const showHistoryModal = ref(false);
 const authMode = ref('login'); 
 const isLoading = ref(false); 
 
-// 🛡️ CANALES DE FEEDBACK (POPUPS FLOTANTES)
+// 🛡️ CANALES DE FEEDBACK (POPUPS FLOTANTES GENERALES)
 const customError = ref("");
 const customSuccess = ref("");
 const showSuccessCheck = ref(false); 
 
+// 🛡️ CANALES DE FEEDBACK (MODALES INTEGRADOS RECUPERACIÓN)
+const recoveryError = ref("");
+const recoverySuccessMsg = ref("");
+
 // --- 🔑 ACCESO Y RECUPERACIÓN ---
 const showRecovery = ref(false); 
-const recoveryMode = ref('email'); 
+const recoveryMode = ref('email'); // 'email' (Olvidé Correo) o 'password' (Olvidé Contraseña)
 const emailClue = ref(""); 
-const usernameClue = ref("");
 const showPassword = ref(false); 
+
+// --- Variable para guardar el dato real encontrado ---
+const foundActualEmail = ref("");
 
 const acceptedTerms = ref(false);
 const isExistingUser = ref(false);
@@ -97,30 +104,42 @@ const isValidEmail = (email) => {
   return re.test(email.toLowerCase());
 };
 
-// Limpieza de mensajes
+// Limpieza de mensajes generales
 const clearMessages = () => {
   customError.value = "";
   customSuccess.value = "";
 };
 
+// Limpieza de mensajes de recuperación
+const clearRecoveryMessages = () => {
+    recoveryError.value = "";
+    recoverySuccessMsg.value = "";
+};
+
 watch(recoveryMode, () => {
   clearMessages();
+  clearRecoveryMessages();
   emailClue.value = "";
-  usernameClue.value = "";
+  foundActualEmail.value = "";
+  birthDateRaw.value = ""; 
 });
 
-// --- 🔎 FUNCIONES FIREBASE ---
+// --- 🔎 FUNCIONES FIREBASE DE RECUPERACIÓN (Con Modales Integrados) ---
 
+// 1. OLVIDÓ SU CORREO (Busca por Nombre y valida Fecha en memoria)
 const findEmailClue = async () => {
-  clearMessages();
+  clearRecoveryMessages();
   const nombre = form.username.trim();
-  if (!nombre) { customError.value = "⚠️ Escribe tu nombre de alumno."; return; }
+  if (!nombre) { recoveryError.value = "¡Alto ahí! Necesitamos saber tu nombre de alumno."; return; }
+  if (!birthDateRaw.value) { recoveryError.value = "El Búho necesita tu fecha de nacimiento exacta para buscar."; return; }
   
   const nombreBusqueda = nombre.toLowerCase();
   isLoading.value = true;
   emailClue.value = "";
+  foundActualEmail.value = "";
   
   try {
+    // Buscamos primero solo por nombre para evitar el error de índices compuestos
     let q = query(collection(db, "users"), where("username_lower", "==", nombreBusqueda), limit(1));
     let snap = await getDocs(q);
 
@@ -130,54 +149,83 @@ const findEmailClue = async () => {
     }
 
     if (snap.empty) {
-      customError.value = "⛔ Alumno no registrado en el nido.";
+      recoveryError.value = "No encontramos ningún pergamino con ese nombre. ¿Seguro que lo escribiste bien?";
     } else {
-      const data = snap.docs[0].data();
-      const [u, d] = data.email.split('@');
-      emailClue.value = `${u.substring(0,3)}...@${d}`;
-      customSuccess.value = "✅ Pista generada con éxito.";
+      const userDoc = snap.docs[0];
+      const data = userDoc.data();
+      
+      // Validación Inteligente de Fecha (En memoria)
+      if (data.birthDate) {
+          if (data.birthDate !== formattedDate.value) {
+              recoveryError.value = "La fecha de nacimiento no coincide con nuestros registros mágicos.";
+              isLoading.value = false;
+              return;
+          }
+      } 
+      // Si NO tiene fecha (generación antigua), simplemente lo dejamos pasar sin actualizar la DB para no violar las reglas de seguridad.
+
+      // Éxito: Preparar pista y cambiar estado
+      const realEmail = data.email;
+      foundActualEmail.value = realEmail; 
+      
+      const [u, d] = realEmail.split('@');
+      const visiblePart = u.substring(0, Math.min(3, u.length));
+      const hiddenPart = "*".repeat(Math.max(3, u.length - visiblePart.length));
+      emailClue.value = `${visiblePart}${hiddenPart}@${d}`;
+      
+      recoverySuccessMsg.value = "¡Te encontramos en los registros!";
     }
   } catch (e) { 
-    customError.value = "⛔ Error de red al buscar pistas."; 
+    recoveryError.value = "Tormenta de red. El radar del Búho está fallando."; 
   } finally { isLoading.value = false; }
 };
 
-const findUsernameClue = async () => {
-  clearMessages();
-  const mail = form.email.trim().toLowerCase();
-  if (!isValidEmail(mail)) { customError.value = "⚠️ Correo no válido."; return; }
-  isLoading.value = true;
-  usernameClue.value = "";
-  try {
-    const q = query(collection(db, "users"), where("email", "==", mail), limit(1));
-    const snap = await getDocs(q);
-    if (snap.empty) customError.value = "⛔ Correo no registrado.";
-    else {
-      usernameClue.value = snap.docs[0].data().username;
-      customSuccess.value = "✅ Identidad confirmada.";
-    }
-  } catch (e) { customError.value = "⛔ Error de red al consultar."; } finally { isLoading.value = false; }
+// --- ACCIONES DE LOS BOTONES DE ÉXITO EN RECUPERACIÓN ---
+
+const closeRecovery = () => {
+    showRecovery.value = false;
+    authMode.value = 'login';
+    clearMessages();
+    clearRecoveryMessages();
 };
 
+const useClueAndLogin = () => {
+    if (foundActualEmail.value) {
+        form.email = foundActualEmail.value;
+    }
+    closeRecovery();
+    customSuccess.value = "¡Dato anotado mágicamente! 🪄 Solo falta tu contraseña.";
+};
+
+const handleRecoverySuccessClick = () => {
+    if (recoveryMode.value === 'email') {
+        useClueAndLogin();
+    } else {
+        closeRecovery();
+    }
+};
+
+// 2. OLVIDÓ SU CONTRASEÑA (El Enlace Mágico)
 const handleForgotPassword = async () => {
-  clearMessages();
+  clearRecoveryMessages();
   const mail = form.email.trim().toLowerCase();
-  if (!isValidEmail(mail)) { customError.value = "⚠️ Escribe un correo válido arriba."; return; }
+  if (!isValidEmail(mail)) { recoveryError.value = "Escribe un correo válido en la caja para enviarte la llave."; return; }
   isLoading.value = true;
   try {
     const q = query(collection(db, "users"), where("email", "==", mail), limit(1));
     const snap = await getDocs(q);
     if (snap.empty) {
-      customError.value = "⛔ Este correo no pertenece a ningún alumno.";
+      recoveryError.value = "Ese correo no tiene un nido asignado todavía.";
     } else {
       await sendPasswordResetEmail(auth, mail);
-      customSuccess.value = `📧 ¡Enlace enviado! Revisa la bandeja de entrada o SPAM de: ${mail}`;
+      // Éxito: Cambiar estado a Full Screen Success
+      recoverySuccessMsg.value = `¡Hechizo enviado! 🪄 Revisa la bandeja de entrada (o SPAM) de ${mail} para crear tu nueva llave.`;
     }
   } catch (e) { 
     if (e.code === 'auth/too-many-requests') {
-        customError.value = "⛔ Has intentado muchas veces. Espera unos minutos.";
+        recoveryError.value = "Cálmate un poco, Capitán. Has intentado muchas veces. Espera unos minutos.";
     } else {
-        customError.value = "⛔ Error al procesar tu solicitud de correo."; 
+        recoveryError.value = "Error al intentar crear el enlace mágico."; 
     }
   } 
   finally { isLoading.value = false; }
@@ -190,21 +238,21 @@ const handleAuth = async () => {
   const cleanPass = form.password.trim();
   const cleanUser = form.username.trim();
 
-  if (!isValidEmail(cleanEmail)) { customError.value = "⚠️ Correo no válido."; return; }
-  if (cleanPass.length < 6) { customError.value = "⚠️ La CONTRASEÑA requiere 6 caracteres."; return; }
+  if (!isValidEmail(cleanEmail)) { customError.value = "Ese correo parece un poco raro. Revísalo bien."; return; }
+  if (cleanPass.length < 6) { customError.value = "Para volar seguro, tu CONTRASEÑA debe tener al menos 6 caracteres."; return; }
   
   if (authMode.value === 'register') {
-    if (!cleanUser) { customError.value = "⚠️ Falta el nombre del alumno."; return; }
-    if (!birthDateRaw.value) { customError.value = "⚠️ Indica tu fecha de nacimiento."; return; }
+    if (!cleanUser) { customError.value = "¡Alto ahí! Necesitamos saber tu nombre de alumno para dejarte pasar."; return; }
+    if (!birthDateRaw.value) { customError.value = "El Búho dice que tu fecha de nacimiento no está completa."; return; }
     
     const birthYear = parseInt(birthDateRaw.value.split("-")[0]);
     if (new Date().getFullYear() - birthYear < 14) {
-      customError.value = "⚠️ El registro es para mayores de 14 años. Pide a un adulto que te inscriba.";
+      customError.value = "El Nido es para mayores de 14. Pide a un adulto responsable que te inscriba.";
       return;
     }
     
     if (!acceptedTerms.value) { 
-      customError.value = "⚠️ Haz click en la cápsula para leer el Marco Legal."; 
+      customError.value = "Haz clic en la cápsula debajo para leer y aceptar el Marco Legal."; 
       activeSubView.value = 'legal'; 
       return; 
     }
@@ -223,6 +271,8 @@ const handleAuth = async () => {
         acceptedLegal: true, 
         stats: { gold:0, silver:0, copper:0 }
       });
+      // Éxito Registro
+      customSuccess.value = `¡Bienvenido al Nido, Capitán ${cleanUser}! Preparando motores...`;
     } else {
       await signInWithEmailAndPassword(auth, cleanEmail, cleanPass);
     }
@@ -232,17 +282,15 @@ const handleAuth = async () => {
   } catch (e) {
     const errorCode = e.code || "";
     if (errorCode === 'auth/email-already-in-use') {
-        customError.value = "⛔ Este correo ya pertenece a un alumno registrado. Ve a 'ENTRA'.";
+        customError.value = "Ese correo ya tiene un nido asignado. ¡Ve a la pantalla de 'Entrar'!";
     } else if (errorCode === 'auth/invalid-credential' || errorCode === 'auth/wrong-password' || errorCode === 'auth/user-not-found') {
-        customError.value = "⛔ Correo o CONTRASEÑA incorrectos.";
+        customError.value = "Contraseña incorrecta. El Búho necesita tu llave real para abrir la puerta.";
     } else if (errorCode === 'auth/too-many-requests') {
-        customError.value = "⛔ Demasiados intentos fallidos. El Búho ha bloqueado el acceso temporalmente.";
+        customError.value = "¡Ouch! Demasiados intentos fallidos. El Búho cerró la puerta con llave unos minutos.";
     } else if (errorCode === 'auth/network-request-failed') {
-        customError.value = "⛔ Cortocircuito de red. Verifica tu conexión a internet.";
-    } else if (errorCode.includes('requests-from-referer') || errorCode.includes('blocked')) {
-        customError.value = "⛔ El cortafuegos de Google Cloud bloqueó la IP local. Verifica las restricciones de la API Key.";
+        customError.value = "Cortocircuito de red. El Búho no puede volar sin internet.";
     } else {
-        customError.value = `⛔ Error del sistema: ${e.message}`;
+        customError.value = `Error inesperado: ${e.message}`;
     }
   } finally { isLoading.value = false; }
 };
@@ -260,8 +308,11 @@ const closeAndReset = () => {
   activeSubView.value = 'auth';
   showRecovery.value = false;
   clearMessages();
+  clearRecoveryMessages();
   form.username = ''; form.email = ''; form.password = '';
   birthDateRaw.value = "";
+  emailClue.value = "";
+  foundActualEmail.value = "";
 };
 
 const openHistory = () => {
@@ -316,7 +367,7 @@ onMounted(async () => {
     <main class="app-canvas shadow-pc">
       <SimpleConfetti :isActive="true" />
       
-      <div v-if="customError || customSuccess" class="absolute top-8 left-0 right-0 z-[2000] flex justify-center px-4 pointer-events-none">
+      <div v-if="(customError || customSuccess) && !showRecovery" class="absolute top-8 left-0 right-0 z-[2000] flex justify-center px-4 pointer-events-none">
           <div v-if="customError" class="w-full max-w-md p-3 bg-red-50 border border-red-200 rounded-2xl flex items-start gap-2 shadow-2xl animate-toast-down pointer-events-auto backdrop-blur-md">
               <AlertCircle class="text-red-500 shrink-0 mt-0.5" :size="18" />
               <p class="text-[11px] font-bold text-red-700 leading-tight italic flex-1">{{ customError }}</p>
@@ -358,29 +409,30 @@ onMounted(async () => {
       <div v-if="showModal" class="absolute inset-0 bg-indigo-900/60 z-[100] flex items-center justify-center p-0 sm:p-4 backdrop-blur-sm overflow-hidden">
         <div class="bg-white w-full max-w-md sm:rounded-[2.5rem] overflow-hidden shadow-2xl border-x-0 sm:border-4 border-yellow-400 relative flex flex-col h-full sm:h-[85vh] animate-pop-in">
           
-          <div class="px-4 py-3 border-b flex justify-between items-center bg-slate-50 shrink-0 z-50">
-              <button v-if="activeSubView !== 'auth' || showRecovery" @click="showRecovery ? (showRecovery = false) : (activeSubView = 'auth')" class="flex items-center gap-1 text-indigo-600 font-black text-xs uppercase bg-white px-3 py-1.5 rounded-full shadow-sm border border-slate-100">
-                  <ChevronLeft :size="16"/> Volver
+          <div class="px-4 py-2 border-b flex justify-between items-center bg-slate-50 shrink-0 z-50">
+              <button v-if="activeSubView !== 'auth' || showRecovery" @click="showRecovery ? closeRecovery() : (activeSubView = 'auth')" class="flex items-center gap-1 text-indigo-600 font-black text-[10px] uppercase bg-white px-2.5 py-1 rounded-full shadow-sm border border-slate-100">
+                  <ChevronLeft :size="14"/> Volver
               </button>
               <div v-else class="w-8"></div>
               
-              <h2 class="text-xs font-black text-indigo-900 uppercase tracking-widest text-center flex-1 px-2">
+              <h2 class="text-[10px] font-black text-indigo-900 uppercase tracking-widest text-center flex-1 px-2">
                   {{ activeSubView === 'settings' ? 'DARSE DE BAJA' : (showRecovery ? 'RECUPERAR' : (authMode === 'register' ? 'Nuevo Alumno' : 'Entrar al Nido')) }}
               </h2>
               
-              <button @click="closeAndReset" class="bg-indigo-50 text-indigo-900 p-2 rounded-full shadow-md active:scale-90 transition-transform">
-                <X :size="24" stroke-width="3.5" />
+              <button @click="closeAndReset" class="bg-indigo-50 text-indigo-900 p-1.5 rounded-full shadow-md active:scale-90 transition-transform">
+                <X :size="18" stroke-width="3.5" />
               </button>
           </div>
 
           <div class="flex-1 overflow-y-auto scroll-interno bg-white relative">
-              <div v-if="activeSubView === 'auth'" class="p-5 h-full flex flex-col justify-between">
+              <div v-if="activeSubView === 'auth'" class="p-5 flex flex-col justify-start relative h-full">
+                  
                   <template v-if="!showRecovery">
-                    <div class="space-y-3">
+                    <div class="space-y-2 relative z-10">
                         <template v-if="authMode === 'register'">
                           <div>
                             <label class="text-[10px] font-black uppercase text-slate-400 ml-2 tracking-widest">Nombre Alumno</label>
-                            <input v-model="form.username" placeholder="¿Cómo te llamas?" class="w-full p-2.5 bg-slate-50 border-2 border-slate-100 rounded-xl outline-none font-bold" />
+                            <input v-model="form.username" placeholder="¿Cómo te llamas?" class="w-full p-2 bg-slate-50 border-2 border-slate-100 rounded-xl outline-none font-bold" />
                           </div>
 
                           <div class="space-y-1">
@@ -394,12 +446,12 @@ onMounted(async () => {
                                 :max="maxDateLimit" 
                                 class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-30" 
                               />
-                              <div class="w-full p-2.5 bg-gradient-to-r from-slate-100 to-slate-200 border-2 border-slate-300 rounded-xl flex items-center justify-between shadow-inner relative z-10">
+                              <div class="w-full p-2 bg-gradient-to-r from-slate-100 to-slate-200 border-2 border-slate-300 rounded-xl flex items-center justify-between shadow-inner relative z-10">
                                   <span :class="['font-black italic text-sm truncate', birthDateRaw ? 'text-indigo-900' : 'text-slate-400']">{{ formattedDate || 'Seleccionar fecha...' }}</span>
                                   <CalendarIcon :size="18" class="text-slate-500 shrink-0 ml-2" />
                               </div>
                             </div>
-                            <p class="text-[9px] font-bold text-slate-400 ml-2 flex items-center gap-1 mt-1 opacity-80">
+                            <p class="text-[10px] font-bold text-slate-400 ml-2 flex items-center gap-1 mt-1 opacity-100">
                                <Info :size="10" class="text-indigo-400 shrink-0" />
                                <span>Edad mínima: 14 años. Si eres menor, pide a un adulto que te inscriba.</span>
                             </p>
@@ -415,42 +467,68 @@ onMounted(async () => {
                              autocorrect="off" 
                              spellcheck="false" 
                              placeholder="email@ejemplo.com" 
-                             class="lowercase w-full p-2.5 bg-slate-50 border-2 border-slate-100 rounded-xl outline-none font-bold focus:border-indigo-500" 
+                             class="lowercase w-full p-2 bg-slate-50 border-2 border-slate-100 rounded-xl outline-none font-bold focus:border-indigo-500" 
                           />
                         </div>
 
                         <div class="relative">
                           <label class="text-[10px] font-black uppercase text-slate-400 ml-2 tracking-widest">CONTRASEÑA</label>
-                          <input :type="showPassword ? 'text' : 'password'" v-model="form.password" class="w-full p-2.5 bg-slate-50 border-2 border-slate-100 rounded-xl outline-none font-bold focus:border-indigo-500" autocapitalize="none" />
+                          <input :type="showPassword ? 'text' : 'password'" v-model="form.password" class="w-full p-2 bg-slate-50 border-2 border-slate-100 rounded-xl outline-none font-bold focus:border-indigo-500" autocapitalize="none" />
                           <button @click="showPassword = !showPassword" type="button" class="absolute right-3 bottom-2.5 text-slate-400"><component :is="showPassword ? EyeOff : Eye" :size="18"/></button>
                         </div>
 
-                        <div @click="activeSubView = 'legal'" class="relative flex items-center gap-3 p-2.5 rounded-2xl border bg-indigo-50/50 border-indigo-100 cursor-pointer hover:bg-indigo-100/50 transition-all">
+                        <div @click="activeSubView = 'legal'" class="relative flex items-center gap-3 p-2 rounded-2xl border bg-indigo-50/50 border-indigo-100 cursor-pointer hover:bg-indigo-100/50 transition-all">
                             <div v-if="hasReadLegal" class="absolute -top-2 -right-2 bg-emerald-500 text-white rounded-full p-1 shadow-lg z-30 animate-latent"><CheckCircle :size="16" stroke-width="3" /></div>
                             <input type="checkbox" v-model="acceptedTerms" class="w-4 h-4 accent-indigo-600 pointer-events-none" tabindex="-1" />
                             <p class="text-[10px] font-medium text-slate-600">Acepto el <span class="text-indigo-600 font-bold underline">Marco Legal</span>.</p>
                         </div>
                     </div>
 
-                    <div class="mt-5 space-y-3 mb-[100px]">
-                        <button @click="handleAuth" :disabled="isLoading" class="w-full bg-indigo-600 text-white font-black italic text-lg uppercase rounded-[2rem] border-b-[8px] border-indigo-900 py-3 shadow-lg active:translate-y-2 flex items-center justify-center transition-all">
+                    <div class="mt-2 space-y-3 relative z-10 flex flex-col justify-start">
+                        
+                        <button @click="handleAuth" :disabled="isLoading" class="w-full bg-indigo-600 text-white font-black italic text-lg uppercase rounded-[2rem] border-b-[6px] border-indigo-900 py-2.5 shadow-lg active:translate-y-1 flex items-center justify-center transition-all">
                           <span v-if="!isLoading">{{ authMode === 'register' ? 'CREAR CUENTA' : 'ENTRAR AL NIDO' }}</span>
                           <RefreshCw v-else class="animate-spin" />
                         </button>
-                        <div class="flex gap-2">
-                          <button @click="activeSubView = 'guide'" class="flex-1 bg-indigo-50 text-indigo-600 font-black text-[9px] uppercase py-3 rounded-full border border-indigo-100 flex items-center justify-center gap-1"><Info :size="14"/> GUÍA</button>
-                          <button @click="activeSubView = 'settings'" class="flex-1 bg-slate-100 text-slate-600 font-black text-[9px] uppercase py-3 rounded-full border border-slate-200 flex items-center justify-center gap-1"><Settings :size="14"/> CUENTA</button>
-                        </div>
-                        <div class="text-center pt-2">
-                          <button v-if="authMode === 'login'" @click="showRecovery = true; clearMessages()" class="text-orange-700 font-black underline text-[11px] uppercase italic">¿Olvidaste algo?</button>
-                          
-                          <div class="text-[11px] text-slate-500 mt-3 font-bold uppercase flex items-center justify-center gap-2">
-                             <span>{{ authMode === 'register' ? '¿Ya tienes cuenta?' : '¿Eres nuevo?' }}</span>
-                             <button @click="authMode = authMode === 'register' ? 'login' : 'register'; clearMessages()" class="text-indigo-700 font-black px-3 py-1.5 uppercase border-2 border-yellow-400 rounded-lg animate-latent-gold bg-white shadow-sm active:scale-95 transition-all">
-                                {{ authMode === 'register' ? 'ENTRA' : 'SUSCRÍBETE' }}
-                             </button>
-                          </div>
 
+                        <div v-if="authMode === 'register'" class="space-y-2 pt-1">
+                            <div class="flex items-center gap-2 px-2">
+                                <div class="w-10 h-10 shrink-0 bg-indigo-100 rounded-full border-2 border-indigo-200 shadow-inner flex items-center justify-center overflow-hidden animate-pulse-slow">
+                                    <OwlImage customClass="w-full h-full object-cover transform scale-110 mt-1" />
+                                </div>
+                                <button @click="authMode = 'login'; clearMessages()" class="flex-1 bg-emerald-50/80 rounded-xl py-2 px-3 text-[11px] font-bold text-slate-600 shadow-sm flex items-center justify-between active:scale-95 transition-transform group animate-latent-gold-soft border border-emerald-200">
+                                    <span>¿Estás inscrito? NO ES POR AQUÍ, pero pulsa aquí y volamos juntos a tu portal.</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div v-if="authMode === 'login'" class="space-y-2 pt-1">
+                            <div class="flex items-center gap-2 px-2">
+                                <div class="w-10 h-10 shrink-0 bg-orange-100 rounded-full border-2 border-orange-200 shadow-inner flex items-center justify-center overflow-hidden animate-pulse-slow">
+                                    <OwlImage customClass="w-full h-full object-cover transform scale-110 mt-1" />
+                                </div>
+                                <button @click="authMode = 'register'; clearMessages()" class="flex-1 bg-emerald-50/80 rounded-xl py-2 px-3 text-[11px] font-bold text-slate-600 shadow-sm flex items-center justify-center active:scale-95 transition-transform group animate-latent-gold-soft border border-emerald-200">
+                                    <span>¿Eres un NUEVO ALUMNO?, NO ES POR AQUÍ, pero pulsa aquí y volamos juntos a tu portal, o usa el botón azul de "crear una cuenta nueva"</span>
+                                </button>
+                            </div>
+                            
+                            <div class="text-center pt-2">
+                                <p class="text-[10px] font-bold text-slate-400 mb-1">SUSCRÍBETE EN EL LINK</p>
+                                <button @click="authMode = 'register'; clearMessages()" class="text-indigo-700 font-black text-xs uppercase underline active:text-indigo-900 transition-colors">
+                                    ¡Crear una cuenta nueva!
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div class="mt-6 pt-4 border-t border-slate-100 z-20 w-full">
+                        <div class="flex gap-2 mb-2">
+                          <button @click="activeSubView = 'guide'" class="flex-1 bg-indigo-50 text-indigo-600 font-black text-[11px] uppercase py-2.5 rounded-full border border-indigo-100 flex items-center justify-center gap-1"><Info :size="15"/> GUÍA DE USO</button>
+                          <button @click="activeSubView = 'settings'" class="flex-1 bg-slate-100 text-slate-600 font-black text-[11px] uppercase py-2.5 rounded-full border border-slate-200 flex items-center justify-center gap-1"><Settings :size="15"/> CUENTA</button>
+                        </div>
+                        <div class="text-center">
+                          <button v-if="authMode === 'login'" @click="showRecovery = true; clearMessages(); clearRecoveryMessages()" class="text-orange-700 font-black underline text-[11px] uppercase italic">¿Olvidaste algo?</button>
                         </div>
                     </div>
                   </template>
@@ -459,41 +537,86 @@ onMounted(async () => {
                     <div class="flex-1 flex flex-col justify-start animate-fade-in text-center px-2 mb-8 mt-2">
                         <h2 class="text-base font-black text-indigo-900 mb-4 font-inter uppercase">Recuperar Cuenta</h2>
 
-                        <div class="flex bg-slate-100 p-1.5 rounded-2xl text-[10px] font-black uppercase tracking-widest mb-4">
-                            <button @click="recoveryMode = 'email'" :class="`flex-1 py-3 rounded-xl transition-all ${recoveryMode === 'email' ? 'bg-white shadow-md text-indigo-600' : 'text-slate-400'}`">¿Correo?</button>
-                            <button @click="recoveryMode = 'username'" :class="`flex-1 py-3 rounded-xl transition-all ${recoveryMode === 'username' ? 'bg-white shadow-md text-indigo-600' : 'text-slate-400'}`">¿Nombre?</button>
+                        <div v-if="!recoverySuccessMsg" class="flex bg-slate-100 p-1.5 rounded-2xl text-[11px] font-black uppercase tracking-widest mb-4">
+                            <button @click="recoveryMode = 'email'" :class="`flex-1 py-3 rounded-xl transition-all ${recoveryMode === 'email' ? 'bg-white shadow-md text-indigo-600' : 'text-slate-400'}`">¿OLVIDASTE EL CORREO?</button>
+                            <button @click="recoveryMode = 'password'" :class="`flex-1 py-3 rounded-xl transition-all ${recoveryMode === 'password' ? 'bg-white shadow-md text-indigo-600' : 'text-slate-400'}`">¿LA CONTRASEÑA?</button>
                         </div>
                         
-                        <div v-if="recoveryMode === 'email'" class="space-y-3">
+                        <div v-if="recoveryError && !recoverySuccessMsg" class="w-full p-3 mb-4 bg-red-50 border border-red-200 rounded-2xl flex items-start gap-2 shadow-sm animate-pop-in">
+                            <AlertCircle class="text-red-500 shrink-0 mt-0.5" :size="18" />
+                            <p class="text-[11px] font-bold text-red-700 leading-tight italic flex-1 text-left">{{ recoveryError }}</p>
+                            <button @click="clearRecoveryMessages" class="shrink-0 text-red-400 active:scale-90 p-1"><X :size="16"/></button>
+                        </div>
+
+                        <div v-if="recoverySuccessMsg" class="animate-fade-in flex flex-col items-center justify-center py-8">
+                            <div class="w-20 h-20 bg-emerald-100 rounded-full border-4 border-emerald-200 flex items-center justify-center mb-6 shadow-inner">
+                                <CheckCircle class="text-emerald-500" size="40" />
+                            </div>
+                            <h3 class="text-xl font-black text-emerald-800 mb-2 uppercase tracking-tight">{{ recoveryMode === 'email' ? '¡TE ENCONTRAMOS!' : '¡HECHIZO ENVIADO!' }}</h3>
+                            <p class="text-sm font-medium text-slate-600 mb-8 px-4 leading-relaxed">{{ recoverySuccessMsg }}</p>
+                            
+                            <div v-if="recoveryMode === 'email'" class="w-full bg-slate-50 border-2 border-dashed border-emerald-300 rounded-2xl p-4 mb-8">
+                                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Tu correo empieza por:</p>
+                                <p class="text-xl font-black text-indigo-900 tracking-wider">{{ emailClue }}</p>
+                            </div>
+
+                            <button @click="handleRecoverySuccessClick" class="w-full bg-indigo-600 text-white font-black py-4 rounded-xl shadow-lg uppercase text-xs active:scale-95 transition-transform flex items-center justify-center gap-2 border-b-[4px] border-indigo-800">
+                                {{ recoveryMode === 'email' ? '¡ANOTADO! VOLVER AL LOGIN' : 'VOLVER AL LOGIN' }} <ArrowRight v-if="recoveryMode === 'email'" size="16" />
+                            </button>
+                        </div>
+
+                        <div v-else-if="recoveryMode === 'email' && !recoverySuccessMsg" class="space-y-3">
                           <input 
                              v-model="form.username" 
-                             placeholder="Nombre Alumno" 
+                             placeholder="Escribe tu Nombre" 
                              autocapitalize="none" 
                              autocorrect="off" 
                              spellcheck="false" 
                              class="lowercase w-full p-3 border-2 border-orange-200 rounded-2xl text-center font-bold text-sm outline-none" 
                           />
-                          <button @click="findEmailClue" class="w-full bg-orange-500 text-white font-black py-3.5 rounded-2xl shadow-lg uppercase text-xs">BUSCAR PISTA 🦉</button>
+                          
+                          <div @click="openDatePicker" class="relative cursor-pointer w-full mt-2">
+                              <input 
+                                type="date" 
+                                ref="nativeDateInput"
+                                v-model="birthDateRaw" 
+                                min="1900-01-01" 
+                                :max="maxDateLimit" 
+                                class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-30" 
+                              />
+                              <div class="w-full p-3 bg-gradient-to-r from-slate-100 to-slate-200 border-2 border-orange-200 rounded-2xl flex items-center justify-between shadow-inner relative z-10">
+                                  <span :class="['font-bold text-sm truncate', birthDateRaw ? 'text-indigo-900' : 'text-slate-400']">{{ formattedDate || 'Tu fecha de nacimiento' }}</span>
+                                  <CalendarIcon :size="18" class="text-slate-500 shrink-0 ml-2" />
+                              </div>
+                          </div>
+                          
+                          <button @click="findEmailClue" :disabled="isLoading" class="w-full bg-orange-500 text-white font-black py-3.5 rounded-2xl shadow-lg uppercase text-xs active:scale-95 transition-transform flex items-center justify-center mt-3">
+                            <span v-if="!isLoading">BUSCAR PISTA 🦉</span>
+                            <RefreshCw v-else class="animate-spin text-white" size="18" />
+                          </button>
                         </div>
                         
-                        <div v-else class="space-y-3">
+                        <div v-else-if="recoveryMode === 'password' && !recoverySuccessMsg" class="space-y-3">
                           <input 
                              v-model="form.email" 
                              type="email" 
                              autocapitalize="none" 
                              autocorrect="off" 
                              spellcheck="false" 
-                             placeholder="Correo de Registro" 
+                             placeholder="Escribe tu Correo" 
                              class="lowercase w-full p-3 border-2 border-orange-200 rounded-2xl text-center font-bold text-sm outline-none" 
                           />
-                          <button @click="findUsernameClue" class="w-full bg-orange-500 text-white font-black py-3.5 rounded-2xl shadow-lg uppercase text-xs">¿QUIÉN SOY? 🦉</button>
+                          
+                          <div class="bg-indigo-50 p-4 rounded-2xl border border-indigo-100 space-y-2 mt-4">
+                              <p class="text-[10px] text-slate-500 font-bold mb-2">Te enviaremos una llave mágica a tu correo para cambiar tu contraseña.</p>
+                              <button @click="handleForgotPassword" :disabled="isLoading" class="w-full bg-indigo-600 text-white font-black py-3.5 rounded-2xl shadow-lg uppercase text-xs active:scale-95 transition-transform flex items-center justify-center">
+                                  <span v-if="!isLoading">✨ ENVIAR ENLACE MÁGICO ✨</span>
+                                  <RefreshCw v-else class="animate-spin text-white" size="18" />
+                              </button>
+                          </div>
                         </div>
                         
-                        <div class="bg-indigo-50 p-4 rounded-2xl border border-indigo-100 space-y-2 mt-4">
-                            <button @click="handleForgotPassword" class="text-indigo-600 font-black text-xs uppercase underline">REINICIAR CONTRASEÑA POR EMAIL</button>
-                        </div>
-                        
-                        <button @click="showRecovery = false" class="text-slate-500 font-black text-xs uppercase underline mt-4">VOLVER AL LOGIN</button>
+                        <button v-if="!recoverySuccessMsg" @click="closeRecovery" class="text-slate-500 font-black text-xs uppercase underline mt-6">VOLVER AL LOGIN</button>
                     </div>
                   </template>
               </div>
@@ -621,11 +744,18 @@ onMounted(async () => {
   100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
 }
 
-/* ANIMACION LATENTE ORO (NUEVA) */
-.animate-latent-gold { animation: latent-gold-pulse 2s infinite; }
-@keyframes latent-gold-pulse {
-  0% { box-shadow: 0 0 0 0 rgba(250, 204, 21, 0.7); }
-  70% { box-shadow: 0 0 0 8px rgba(250, 204, 21, 0); }
+/* ANIMACION LATENTE LENTA (BÚHOS PEQUEÑOS) */
+.animate-pulse-slow { animation: pulseSlow 3s infinite alternate; }
+@keyframes pulseSlow {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.05); box-shadow: inset 0 0 10px rgba(99, 102, 241, 0.3); }
+}
+
+/* ANIMACION LATENTE BORDE DORADO SUAVE */
+.animate-latent-gold-soft { animation: latent-gold-soft 2.5s infinite; }
+@keyframes latent-gold-soft {
+  0% { box-shadow: 0 0 0 0 rgba(250, 204, 21, 0.5); }
+  70% { box-shadow: 0 0 0 6px rgba(250, 204, 21, 0); }
   100% { box-shadow: 0 0 0 0 rgba(250, 204, 21, 0); }
 }
 

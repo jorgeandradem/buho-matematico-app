@@ -1,10 +1,12 @@
 {
   "name": "buho-matematico-app",
-  "version": "2.10.0",
+  "version": "2.10.1",
   "private": true,
   "type": "module",
   "scripts": {
+    "predev": "node auto-release.js",
     "dev": "vite",
+    "prebuild": "node auto-release.js",
     "build": "vite build",
     "preview": "vite preview"
   },

@@ -1,7 +1,7 @@
 <script setup>
 /**
- * 🦉 ARCHIVO: ReloadPrompt.vue - VERSIÓN NUCLEAR SILENCIOSA v3.5
- * OBJETIVO: Automatización total con limpieza de caché forzada.
+ * 🦉 ARCHIVO: ReloadPrompt.vue - VERSIÓN NUCLEAR SILENCIOSA v3.6
+ * OBJETIVO: Automatización total con limpieza de caché forzada (Ajuste especial iOS).
  */
 import { useRegisterSW } from 'virtual:pwa-register/vue';
 import { ref, watch, onMounted } from 'vue';
@@ -31,7 +31,7 @@ const { needRefresh, updateServiceWorker } = useRegisterSW({
 // --- 🤖 DETECTOR AUTOMÁTICO DE NUEVA VERSIÓN ---
 watch(needRefresh, (newValue) => {
   if (newValue) {
-    console.log("📢 ¡Nueva versión detectada! Ejecutando Protocolo v2.9.6...");
+    console.log("📢 ¡Nueva versión detectada! Ejecutando Protocolo de Actualización Nuclear...");
     handleUpdate();
   }
 });
@@ -44,7 +44,7 @@ const handleUpdate = async () => {
     // A. Forzamos la actualización del Service Worker
     await updateServiceWorker(true);
 
-    // B. Pequeña pausa técnica
+    // B. Pausa técnica ampliada para darle tiempo de procesamiento a iOS (1500ms)
     setTimeout(() => {
       const isiOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
       
@@ -56,7 +56,7 @@ const handleUpdate = async () => {
         // 🤖 BLINDAJE ANDROID/PC: Refresco forzado desde servidor
         window.location.reload(true);
       }
-    }, 500);
+    }, 1500);
 
   } catch (error) {
     console.error("⛔ Fallo en el refresco nuclear:", error);
