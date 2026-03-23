@@ -2,7 +2,7 @@
 /** * ARCHIVO: CoverScreen.vue
  * NOTA INTERNA: SISTEMA INTEGRAL v15.0.0 - LAYOUT COMPACTO & TOASTS FLOTANTES
  * LOGICA: Corrección de permisos Firestore + Vercel Preview Fix (CSS puro).
- * ESTADO: UI Recuperación 100% funcional. Animaciones controladas por CSS.
+ * ESTADO: UI Recuperación 100% funcional. Calendario Registro (RGPD 14+) reactivado.
  */
 import { ref, onMounted, reactive, watch, computed } from 'vue'; 
 import { auth, db } from '../firebaseConfig'; 
@@ -31,7 +31,16 @@ import AccountSettings from './AccountSettings.vue';
 import pkg from '../../package.json';
 import { useGamificationStore } from '../stores/useGamificationStore';
 
-const emit = defineEmits(['start']);
+// --- NUEVO: Props para recibir la orden desde App.vue ---
+const props = defineProps({
+  forceAuthMode: {
+    type: String,
+    default: null
+  }
+});
+
+// --- NUEVO: Añadido 'showWelcome' a los emits ---
+const emit = defineEmits(['start', 'showWelcome']);
 const store = useGamificationStore();
 
 // --- ESTADOS VISUALES ---
@@ -243,6 +252,7 @@ const handleAuth = async () => {
     if (!cleanUser) { customError.value = "¡Alto ahí! Necesitamos saber tu nombre de alumno para dejarte pasar."; return; }
     if (!birthDateRaw.value) { customError.value = "El Búho dice que tu fecha de nacimiento no está completa."; return; }
     
+    // VALIDACIÓN RGPD MAESTRA (AÑOS 14+)
     const birthYear = parseInt(birthDateRaw.value.split("-")[0]);
     if (new Date().getFullYear() - birthYear < 14) {
       customError.value = "El Nido es para mayores de 14. Pide a un adulto responsable que te inscriba.";
@@ -322,6 +332,7 @@ const openHistory = () => {
   }
 };
 
+// --- NUEVO: checkAccess Modificado para usar WelcomeScreen ---
 const checkAccess = () => {
   onAuthStateChanged(auth, async (user) => {
     if (user) {
@@ -332,15 +343,28 @@ const checkAccess = () => {
           hasReadLegal.value = true;
       }
       const lastLogin = localStorage.getItem('buho_last_login');
-      if (lastLogin && (Date.now() - parseInt(lastLogin) < 3 * 24 * 60 * 60 * 1000)) emit('start');
-      else { authMode.value = 'login'; form.email = user.email; showModal.value = true; }
-    } else { authMode.value = 'login'; showModal.value = true; }
+      if (lastLogin && (Date.now() - parseInt(lastLogin) < 3 * 24 * 60 * 60 * 1000)) {
+         emit('start'); // Entra directo al juego si tiene sesión válida
+      } else { 
+         // Sesión expirada: Enviamos a ver el Búho 3D
+         emit('showWelcome'); 
+      }
+    } else { 
+      // Usuario nuevo o no logueado: Enviamos a ver el Búho 3D
+      emit('showWelcome'); 
+    }
   });
 };
 
 const handleStartButton = () => { playOwlHoot(); checkAccess(); };
 
 onMounted(async () => {
+  // --- NUEVO: Interceptar la llegada desde el WelcomeScreen ---
+  if (props.forceAuthMode) {
+    authMode.value = props.forceAuthMode;
+    showModal.value = true;
+  }
+
   const APP_VERSION = pkg.version; 
   if (localStorage.getItem('buho_app_version') !== APP_VERSION) {
     localStorage.setItem('buho_app_version', APP_VERSION);
@@ -581,7 +605,6 @@ onMounted(async () => {
                                 ref="nativeDateInput"
                                 v-model="birthDateRaw" 
                                 min="1900-01-01" 
-                                :max="maxDateLimit" 
                                 class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-30" 
                               />
                               <div class="w-full p-3 bg-gradient-to-r from-slate-100 to-slate-200 border-2 border-orange-200 rounded-2xl flex items-center justify-between shadow-inner relative z-10">

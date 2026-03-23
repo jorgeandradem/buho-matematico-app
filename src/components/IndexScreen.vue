@@ -8,7 +8,7 @@ import {
   Plus, Minus, X as MultiplyIcon, Divide, LogOut, 
   User, Pencil, BookOpen, Play, X as CloseIcon,
   ShoppingBag, Zap, Flame, Coffee, DoorOpen, BellRing, Target,
-  Eye, EyeOff // 👁️ ICONOS PARA EL OJITO
+  Eye, EyeOff 
 } from 'lucide-vue-next';
 import OwlImage from './OwlImage.vue';
 import { playOwlHoot } from '../utils/sound'; 
@@ -25,8 +25,9 @@ import { auth, db } from '../firebaseConfig';
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { doc, onSnapshot, updateDoc } from "firebase/firestore";
 
-const emit = defineEmits(['select', 'exit']);
-const props = defineProps(['fromView']);
+// --- NUEVO: Se añade el evento 'open-portal-welcome' y el prop 'config' ---
+const emit = defineEmits(['select', 'exit', 'open-portal-welcome']);
+const props = defineProps(['fromView', 'config']);
 
 const gamificationStore = useGamificationStore();
 const randomIncentive = ref("");
@@ -38,25 +39,23 @@ let unsubscribeUser = null;
 
 const showSummary = ref(false);
 const showShop = ref(false); 
-const showChallengeHub = ref(false); 
 const showMissions = ref(false); 
 const showExitConfirm = ref(false); 
 const fullSignOutRequested = ref(false);
 
+// --- CAMBIO CLAVE: Inicializar el Hub abierto si venimos de la compuerta mágica ---
+const showChallengeHub = ref(props.config && props.config.mode === 'open-hub'); 
+
 const showBubble = ref(false);
 const bubbleText = computed(() => gamificationStore.bubbleMessage);
 
-// 👁️ ESTADO DEL DESPLEGABLE DEL OJITO
 const showQuickGuide = ref(false);
-
-// 🔍 ESTADO DEL ZOOM DE TEXTO (ACCESIBILIDAD)
 const showTextZoom = ref(false);
-const guideFontSize = ref(14); // Tamaño base por defecto
+const guideFontSize = ref(14); 
 
 const zoomIn = () => { if (guideFontSize.value < 24) guideFontSize.value += 2; };
 const zoomOut = () => { if (guideFontSize.value > 10) guideFontSize.value -= 2; };
 
-// Si cerramos el ojito, también escondemos los controles de zoom
 watch(showQuickGuide, (newVal) => {
     if (!newVal) showTextZoom.value = false;
 });
@@ -95,7 +94,7 @@ const openConfig = (subjectId) => {
     configMode.value = 'notebook';
     configDifficulty.value = 1;
     configTable.value = 'random';
-    showQuickGuide.value = false; // Resetear el ojo al abrir
+    showQuickGuide.value = false; 
     showConfigModal.value = true;
 };
 
@@ -200,6 +199,8 @@ onMounted(() => {
   if (props.fromView && ['add', 'sub', 'mult', 'div'].includes(props.fromView)) {
       setTimeout(() => { openConfig(props.fromView); }, 50);
   }
+
+  // --- CAMBIO CLAVE: Se eliminó el bloque setTimeout para abrir el Hub ---
 
   const isComingFromCover = props.fromView === 'cover' || !props.fromView;
 
@@ -325,7 +326,7 @@ const currentSubjectLabel = computed(() => {
           </div>
 
           <div class="px-4 w-full mb-4">
-              <button @click="showChallengeHub = true" class="w-full bg-gradient-to-r from-yellow-400 to-orange-500 rounded-[2.5rem] p-1 shadow-[0_6px_0_rgb(194,65,12)] active:translate-y-1 transition-all group">
+              <button @click="emit('open-portal-welcome')" class="w-full bg-gradient-to-r from-yellow-400 to-orange-500 rounded-[2.5rem] p-1 shadow-[0_6px_0_rgb(194,65,12)] active:translate-y-1 transition-all group">
                 <div class="bg-white/10 rounded-[2.2rem] p-3 flex items-center gap-5">
                     <div class="w-12 h-12 shrink-0 rounded-full bg-white flex items-center justify-center group-hover:scale-110 transition-transform shadow-inner">
                         <Target size="26" class="text-orange-500" fill="currentColor" />
