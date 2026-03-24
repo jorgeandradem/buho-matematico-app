@@ -45,7 +45,8 @@ const goBack = () => {
         loop 
         muted 
         playsinline
-        class="absolute inset-0 w-full h-full object-cover z-0 opacity-90"
+        class="absolute inset-0 w-full h-full object-cover z-0"
+        style="filter: contrast(1.08) saturate(1.1) brightness(1.05);"
       ></video>
 
       <div class="absolute inset-0 bg-gradient-to-b from-indigo-900/40 via-transparent to-indigo-900/60 z-0 pointer-events-none"></div>
