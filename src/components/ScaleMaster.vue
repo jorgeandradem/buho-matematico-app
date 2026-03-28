@@ -1,15 +1,47 @@
 <script setup>
-/** * ARCHIVO: SCALE MASTER - ScaleMaster.vue
- * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.3 + BLINDAJE DVH + REPORTE VIVO + CSS 3D PREMIUM
- * LOGICA: Desafío de equilibrio con reporte de niveles al Store para la llamita.
+/** * ARCHIVO: BALANZA MASTER - ScaleMaster.vue
+ * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.4 - CONSOLIDACIÓN MOTOR DE VOZ FINAL
+ * LOGICA: Silencio absoluto en juego. Locución quirúrgica en reglas y premiación.
  */
-import { ref, computed, watch, onMounted } from 'vue';
-import { X, Trophy, CheckCircle2, AlertCircle, Coins, ChevronRight } from 'lucide-vue-next';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
+import { X, Trophy, CheckCircle2, AlertCircle, Coins, ChevronRight, Volume2 } from 'lucide-vue-next';
 import { gsap } from 'gsap'; 
 import { useGamificationStore } from '@/stores/useGamificationStore'; 
 
 const emit = defineEmits(['close']);
 const store = useGamificationStore();
+
+// --- 🔊 MOTOR DE VOZ UNIFICADO (Web Speech API) ---
+const speak = (text, mood = 'intro') => {
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'es-ES';
+
+    // Configuración de estados según Compendio Maestro
+    if (mood === 'gold') {
+        utterance.pitch = 1.4; // Entusiasta y aguda
+        utterance.rate = 1.1; 
+    } else if (mood === 'silver') {
+        utterance.pitch = 1.0; 
+        utterance.rate = 1.0;
+    } else if (mood === 'copper') {
+        utterance.pitch = 0.8; // Grave y pausada (aliento)
+        utterance.rate = 0.9;
+    } else {
+        // Modo 'intro' o instrucciones
+        utterance.pitch = 1.1;
+        utterance.rate = 1.0;
+    }
+
+    window.speechSynthesis.speak(utterance);
+};
+
+// Función para narrar las instrucciones iniciales
+const vocalizeRules = () => {
+    speak("¡Bienvenido a Balanza Master! Tu misión es igualar el peso objetivo colocando pesas en el plato derecho. Si te pasas del peso, toca una pesa en el plato para eliminarla. ¡Logra el equilibrio para ganar monedas!");
+};
 
 // --- 1. ESTADOS DE FLUJO ---
 const gameState = ref('rules'); 
@@ -18,9 +50,14 @@ const totalLevels = 10;
 const isVictory = ref(false); 
 const targetWeight = ref(0); 
 const rightWeights = ref([]); 
-
-// --- SISTEMA DE RECOMPENSAS EN TIEMPO REAL ---
 const sessionCoins = ref({ gold: 0, silver: 0, copper: 0 });
+
+// --- ⚡ WATCHERS DE ESTRATEGIA ---
+watch(gameState, (newState) => {
+    if (newState === 'rules') {
+        vocalizeRules();
+    }
+});
 
 const getAssetUrl = (name) => {
   return new URL(`../assets/scale-master/${name}`, import.meta.url).href;
@@ -38,18 +75,13 @@ const playSound = (name) => {
 
 const generateRandomWeight = () => Math.floor(Math.random() * 76) + 5;
 
-onMounted(() => {
-  targetWeight.value = generateRandomWeight();
-});
-
+// --- 2. LÓGICA DE BALANCEO Y BURBUJA ---
+const currentRotation = ref(0);
 const totalRight = computed(() => {
   return rightWeights.value
     .filter(w => !w.isRemoving)
     .reduce((a, b) => a + b.value, 0);
 });
-
-// --- 2. LÓGICA DE BALANCEO Y BURBUJA ---
-const currentRotation = ref(0);
 const weightOffset = computed(() => totalRight.value - targetWeight.value);
 const bubbleX = ref(0); 
 
@@ -66,7 +98,6 @@ watch(totalRight, (newTotal) => {
     isVictory.value = true; 
     playSound('correct1');
 
-    // 🛡️ REPORTE QUIRÚRGICO A MISIONES
     store.updateMissionProgress('scale_balanced', 1);
     
     if (currentLevel.value < 7) sessionCoins.value.copper++;
@@ -109,9 +140,11 @@ const autoNextLevel = () => {
 
 const finishGame = async () => {
   gameState.value = 'finished';
-  
-  // 🛡️ REPORTE DE PARTIDA COMPLETA
   store.updateMissionProgress('play_any_game', 1);
+
+  // Vocalización de Salida: Narra premio y botín
+  const finalMsg = `¡Escala dominada! Has ganado un botín de ${sessionCoins.value.silver} monedas de plata y ${sessionCoins.value.copper} de cobre. ¡Eres un maestro del equilibrio!`;
+  speak(finalMsg, 'gold');
 
   if (sessionCoins.value.silver > 0) await store.addCoins('silver', sessionCoins.value.silver);
   if (sessionCoins.value.copper > 0) await store.addCoins('copper', sessionCoins.value.copper);
@@ -171,11 +204,19 @@ const triggerRemove = (id, event) => {
   element.classList.add('filter-red');
   gsap.to(element, { y: 500, opacity: 0, scale: 0, duration: 0.25, ease: "power4.in", onComplete: () => { rightWeights.value = rightWeights.value.filter(w => w.id !== id); } });
 };
+
+onMounted(() => {
+  targetWeight.value = generateRandomWeight();
+  if (gameState.value === 'rules') vocalizeRules();
+});
+
+onUnmounted(() => {
+    window.speechSynthesis.cancel(); // Limpieza obligatoria
+});
 </script>
 
 <template>
   <div class="master-container font-inter">
-    
     <main class="app-canvas shadow-smartphone bg-gradient-to-br from-[#fdfbf7] via-[#f8f6f0] to-[#f3f0e6]">
       
       <header v-if="gameState === 'playing'" class="header-standard shrink-0 bg-white/70 backdrop-blur-sm">
@@ -207,11 +248,14 @@ const triggerRemove = (id, event) => {
                 <div class="scale-base"></div>
                 <div class="scale-pin"></div>
             </div>
-
-            <h1 class="game-title text-4xl italic uppercase font-black text-indigo-900 mt-4 drop-shadow-sm">Scale Master</h1>
+            <h1 class="game-title text-4xl italic uppercase font-black text-indigo-900 mt-4 drop-shadow-sm">Balanza Master</h1>
         </div>
         
-        <div class="rules-panel-large shadow-xl bg-white/80 backdrop-blur-sm w-full max-w-[400px]">
+        <div class="rules-panel-large shadow-xl bg-white/80 backdrop-blur-sm w-full max-w-[400px] relative">
+          <button @click="vocalizeRules" class="absolute -top-3 -right-3 bg-indigo-600 text-white p-2 rounded-full shadow-lg active:scale-90 transition-all border-2 border-white">
+              <Volume2 size="24" />
+          </button>
+
           <div class="rules-badge uppercase font-black tracking-widest">Manual del Equilibrio</div>
           <div class="rules-grid-content p-2 mt-2">
             <div class="rule-row"><CheckCircle2 class="text-green-500 shrink-0" size="24" /><p class="text-sm font-bold text-slate-700 leading-tight">Iguala el peso objetivo colocando pesas en el plato derecho.</p></div>
@@ -311,153 +355,39 @@ const triggerRemove = (id, event) => {
 </template>
 
 <style scoped>
-/* 🛡️ BLINDAJE TÉCNICO MASTER-CONTAINER v2.9.3 */
-.master-container { 
-    position: fixed; inset: 0; z-index: 9999; 
-    display: flex; justify-content: center; align-items: center; 
-    background-color: #ffffff; overflow: hidden; 
-    height: 100dvh; width: 100vw;
-}
-
-.app-canvas { 
-    display: flex; flex-direction: column; position: relative; overflow: hidden; 
-    transition: all 0.4s; width: 100vw; height: 100dvh; 
-}
-
+.master-container { position: fixed; inset: 0; z-index: 9999; display: flex; justify-content: center; align-items: center; background-color: #ffffff; overflow: hidden; height: 100dvh; width: 100vw; }
+.app-canvas { display: flex; flex-direction: column; position: relative; overflow: hidden; transition: all 0.4s; width: 100vw; height: 100dvh; }
 @media (min-width: 1025px) { .app-canvas { width: 1024px; height: 90dvh; border-radius: 45px; box-shadow: 0 40px 100px rgba(0,0,0,0.2); border: 8px solid white; } }
-
 .header-standard { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1.25rem; border-bottom: 1px solid rgba(226, 232, 240, 0.6); }
 .session-loot-capsule { display: flex; align-items: center; background: white; padding: 6px 14px; border-radius: 9999px; border: 2px solid #f1f5f9; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
 .loot-item { display: flex; align-items: center; gap: 4px; padding: 0 8px; font-weight: 900; color: #1e293b; }
 .loot-item img { width: 1.1rem; height: 1.1rem; object-fit: contain; }
 .btn-close-circle { background: #fee2e2; color: #ef4444; width: 36px; height: 36px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; border: 2px solid #fca5a5; }
-
-/* --- ⚖️ BALANZA 3D CSS EN PORTADA --- */
-.scale-3d-wrap {
-    position: relative;
-    width: 140px;
-    height: 120px;
-    margin-bottom: 10px;
-}
-
-.scale-base {
-    position: absolute;
-    bottom: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 80px;
-    height: 15px;
-    background: linear-gradient(180deg, #94a3b8, #475569);
-    border-radius: 10px 10px 4px 4px;
-    border-bottom: 4px solid #1e293b;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-    z-index: 1;
-}
-
-.scale-pillar {
-    position: absolute;
-    bottom: 15px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 14px;
-    height: 80px;
-    background: linear-gradient(90deg, #64748b, #cbd5e1, #475569);
-    border-radius: 2px;
-    z-index: 2;
-}
-
-.scale-pin {
-    position: absolute;
-    top: 25px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 16px;
-    height: 16px;
-    background: radial-gradient(circle, #fde047, #b45309);
-    border-radius: 50%;
-    z-index: 5;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-}
-
-.scale-arm-group {
-    position: absolute;
-    top: 30px;
-    width: 100%;
-    height: 90px;
-    transform-origin: top center;
-    z-index: 3;
-}
-
-.animate-scale-balance {
-    animation: scale-swing 4s ease-in-out infinite alternate;
-}
-
-@keyframes scale-swing {
-    0% { transform: rotate(-8deg); }
-    100% { transform: rotate(8deg); }
-}
-
-.scale-arm {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 6px;
-    background: linear-gradient(180deg, #94a3b8, #334155);
-    border-radius: 3px;
-    box-shadow: 0 3px 5px rgba(0,0,0,0.2);
-}
-
-.plate-group {
-    position: absolute;
-    top: 3px;
-    width: 40px;
-    height: 70px;
-}
+.scale-3d-wrap { position: relative; width: 140px; height: 120px; margin-bottom: 10px; }
+.scale-base { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 80px; height: 15px; background: linear-gradient(180deg, #94a3b8, #475569); border-radius: 10px 10px 4px 4px; border-bottom: 4px solid #1e293b; box-shadow: 0 5px 15px rgba(0,0,0,0.2); z-index: 1; }
+.scale-pillar { position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); width: 14px; height: 80px; background: linear-gradient(90deg, #64748b, #cbd5e1, #475569); border-radius: 2px; z-index: 2; }
+.scale-pin { position: absolute; top: 25px; left: 50%; transform: translateX(-50%); width: 16px; height: 16px; background: radial-gradient(circle, #fde047, #b45309); border-radius: 50%; z-index: 5; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+.scale-arm-group { position: absolute; top: 30px; width: 100%; height: 90px; transform-origin: top center; z-index: 3; }
+.animate-scale-balance { animation: scale-swing 4s ease-in-out infinite alternate; }
+@keyframes scale-swing { 0% { transform: rotate(-8deg); } 100% { transform: rotate(8deg); } }
+.scale-arm { position: absolute; top: 0; left: 0; width: 100%; height: 6px; background: linear-gradient(180deg, #94a3b8, #334155); border-radius: 3px; box-shadow: 0 3px 5px rgba(0,0,0,0.2); }
+.plate-group { position: absolute; top: 3px; width: 40px; height: 70px; }
 .plate-group.left { left: 5px; }
 .plate-group.right { right: 5px; }
-
-/* El contra-giro anula la rotación del brazo para mantener el platillo horizontal */
 .plate-group.left { animation: counter-swing 4s ease-in-out infinite alternate; transform-origin: top center; }
 .plate-group.right { animation: counter-swing 4s ease-in-out infinite alternate; transform-origin: top center; }
-
-@keyframes counter-swing {
-    0% { transform: rotate(8deg); }
-    100% { transform: rotate(-8deg); }
-}
-
-.string {
-    position: absolute;
-    top: 0;
-    width: 2px;
-    height: 60px;
-    background: #cbd5e1;
-}
+@keyframes counter-swing { 0% { transform: rotate(8deg); } 100% { transform: rotate(-8deg); } }
+.string { position: absolute; top: 0; width: 2px; height: 60px; background: #cbd5e1; }
 .string.left { left: 5px; transform: rotate(-15deg); transform-origin: top; }
 .string.right { right: 5px; transform: rotate(15deg); transform-origin: top; }
-
-.plate {
-    position: absolute;
-    bottom: 0;
-    width: 100%;
-    height: 12px;
-    background: radial-gradient(ellipse at top, #f8fafc, #94a3b8);
-    border-radius: 50% 50% 10px 10px;
-    border-bottom: 2px solid #475569;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-}
-
-/* ------------------------------------- */
-
+.plate { position: absolute; bottom: 0; width: 100%; height: 12px; background: radial-gradient(ellipse at top, #f8fafc, #94a3b8); border-radius: 50% 50% 10px 10px; border-bottom: 2px solid #475569; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
 .rules-panel-large { width: 95%; padding: 2.2rem 1.5rem; border-radius: 2.5rem; border: 2px solid rgba(226, 232, 240, 0.8); position: relative; }
 .rules-badge { position: absolute; top: -12px; left: 1.5rem; background: #4f46e5; color: white; font-size: 10px; font-weight: 900; padding: 4px 12px; border-radius: 9999px; }
 .rule-row { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.4rem; text-align: left; }
-
 .bubble-glow { filter: drop-shadow(0 0 6px rgba(34, 197, 94, 0.6)); }
 .filter-red img { filter: brightness(0.5) sepia(1) hue-rotate(-50deg) saturate(15) !important; transform: scale(1.1); }
 .weight-on-plate { transform-origin: center; }
 .game-title { font-weight: 900; color: #312e81; text-transform: uppercase; font-style: italic; letter-spacing: -0.05em; }
-
 .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 </style>

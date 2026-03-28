@@ -1,13 +1,15 @@
 <script setup>
 /** * ARCHIVO: TABLAS RÁPIDAS - QuickFly.vue
- * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.4 + BLINDAJE DVH + AUDIO QUIRÚRGICO + CSS 3D
- * LOGICA: Desafío rápido con sonidos correct1/wrong1 y reporte de misiones.
+ * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.5 - CONSOLIDACIÓN MOTOR DE VOZ FINAL
+ * LOGICA: Silencio absoluto en juego. Locución quirúrgica en reglas y premiación.
  */
-import { ref, onMounted, computed } from 'vue';
-import { X as CloseIcon, Trophy, Coins, MousePointer2, PlayCircle, BookOpen, ChevronRight } from 'lucide-vue-next';
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
+import { 
+    X as CloseIcon, Trophy, Coins, MousePointer2, 
+    PlayCircle, BookOpen, ChevronRight, Volume2 
+} from 'lucide-vue-next';
 import CoinRain from './CoinRain.vue';
 import { useGamificationStore } from '../stores/useGamificationStore';
-import { speak } from '../utils/voice';
 
 const props = defineProps({
   operation: { type: String, default: 'add' }, 
@@ -17,10 +19,41 @@ const props = defineProps({
 const emit = defineEmits(['back', 'close']); 
 const gamificationStore = useGamificationStore();
 
+// --- 🔊 MOTOR DE VOZ UNIFICADO (Web Speech API) ---
+const speak = (text, mood = 'intro') => {
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'es-ES';
+
+    // Configuración de estados según Compendio Maestro
+    if (mood === 'gold') {
+        utterance.pitch = 1.4; // Entusiasta y aguda
+        utterance.rate = 1.1; 
+    } else if (mood === 'silver') {
+        utterance.pitch = 1.0; 
+        utterance.rate = 1.0;
+    } else if (mood === 'copper') {
+        utterance.pitch = 0.8; // Grave y pausada (aliento)
+        utterance.rate = 0.9;
+    } else {
+        // Modo 'intro' o instrucciones
+        utterance.pitch = 1.1;
+        utterance.rate = 1.0;
+    }
+
+    window.speechSynthesis.speak(utterance);
+};
+
+// Función para narrar las instrucciones iniciales
+const vocalizeRules = () => {
+    speak("¡Bienvenido a Tablas Rápidas! Observa la operación en la pantalla central y elige la respuesta correcta lo más rápido posible. ¡Suma cobre, resta plata y multiplica o divide para ganar oro!");
+};
+
 // --- 1. ESTADO DEL JUEGO ---
 const gameState = ref('rules'); 
 const QUESTIONS_COUNT = 10; 
-
 const currentQuestionIndex = ref(0);
 const score = ref(0);
 const showCoinRain = ref(false);
@@ -28,10 +61,15 @@ const currentQuestion = ref(null);
 const options = ref([]);
 const feedbackMessage = ref('');
 const feedbackColor = ref('');
-
 const sessionCoins = ref({ gold: 0, silver: 0, copper: 0 });
 const activeOp = ref('add');
-const isAudioUnlocked = ref(false);
+
+// --- ⚡ WATCHERS ---
+watch(gameState, (newState) => {
+    if (newState === 'rules') {
+        vocalizeRules();
+    }
+});
 
 // --- 2. LÓGICA DE NAVEGACIÓN ---
 const startGame = () => {
@@ -47,7 +85,7 @@ const closeQuickFly = () => {
     }
 };
 
-// --- 3. MOTOR DEL JUEGO & AUDIO ---
+// --- 3. MOTOR DEL JUEGO & AUDIO (.MP3 INTACTOS) ---
 const playCorrectAudio = () => {
     const audio = new Audio('/audios/correct1.mp3');
     audio.volume = 0.8;
@@ -58,22 +96,6 @@ const playErrorAudio = () => {
     const audio = new Audio('/audios/wrong1.mp3');
     audio.volume = 0.6;
     audio.play().catch(() => {});
-};
-
-const speakLoud = (text) => {
-    if (!('speechSynthesis' in window)) return;
-    window.speechSynthesis.cancel(); 
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.volume = 1.0; 
-    utterance.rate = 1.2;
-    utterance.lang = 'es-ES';
-    window.speechSynthesis.speak(utterance);
-};
-
-const unlockAudio = () => {
-    if (isAudioUnlocked.value) return;
-    speakLoud(""); 
-    isAudioUnlocked.value = true;
 };
 
 const getCurrencyType = (op) => {
@@ -116,16 +138,15 @@ const generateQuestion = () => {
 
 const selectOption = async (selected) => {
     if (gameState.value !== 'playing') return;
-    unlockAudio(); 
 
     if (selected === currentQuestion.value.answer) {
-        playCorrectAudio(); // ✅ ACIERTO
+        playCorrectAudio(); // ✅ Audio MP3
         score.value++;
         feedbackMessage.value = "¡Bien!";
         feedbackColor.value = "text-green-500";
-        speakLoud("¡Bien!");
+        
+        // SILENCIO EN JUEGO: Se elimina locución "¡Bien!"
 
-        // Reporte de misión para que la racha avance
         gamificationStore.updateMissionProgress('quick_fly_answer', 1);
 
         const type = getCurrencyType(activeOp.value);
@@ -138,10 +159,10 @@ const selectOption = async (selected) => {
             await finishGame();
         }
     } else {
-        playErrorAudio(); // ❌ DESACIERTO
+        playErrorAudio(); // ❌ Audio MP3
         feedbackMessage.value = "¡Ups!";
         feedbackColor.value = "text-red-500";
-        speakLoud("Ups");
+        // SILENCIO EN JUEGO: Se elimina locución "Ups"
         setTimeout(() => feedbackMessage.value = "", 800);
     }
 };
@@ -154,11 +175,14 @@ const finishGame = async () => {
     const bonusType = getCurrencyType(activeOp.value);
     sessionCoins.value[bonusType] += 5;
 
+    // Vocalización de Salida: Narra premio y botín
+    let mood = score.value === QUESTIONS_COUNT ? 'gold' : (score.value >= 7 ? 'silver' : 'copper');
+    const finalMsg = `¡Misión cumplida! Has ganado un botín de ${sessionCoins.value.gold} monedas de oro, ${sessionCoins.value.silver} de plata y ${sessionCoins.value.copper} de cobre.`;
+    speak(finalMsg, mood);
+
     if (sessionCoins.value.gold > 0) await gamificationStore.addCoins('gold', sessionCoins.value.gold);
     if (sessionCoins.value.silver > 0) await gamificationStore.addCoins('silver', sessionCoins.value.silver);
     if (sessionCoins.value.copper > 0) await gamificationStore.addCoins('copper', sessionCoins.value.copper);
-    
-    speakLoud(`¡Reto completado!`);
 };
 
 const resetGame = () => {
@@ -169,7 +193,14 @@ const resetGame = () => {
     generateQuestion();
 };
 
-onMounted(() => { if (gameState.value === 'playing') generateQuestion(); });
+onMounted(() => { 
+    if (gameState.value === 'rules') vocalizeRules();
+    if (gameState.value === 'playing') generateQuestion(); 
+});
+
+onUnmounted(() => {
+    window.speechSynthesis.cancel(); // Limpieza obligatoria
+});
 </script>
 
 <template>
@@ -216,11 +247,15 @@ onMounted(() => { if (gameState.value === 'playing') generateQuestion(); });
                       <div class="rocket-thruster"></div>
                       <div class="rocket-fire"></div>
                   </div>
-                  
                   <h1 class="game-title text-4xl uppercase font-black italic text-indigo-900 mt-4 drop-shadow-md">Tablas Rápidas</h1>
               </div>
 
-              <div class="rules-panel-fly shadow-2xl w-full bg-white">
+              <div class="rules-panel-fly shadow-2xl w-full bg-white relative">
+                  <button @click="vocalizeRules" 
+                          class="absolute -top-3 -right-3 bg-indigo-600 text-white p-2 rounded-full shadow-lg hover:scale-110 active:scale-95 transition-all border-2 border-white">
+                      <Volume2 size="24" />
+                  </button>
+
                   <div class="rules-badge uppercase font-black tracking-widest">Manual del Piloto</div>
                   <div class="flex flex-col gap-5 p-2">
                       <div class="flex gap-4 items-start">
@@ -233,7 +268,7 @@ onMounted(() => { if (gameState.value === 'playing') generateQuestion(); });
                       </div>
                       <div class="flex gap-4 items-start">
                           <div class="bg-amber-100 p-2.5 rounded-xl"><Coins class="text-amber-600" size="20" /></div>
-                          <p class="text-sm font-bold text-slate-700 leading-tight">¡Suma: 🥉 | Resta: 🥈 | Mult/Div: 🥇! Gana un **Bono de +5**.</p>
+                          <p class="text-sm font-bold text-slate-700 leading-tight">¡Suma cobre, Resta plata y Multi/Div gana oro! Bono de +5.</p>
                       </div>
                   </div>
               </div>
@@ -306,151 +341,39 @@ onMounted(() => { if (gameState.value === 'playing') generateQuestion(); });
 </template>
 
 <style scoped>
-.master-container { 
-    position: fixed; inset: 0; z-index: 9999; 
-    display: flex; justify-content: center; align-items: center; 
-    background-color: #ffffff; overflow: hidden; 
-    touch-action: none !important; 
-    height: 100dvh; top: 0; left: 0;
-}
-.app-canvas { 
-    display: flex; flex-direction: column; justify-content: space-between; 
-    position: relative; overflow: hidden; transition: all 0.4s; 
-    user-select: none; width: 100vw; height: 100dvh; 
-}
-
+/* (Se mantienen los estilos originales sin cambios para no romper el blindaje visual) */
+.master-container { position: fixed; inset: 0; z-index: 9999; display: flex; justify-content: center; align-items: center; background-color: #ffffff; overflow: hidden; touch-action: none !important; height: 100dvh; top: 0; left: 0; }
+.app-canvas { display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; transition: all 0.4s; user-select: none; width: 100vw; height: 100dvh; }
 @media (min-width: 1025px) { .app-canvas { width: 1024px; height: 90dvh; border-radius: 45px; border: 8px solid white; box-shadow: 0 40px 100px rgba(0,0,0,0.2); } }
-
-/* HEADER */
 .header-fly { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.25rem; background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); border-bottom: 2px solid rgba(255,255,255,0.5); z-index: 50; }
 .session-loot-capsule { display: flex; align-items: center; background: white; padding: 6px 16px; border-radius: 9999px; border: 2px solid #f1f5f9; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
 .coin-stat { display: flex; align-items: center; gap: 0.4rem; padding: 0 8px; font-weight: 900; color: #1e293b; }
 .coin-stat img { width: 1.2rem; height: 1.2rem; }
 .btn-close-fly { background: #fee2e2; color: #ef4444; width: 36px; height: 36px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-
-/* --- 🚀 COHETE 3D CSS --- */
-.rocket-3d-wrap {
-    position: relative;
-    width: 60px;
-    height: 100px;
-    margin-bottom: 20px;
-    transform: rotate(15deg);
-}
-
-.rocket-body {
-    position: absolute;
-    top: 0;
-    left: 10px;
-    width: 40px;
-    height: 80px;
-    background: linear-gradient(90deg, #e2e8f0 0%, #ffffff 50%, #cbd5e1 100%);
-    border-radius: 50% 50% 10px 10px / 100% 100% 10px 10px;
-    border: 2px solid #94a3b8;
-    box-shadow: inset -5px -5px 10px rgba(0,0,0,0.1);
-    z-index: 2;
-}
-
-.rocket-window {
-    position: absolute;
-    top: 25px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 20px;
-    height: 20px;
-    background: #94a3b8;
-    border-radius: 50%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-.rocket-glass {
-    width: 14px;
-    height: 14px;
-    background: radial-gradient(circle at 30% 30%, #bae6fd, #3b82f6);
-    border-radius: 50%;
-    box-shadow: inset -2px -2px 4px rgba(0,0,0,0.2);
-}
-
-.rocket-fin {
-    position: absolute;
-    bottom: 20px;
-    width: 20px;
-    height: 30px;
-    background: linear-gradient(90deg, #ef4444, #b91c1c);
-    border: 2px solid #9f1239;
-    z-index: 1;
-}
-
-.rocket-fin.left {
-    left: -5px;
-    border-radius: 20px 0 0 5px;
-    transform: skewY(-20deg);
-}
-
-.rocket-fin.right {
-    right: -5px;
-    border-radius: 0 20px 5px 0;
-    transform: skewY(20deg);
-}
-
-.rocket-thruster {
-    position: absolute;
-    bottom: 12px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 20px;
-    height: 10px;
-    background: #475569;
-    border-radius: 0 0 5px 5px;
-    z-index: 1;
-}
-
-.rocket-fire {
-    position: absolute;
-    bottom: -15px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 14px;
-    height: 30px;
-    background: linear-gradient(180deg, #facc15, #ef4444, transparent);
-    border-radius: 50% 50% 20% 20%;
-    z-index: 0;
-    animation: exhaust 0.1s infinite alternate;
-}
-
-@keyframes exhaust {
-    0% { height: 25px; background: linear-gradient(180deg, #fde047, #f97316, transparent); }
-    100% { height: 35px; background: linear-gradient(180deg, #fef08a, #ef4444, transparent); }
-}
-
-.animate-rocket-float {
-    animation: rfloat 3s ease-in-out infinite;
-}
-
-@keyframes rfloat {
-    0%, 100% { transform: translateY(0) rotate(15deg); }
-    50% { transform: translateY(-10px) rotate(18deg); }
-}
-
-/* UI GENERAL */
+.rocket-3d-wrap { position: relative; width: 60px; height: 100px; margin-bottom: 20px; transform: rotate(15deg); }
+.rocket-body { position: absolute; top: 0; left: 10px; width: 40px; height: 80px; background: linear-gradient(90deg, #e2e8f0 0%, #ffffff 50%, #cbd5e1 100%); border-radius: 50% 50% 10px 10px / 100% 100% 10px 10px; border: 2px solid #94a3b8; box-shadow: inset -5px -5px 10px rgba(0,0,0,0.1); z-index: 2; }
+.rocket-window { position: absolute; top: 25px; left: 50%; transform: translateX(-50%); width: 20px; height: 20px; background: #94a3b8; border-radius: 50%; display: flex; justify-content: center; align-items: center; }
+.rocket-glass { width: 14px; height: 14px; background: radial-gradient(circle at 30% 30%, #bae6fd, #3b82f6); border-radius: 50%; box-shadow: inset -2px -2px 4px rgba(0,0,0,0.2); }
+.rocket-fin { position: absolute; bottom: 20px; width: 20px; height: 30px; background: linear-gradient(90deg, #ef4444, #b91c1c); border: 2px solid #9f1239; z-index: 1; }
+.rocket-fin.left { left: -5px; border-radius: 20px 0 0 5px; transform: skewY(-20deg); }
+.rocket-fin.right { right: -5px; border-radius: 0 20px 5px 0; transform: skewY(20deg); }
+.rocket-thruster { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); width: 20px; height: 10px; background: #475569; border-radius: 0 0 5px 5px; z-index: 1; }
+.rocket-fire { position: absolute; bottom: -15px; left: 50%; transform: translateX(-50%); width: 14px; height: 30px; background: linear-gradient(180deg, #facc15, #ef4444, transparent); border-radius: 50% 50% 20% 20%; z-index: 0; animation: exhaust 0.1s infinite alternate; }
+@keyframes exhaust { 0% { height: 25px; background: linear-gradient(180deg, #fde047, #f97316, transparent); } 100% { height: 35px; background: linear-gradient(180deg, #fef08a, #ef4444, transparent); } }
+.animate-rocket-float { animation: rfloat 3s ease-in-out infinite; }
+@keyframes rfloat { 0%, 100% { transform: translateY(0) rotate(15deg); } 50% { transform: translateY(-10px) rotate(18deg); } }
 .title-fly { font-size: 1.5rem; font-weight: 900; color: #312e81; text-transform: uppercase; font-style: italic; margin-bottom: 0.5rem; }
-
 .question-container-fly { width: 100%; max-width: 400px; display: flex; flex-direction: column; align-items: center; }
 .op-box-fly { display: flex; align-items: center; justify-content: center; gap: 1rem; width: 90%; padding: 1.5rem; border-radius: 2.5rem; border-width: 6px; font-size: 3.5rem; font-weight: 900; background: white; }
-
 .rules-panel-fly { width: 92%; max-width: 400px; padding: 2rem 1.5rem; border-radius: 2.5rem; border: 2px solid #e2e8f0; position: relative; }
 .rules-badge { position: absolute; top: -14px; left: 1.5rem; background: #4f46e5; color: white; font-size: 11px; padding: 5px 15px; border-radius: 9999px; }
-
 .victory-title { font-size: 2.5rem; line-height: 1; margin-bottom: 1.5rem; text-align: center; }
 .prize-card-fly { border: 4px solid #f1f5f9; border-radius: 3rem; padding: 2rem; width: 100%; max-width: 320px; margin-bottom: 2rem; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
 .loot-item-final { display: flex; flex-direction: column; align-items: center; }
 .loot-item-final img { width: 2.5rem; height: 2.5rem; }
-
 .game-title { font-weight: 900; color: #312e81; text-transform: uppercase; font-style: italic; letter-spacing: -0.05em; }
 .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
 .feedback-area { height: 2.5rem; margin: 0.5rem 0; }
 .feedback-text { font-size: 1.6rem; font-weight: 900; text-transform: uppercase; }
 </style>

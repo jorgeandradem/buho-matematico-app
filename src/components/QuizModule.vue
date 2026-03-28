@@ -1,17 +1,19 @@
 <script setup>
-/** * ARCHIVO: QuizModule.vue
- * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.6 + REFUERZO HORIZONTAL QUIRÚRGICO + CSS 3D
- * LOGICA: Desafío contra reloj. Feedback "Correcto (xx)" ubicado entre resultado e icono.
+/** * ARCHIVO: CONTRA RELOJ QuizModule.vue
+ * NOTA INTERNA: ESTRUCTURA MAESTRA v3.0.0 - AJUSTE DE BOTONES FINALES + FIX HISTORIAL
+ * LOGICA: Silencio absoluto en juego. Locución quirúrgica en reglas y premiación.
  */
-import { ref, onUnmounted, computed, onMounted } from 'vue';
-import { X, Clock, Zap, Trophy, Medal, CheckCircle, XCircle, PlayCircle } from 'lucide-vue-next';
+import { ref, onUnmounted, computed, onMounted, watch } from 'vue';
+import { 
+  X, Clock, Zap, Trophy, Medal, CheckCircle, 
+  XCircle, PlayCircle, Volume2, ChevronRight 
+} from 'lucide-vue-next';
 import { useGamificationStore } from '../stores/useGamificationStore';
-import { speak } from '../utils/voice';
 
 const emit = defineEmits(['close']);
 const store = useGamificationStore();
 
-const gameState = ref('rules'); // 'rules' | 'menu' | 'playing' | 'finished'
+const gameState = ref('rules'); 
 const selectedOperation = ref(null);
 const totalQuestions = 10;
 const currentQuestionIndex = ref(0);
@@ -20,12 +22,43 @@ const score = ref(0);
 const history = ref([]); 
 const earned = ref({ gold: 0, silver: 0, copper: 0 }); 
 const fallingCoins = ref([]); 
-
-// Lógica de Monedas de Sesión
 const sessionCoins = ref({ gold: 0, silver: 0, copper: 0 });
-
 const currentQuestion = ref({ text: '', correctAnswer: 0, options: [] });
 let timerInterval = null;
+
+// --- 🔊 MOTOR DE VOZ UNIFICADO (Web Speech API) ---
+const speak = (text, mood = 'intro') => {
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'es-ES';
+
+    if (mood === 'gold') {
+        utterance.pitch = 1.4; 
+        utterance.rate = 1.1; 
+    } else if (mood === 'silver') {
+        utterance.pitch = 1.0; 
+        utterance.rate = 1.0;
+    } else if (mood === 'copper') {
+        utterance.pitch = 0.8; 
+        utterance.rate = 0.9;
+    } else {
+        utterance.pitch = 1.1;
+        utterance.rate = 1.0;
+    }
+    window.speechSynthesis.speak(utterance);
+};
+
+const playIntroInstructions = () => {
+    speak("¡Bienvenido a Contra Reloj! Responde 10 preguntas antes de que el tiempo se agote para ganar monedas. Suma para ganar cobre, resta para plata, y multiplica o divide para ganar oro.");
+};
+
+// --- 👀 WATCHERS DE ESTRATEGIA ---
+watch(gameState, (newState) => {
+    if (newState === 'rules') {
+        playIntroInstructions();
+    }
+});
 
 const quizButtons = [
     { s: '+', l: 'Sumar', c: 'bg-blue-500 shadow-[0_6px_0_rgb(29,78,216)]' },
@@ -41,7 +74,7 @@ const buttonColors = [
     'bg-green-500 hover:bg-green-600 shadow-[0_6px_0_rgb(21,128,61)] text-white'
 ];
 
-// --- 🔊 MOTOR DE AUDIO ---
+// --- 🔊 EFECTOS DE SONIDO (.MP3) ---
 const playCorrectAudio = () => {
     const audio = new Audio('/audios/correct1.mp3');
     audio.volume = 0.7;
@@ -61,9 +94,9 @@ const playFinishAudio = () => {
 };
 
 const performanceFeedback = computed(() => {
-    if (score.value === totalQuestions) return { text: "¡Perfección Absoluta! 🧠", color: "text-yellow-600", bg: "bg-yellow-100" };
-    if (score.value >= 7) return { text: "¡Excelente trabajo! 🚀", color: "text-green-600", bg: "bg-green-100" };
-    return { text: "¡Sigue practicando! 💪", color: "text-red-600", bg: "bg-red-100" };
+    if (score.value === totalQuestions) return { text: "¡Perfección Absoluta! 🧠", mood: 'gold' };
+    if (score.value >= 7) return { text: "¡Excelente trabajo! 🚀", mood: 'silver' };
+    return { text: "¡Sigue practicando! 💪", mood: 'copper' };
 });
 
 const startGame = (operation) => {
@@ -72,8 +105,8 @@ const startGame = (operation) => {
     history.value = []; fallingCoins.value = [];
     sessionCoins.value = { gold: 0, silver: 0, copper: 0 };
     earned.value = { gold: 0, silver: 0, copper: 0 };
+    generateQuestion();
     gameState.value = 'playing';
-    speak("¡Comencemos!");
     nextQuestion();
 };
 
@@ -116,11 +149,9 @@ const checkAnswer = (answer) => {
     if (isCorrect) { 
         score.value++; 
         store.updateMissionProgress('quiz_correct_answer', 1);
-
         if (selectedOperation.value === '+') sessionCoins.value.copper++;
         else if (selectedOperation.value === '-') sessionCoins.value.silver++;
         else sessionCoins.value.gold++;
-        
         playCorrectAudio();
     } else { 
         playWrongAudio();
@@ -155,7 +186,9 @@ const endGame = async () => {
     
     const coinType = selectedOperation.value === '+' ? 'copper' : selectedOperation.value === '-' ? 'silver' : 'gold';
     triggerCoinRain(coinType, earned.value[coinType]);
-    speak(performanceFeedback.value.text);
+    
+    const resultText = `${performanceFeedback.value.text}. Has ganado un botín de ${earned.value.gold} monedas de oro, ${earned.value.silver} de plata y ${earned.value.copper} de cobre.`;
+    speak(resultText, performanceFeedback.value.mood);
 };
 
 const closeQuiz = () => { 
@@ -167,8 +200,15 @@ const closeQuiz = () => {
     }
 };
 
-onMounted(() => { document.body.style.overflow = 'hidden'; });
-onUnmounted(() => clearInterval(timerInterval));
+onMounted(() => { 
+    document.body.style.overflow = 'hidden'; 
+    playIntroInstructions();
+});
+
+onUnmounted(() => {
+    clearInterval(timerInterval);
+    window.speechSynthesis.cancel();
+});
 </script>
 
 <template>
@@ -179,7 +219,7 @@ onUnmounted(() => clearInterval(timerInterval));
         </div>
 
         <header v-if="gameState !== 'rules'" class="header-standard sticky top-0 z-50 shrink-0">
-            <div class="trophy-section">
+            <div class="trophy-section flex items-center gap-2">
                 <Trophy size="22" class="text-yellow-500" />
                 <span class="text-xl font-black text-indigo-900">{{ (gameState === 'finished' ? totalQuestions : currentQuestionIndex + 1) }}/10</span>
             </div>
@@ -192,7 +232,6 @@ onUnmounted(() => clearInterval(timerInterval));
         </header>
 
         <div class="content-wrapper flex-1 flex flex-col overflow-hidden relative">
-            
             <div v-if="gameState === 'rules'" class="flex-1 flex flex-col items-center justify-between p-6 animate-fade-in relative z-10">
                 <button @click="closeQuiz" class="absolute top-4 right-4 bg-white/60 backdrop-blur-sm w-10 h-10 rounded-full flex items-center justify-center text-slate-600 active:scale-75 transition-all z-50 shadow-sm border border-slate-200">
                     <X size="24" stroke-width="3" />
@@ -204,11 +243,13 @@ onUnmounted(() => clearInterval(timerInterval));
                         <div class="zap-body-back"></div>
                         <div class="zap-body-front"></div>
                     </div>
-                    
-                    <h1 class="game-title text-5xl uppercase italic font-black text-indigo-900 mt-6 drop-shadow-md">QUIZ TIME</h1>
+                    <h1 class="game-title text-5xl uppercase italic font-black text-indigo-900 mt-6 drop-shadow-md">CONTRA RELOJ</h1>
                 </div>
 
-                <div class="rules-panel shadow-2xl w-full bg-white/90 backdrop-blur-sm">
+                <div class="rules-panel shadow-2xl w-full bg-white/90 backdrop-blur-sm relative">
+                    <button @click="playIntroInstructions" class="absolute -top-3 -right-3 bg-indigo-600 text-white p-2 rounded-full shadow-lg active:scale-90 transition-all border-2 border-white">
+                        <Volume2 size="20" />
+                    </button>
                     <div class="rules-badge uppercase font-black tracking-widest">Manual de Misión</div>
                     <ul class="p-5 space-y-5 text-slate-700 font-bold list-none">
                         <li class="flex gap-4">⏱️ <span class="text-[15px] leading-tight">Responde 10 preguntas antes de que el tiempo se agote.</span></li>
@@ -217,12 +258,7 @@ onUnmounted(() => clearInterval(timerInterval));
                     </ul>
                 </div>
 
-                <button @click="gameState = 'menu'" 
-                        class="w-[90%] max-w-[420px] bg-gradient-to-b from-[#3B82F6] to-[#1D4ED8] 
-                               text-white font-black italic text-xl uppercase rounded-[2rem] 
-                               border-b-[8px] border-[#1E3A8A] shadow-lg shadow-[#1D4ED8]/40 
-                               active:translate-y-[4px] active:border-b-[4px] transition-all 
-                               flex items-center justify-center py-4 group">
+                <button @click="gameState = 'menu'" class="w-[90%] max-w-[420px] bg-gradient-to-b from-[#3B82F6] to-[#1D4ED8] text-white font-black italic text-xl uppercase rounded-[2rem] border-b-[8px] border-[#1E3A8A] shadow-lg shadow-[#1D4ED8]/40 active:translate-y-[4px] active:border-b-[4px] transition-all flex items-center justify-center py-4 group">
                     ¡EMPEZAR DESAFÍO!
                     <div class="ml-3 bg-white p-1 rounded-full flex items-center justify-center shadow-inner">
                         <ChevronRight class="text-[#1D4ED8]" size="22" stroke-width="4" />
@@ -247,11 +283,9 @@ onUnmounted(() => clearInterval(timerInterval));
                         <Clock size="18" /><span>00:{{ timeLeft.toString().padStart(2, '0') }}</span>
                     </div>
                 </div>
-                
-                <div class="question-box h-1/3 min-h-[160px] flex items-center justify-center bg-white/80 backdrop-blur-md rounded-[40px] border-4 border-indigo-100 shadow-xl text-indigo-950">
+                <div class="question-box h-1/3 min-h-[160px] flex flex-col items-center justify-center bg-white/80 backdrop-blur-md rounded-[40px] border-4 border-indigo-100 shadow-xl text-indigo-950 relative">
                     <h1 class="text-6xl sm:text-7xl font-black text-center tracking-tighter">{{ currentQuestion.text }}</h1>
                 </div>
-
                 <div class="grid grid-cols-2 gap-3 flex-1 max-h-[320px] pb-2 max-w-2xl mx-auto w-full">
                     <button v-for="(option, idx) in currentQuestion.options" :key="idx" @click="checkAnswer(option)" :class="`rounded-3xl text-4xl font-black active:translate-y-1 transition-all ${buttonColors[idx]}`">{{ option }}</button>
                 </div>
@@ -261,8 +295,8 @@ onUnmounted(() => clearInterval(timerInterval));
                 <div class="text-center mb-2 shrink-0">
                     <Medal size="50" class="text-yellow-500 mx-auto mb-1 drop-shadow-xl animate-bounce" />
                     <h2 class="text-3xl font-black text-indigo-900 uppercase italic">¡Reto Terminado!</h2>
-                    <div :class="`mt-1 px-4 py-1.5 rounded-full inline-block shadow-sm ${performanceFeedback.bg}`">
-                        <p :class="`font-black text-sm tracking-wide ${performanceFeedback.color}`">{{ performanceFeedback.text }}</p>
+                    <div class="mt-1 px-4 py-1.5 rounded-full inline-block shadow-sm bg-white/80 border border-slate-200">
+                        <p class="font-black text-sm tracking-wide text-indigo-600">{{ performanceFeedback.text }}</p>
                     </div>
                 </div>
 
@@ -271,7 +305,6 @@ onUnmounted(() => clearInterval(timerInterval));
                         <div class="flex items-center gap-2">
                             <span class="text-slate-400 text-xs">{{ idx + 1 }}.</span>
                             <span>{{ item.q }} = <span :class="item.isCorrect ? 'text-green-600' : 'text-red-500'">{{ item.chosen }}</span></span>
-                            
                             <span v-if="!item.isCorrect" class="flex items-center gap-1 text-[13px] ml-1 bg-slate-100 px-2 py-0.5 rounded-lg">
                                 <span class="text-slate-600 font-bold">Era</span>
                                 <span class="text-green-600 font-black">{{ item.correct }}</span>
@@ -283,13 +316,12 @@ onUnmounted(() => clearInterval(timerInterval));
                 </div>
 
                 <div class="flex gap-4 pb-4 mt-2 shrink-0">
-                    <button @click="gameState = 'menu'" class="flex-1 bg-white border-2 border-slate-200 text-slate-700 font-black py-4 rounded-2xl uppercase tracking-widest text-sm shadow-[0_4px_0_rgb(203,213,225)] active:translate-y-[4px] active:shadow-none transition-all">Menú</button>
+                    <button @click="emit('close')" class="flex-1 bg-white border-2 border-slate-200 text-slate-700 font-black py-4 rounded-2xl uppercase tracking-widest text-[10px] shadow-[0_4px_0_rgb(203,213,225)] active:translate-y-[4px] active:shadow-none transition-all">
+                      Volver al portal
+                    </button>
                     <button @click="startGame(selectedOperation)" 
-                            class="flex-1 bg-gradient-to-b from-[#3B82F6] to-[#1D4ED8] 
-                                    text-white font-black py-4 rounded-2xl border-b-[6px] border-[#1E3A8A] 
-                                    shadow-lg active:translate-y-[4px] active:border-b-[2px] transition-all 
-                                    uppercase tracking-widest italic text-sm">
-                        ¡OTRO!
+                            class="flex-1 bg-gradient-to-b from-[#3B82F6] to-[#1D4ED8] text-white font-black py-4 rounded-2xl border-b-[6px] border-[#1E3A8A] shadow-lg active:translate-y-[4px] active:border-b-[2px] transition-all uppercase tracking-widest italic text-[10px]">
+                      Jugar otra vez
                     </button>
                 </div>
             </div>
@@ -299,133 +331,28 @@ onUnmounted(() => clearInterval(timerInterval));
 </template>
 
 <style scoped>
-/* 🛡️ BLINDAJE TÉCNICO */
-.master-container {
-    position: fixed; inset: 0;
-    width: 100vw; height: 100dvh;
-    display: flex; justify-content: center; align-items: center;
-    background-color: #ffffff;
-    z-index: 9999; overflow: hidden;
-    touch-action: none !important;
-}
-
-.app-canvas {
-    display: flex; flex-direction: column;
-    justify-content: space-between;
-    position: relative; overflow: hidden;
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    user-select: none;
-    touch-action: none !important;
-    -webkit-tap-highlight-color: transparent;
-    width: 100vw; height: 100dvh;
-}
-
-@media (min-width: 1025px) {
-    .app-canvas {
-        width: 1024px; height: 90dvh;
-        border-radius: 45px;
-        box-shadow: 0 40px 100px rgba(0,0,0,0.15);
-        border: 8px solid white;
-    }
-}
-
-.header-standard {
-    width: 100%; display: flex; align-items: center; justify-content: space-between;
-    padding: 0.75rem 1.25rem; background: rgba(255,255,255,0.8); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(226,232,240,0.8);
-}
-
-.session-loot-capsule {
-    display: flex; align-items: center; background: white; padding: 6px 16px;
-    border-radius: 9999px; border: 2px solid #f1f5f9; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-}
-
+.master-container { position: fixed; inset: 0; width: 100vw; height: 100dvh; display: flex; justify-content: center; align-items: center; background-color: #ffffff; z-index: 9999; overflow: hidden; touch-action: none !important; }
+.app-canvas { display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); user-select: none; touch-action: none !important; -webkit-tap-highlight-color: transparent; width: 100vw; height: 100dvh; }
+@media (min-width: 1025px) { .app-canvas { width: 1024px; height: 90dvh; border-radius: 45px; box-shadow: 0 40px 100px rgba(0,0,0,0.15); border: 8px solid white; } }
+.header-standard { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1.25rem; background: rgba(255,255,255,0.8); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(226,232,240,0.8); }
+.session-loot-capsule { display: flex; align-items: center; background: white; padding: 6px 16px; border-radius: 9999px; border: 2px solid #f1f5f9; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
 .loot-item { display: flex; align-items: center; gap: 6px; padding: 0 10px; }
 .loot-item img { width: 1.2rem; height: 1.2rem; object-fit: contain; }
 .loot-item span { font-weight: 900; color: #1e293b; font-size: 1rem; }
-
-.btn-close-circle { 
-    background: #fee2e2; color: #ef4444; width: 36px; height: 36px; 
-    border-radius: 9999px; display: flex; align-items: center; justify-content: center; border: 2px solid #fca5a5;
-}
-
-/* --- ⚡ RELÁMPAGO 3D CSS --- */
-.zap-3d-wrap {
-    position: relative;
-    width: 80px;
-    height: 100px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-.zap-glow {
-    position: absolute;
-    width: 60px;
-    height: 60px;
-    background: #fde047;
-    border-radius: 50%;
-    filter: blur(25px);
-    opacity: 0.6;
-    animation: pulse-glow 2s infinite alternate;
-}
-
-.zap-body-back {
-    position: absolute;
-    width: 0;
-    height: 0;
-    /* Dibujo del rayo con clip-path (sombra base) */
-    clip-path: polygon(55% 0%, 100% 0%, 45% 55%, 75% 55%, 25% 100%, 35% 45%, 5% 45%);
-    background: linear-gradient(135deg, #d97706, #9a3412);
-    width: 70px;
-    height: 90px;
-    transform: translate(5px, 5px);
-    z-index: 1;
-}
-
-.zap-body-front {
-    position: absolute;
-    width: 0;
-    height: 0;
-    /* Dibujo del rayo con clip-path (brillo frontal) */
-    clip-path: polygon(55% 0%, 100% 0%, 45% 55%, 75% 55%, 25% 100%, 35% 45%, 5% 45%);
-    background: linear-gradient(135deg, #fef08a, #f59e0b);
-    width: 70px;
-    height: 90px;
-    z-index: 2;
-    /* Borde interior simulado con filter */
-    filter: drop-shadow(-2px -2px 0px #fef9c3);
-}
-
+.btn-close-circle { background: #fee2e2; color: #ef4444; width: 36px; height: 36px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; border: 2px solid #fca5a5; }
+.zap-3d-wrap { position: relative; width: 80px; height: 100px; display: flex; justify-content: center; align-items: center; }
+.zap-glow { position: absolute; width: 60px; height: 60px; background: #fde047; border-radius: 50%; filter: blur(25px); opacity: 0.6; animation: pulse-glow 2s infinite alternate; }
+.zap-body-back { position: absolute; width: 70px; height: 90px; clip-path: polygon(55% 0%, 100% 0%, 45% 55%, 75% 55%, 25% 100%, 35% 45%, 5% 45%); background: linear-gradient(135deg, #d97706, #9a3412); transform: translate(5px, 5px); z-index: 1; }
+.zap-body-front { position: absolute; width: 70px; height: 90px; clip-path: polygon(55% 0%, 100% 0%, 45% 55%, 75% 55%, 25% 100%, 35% 45%, 5% 45%); background: linear-gradient(135deg, #fef08a, #f59e0b); z-index: 2; filter: drop-shadow(-2px -2px 0px #fef9c3); }
 .animate-float-zap { animation: floatZap 3s ease-in-out infinite; }
-
-@keyframes floatZap {
-    0%, 100% { transform: translateY(0) rotate(5deg) scale(1); }
-    50% { transform: translateY(-12px) rotate(8deg) scale(1.05); }
-}
-
-@keyframes pulse-glow {
-    0% { transform: scale(0.8); opacity: 0.4; }
-    100% { transform: scale(1.3); opacity: 0.8; }
-}
-
-/* -------------------------- */
-
+@keyframes floatZap { 0%, 100% { transform: translateY(0) rotate(5deg) scale(1); } 50% { transform: translateY(-12px) rotate(8deg) scale(1.05); } }
+@keyframes pulse-glow { 0% { transform: scale(0.8); opacity: 0.4; } 100% { transform: scale(1.3); opacity: 0.8; } }
 .game-title { font-weight: 900; color: #312e81; text-transform: uppercase; font-style: italic; letter-spacing: -0.05em; }
-
-.rules-panel {
-    width: 92%; padding: 1rem; border-radius: 2rem;
-    border: 2px solid #e2e8f0; position: relative;
-}
-
-.rules-badge {
-    position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: #4f46e5;
-    color: white; font-size: 10px; font-weight: 900; padding: 4px 15px; border-radius: 9999px; white-space: nowrap;
-}
-
+.rules-panel { width: 92%; padding: 1rem; border-radius: 2rem; border: 2px solid #e2e8f0; position: relative; }
+.rules-badge { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: #4f46e5; color: white; font-size: 10px; font-weight: 900; padding: 4px 15px; border-radius: 9999px; white-space: nowrap; }
 .scroll-interno { overflow-y: auto; -webkit-overflow-scrolling: touch; }
 .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
 .animate-coin-fall { animation: coinFall 2s cubic-bezier(0.25, 1, 0.5, 1) forwards; }
 @keyframes coinFall { 0% { transform: translateY(-50px) rotate(0deg); opacity: 1; } 100% { transform: translateY(110dvh) rotate(360deg); opacity: 0; } }
 </style>

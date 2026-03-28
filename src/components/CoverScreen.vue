@@ -485,7 +485,7 @@ onMounted(async () => {
                             <div class="flex items-center gap-2 px-2">
                                 <div class="w-10 h-10 shrink-0 bg-indigo-100 rounded-full border-2 border-indigo-200 shadow-inner flex items-center justify-center overflow-hidden animate-pulse-slow"><OwlImage customClass="w-full h-full object-cover transform scale-110 mt-1" /></div>
                                 <button @click="authMode = 'login'; clearMessages();" class="flex-1 bg-emerald-50/80 rounded-xl py-2 px-3 text-[11px] font-bold text-slate-600 shadow-sm flex items-center justify-between active:scale-95 transition-transform group animate-latent-gold-soft border border-emerald-200">
-                                    <span>¿Estás inscrito? NO ES POR AQUÍ, pero pulsa aquí y volamos juntos a tu portal.</span>
+                                    <span>¿Estás inscrito? NO ES POR AQUÍ, pero pulsa y volamos juntos a tu portal.</span>
                                 </button>
                             </div>
                         </div>
@@ -494,7 +494,7 @@ onMounted(async () => {
                             <div class="flex items-center gap-2 px-2">
                                 <div class="w-10 h-10 shrink-0 bg-orange-100 rounded-full border-2 border-orange-200 shadow-inner flex items-center justify-center overflow-hidden animate-pulse-slow"><OwlImage customClass="w-full h-full object-cover transform scale-110 mt-1" /></div>
                                 <button @click="authMode = 'register'; clearMessages();" class="flex-1 bg-emerald-50/80 rounded-xl py-2 px-3 text-[11px] font-bold text-slate-600 shadow-sm flex items-center justify-center active:scale-95 transition-transform group animate-latent-gold-soft border border-emerald-200">
-                                    <span>¿Eres un NUEVO ALUMNO?, NO ES POR AQUÍ, pero pulsa aquí y volamos juntos a tu portal, o usa el botón azul de "crear una cuenta nueva"</span>
+                                    <span>¿Eres un NUEVO ALUMNO?, NO ES POR AQUÍ, pero pulsa y volamos juntos a tu portal, o usa el texto azul de "crear una cuenta nueva"</span>
                                 </button>
                             </div>
                             <div class="text-center pt-2">

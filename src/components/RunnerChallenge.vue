@@ -1,18 +1,52 @@
 <script setup>
-/** * ARCHIVO: VUELO MATEMÁTICO RunnerChallenge.vue
- * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.4 + AUDIO QUIRÚRGICO + REPORTE VIVO
- * LOGICA: Runner con física de gravedad + Sonidos correct1/wrong1 + Avance de misiones.
+/** * ARCHIVO: VUELO LEGENDARIO RunnerChallenge.vue
+ * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.5 - CONSOLIDACIÓN MOTOR DE VOZ
+ * LOGICA: Silencio en juego. Locución quirúrgica en reglas y premiación.
  */
-import { ref, onMounted, onUnmounted, computed } from 'vue';
-import { X as CloseIcon, Zap, Heart, Trophy, Cloud, AlertCircle, MousePointer2, PlayCircle, ChevronRight } from 'lucide-vue-next';
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
+import { 
+    X as CloseIcon, Zap, Heart, Trophy, Cloud, MousePointer2, 
+    PlayCircle, ChevronRight, Volume2 
+} from 'lucide-vue-next';
 import SimpleConfetti from './SimpleConfetti.vue';
 import CoinRain from './CoinRain.vue';
 import { useGamificationStore } from '../stores/useGamificationStore';
-import { speak } from '../utils/voice';
 import * as SoundUtils from '../utils/sound';
 
 const emit = defineEmits(['close', 'win']);
 const store = useGamificationStore();
+
+// --- 🔊 MOTOR DE VOZ UNIFICADO (Web Speech API) ---
+const speak = (text, mood = 'intro') => {
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'es-ES';
+
+    // Configuración de estados según Compendio Maestro
+    if (mood === 'gold') {
+        utterance.pitch = 1.4; // Entusiasta y aguda
+        utterance.rate = 1.1; 
+    } else if (mood === 'silver') {
+        utterance.pitch = 1.0; 
+        utterance.rate = 1.0;
+    } else if (mood === 'copper') {
+        utterance.pitch = 0.8; // Grave y pausada (aliento)
+        utterance.rate = 0.9;
+    } else {
+        // Modo 'intro' o instrucciones
+        utterance.pitch = 1.1;
+        utterance.rate = 1.0;
+    }
+
+    window.speechSynthesis.speak(utterance);
+};
+
+// Función para narrar las instrucciones iniciales
+const vocalizeRules = () => {
+    speak("¡Bienvenido a Vuelo Legendario! Toca la pantalla para que el búho salte y atraviesa el portal que tenga el resultado correcto. Tienes tres vidas. ¡Buen vuelo!");
+};
 
 // --- 1. ESTADO DEL JUEGO ---
 const QUESTIONS_COUNT = 10;
@@ -27,18 +61,22 @@ const velocity = ref(0);
 const gravity = 0.18; 
 const lift = -5.2; 
 
-// --- SISTEMA DE RECOMPENSAS EN TIEMPO REAL ---
 const sessionCoins = ref({ gold: 0, silver: 0, copper: 0 });
-
 const currentOperation = ref({ text: '', res: 0, opType: '', color: '#4f46e5' });
 const portals = ref([]); 
 const resolvedOps = ref(new Set()); 
 const showCoinRain = ref(false);
 let lastOpId = 0;
 let gameLoopId = null;
-const isAudioUnlocked = ref(false);
 
-// --- 🔊 MOTOR DE AUDIO ACTUALIZADO v2.9.4 ---
+// --- ⚡ WATCHERS ---
+watch(gameState, (newState) => {
+    if (newState === 'rules') {
+        vocalizeRules();
+    }
+});
+
+// --- 🔊 MOTOR DE AUDIO (.MP3 INTACTOS) ---
 const playCorrectAudio = () => {
     const audio = new Audio('/audios/correct1.mp3');
     audio.volume = 0.8;
@@ -49,22 +87,6 @@ const playErrorAudio = () => {
     const audio = new Audio('/audios/wrong1.mp3');
     audio.volume = 0.6;
     audio.play().catch(() => {});
-};
-
-const speakLoud = (text) => {
-    if (!('speechSynthesis' in window)) return;
-    window.speechSynthesis.cancel(); 
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.volume = 1.0;
-    utterance.rate = 1.2;
-    utterance.lang = 'es-ES';
-    window.speechSynthesis.speak(utterance);
-};
-
-const unlockAudio = () => {
-    if (isAudioUnlocked.value) return;
-    speakLoud(""); 
-    isAudioUnlocked.value = true;
 };
 
 // --- 2. LÓGICA DE NAVEGACIÓN ---
@@ -115,7 +137,6 @@ const generateOperation = (startX = 135) => {
 };
 
 const jump = () => { 
-    unlockAudio();
     if (gameState.value === 'playing') velocity.value = lift; 
 };
 
@@ -147,16 +168,14 @@ const gameLoop = () => {
                 if (p.isCorrect) {
                     p.state = 'exploding'; 
                     score.value++;
-                    
-                    // 🛡️ REPORTE VIVO PARA LA LLAMITA (Acierto)
                     store.updateMissionProgress('runner_hit', 1);
 
                     if (p.opType === '+') sessionCoins.value.copper++;
                     else if (p.opType === '-') sessionCoins.value.silver++;
                     else sessionCoins.value.gold++;
                     
-                    speakLoud("¡Bien!");
-                    playCorrectAudio(); // ✅ Audio Actualizado
+                    // SILENCIO EN JUEGO: Se elimina speakLoud("¡Bien!")
+                    playCorrectAudio(); 
 
                     setTimeout(() => { p.passed = true; if (score.value >= QUESTIONS_COUNT) triggerWin(); }, 650);
                 } else {
@@ -164,8 +183,8 @@ const gameLoop = () => {
                     lives.value--;
                     totalErrors.value++;
                     
-                    speakLoud("¡Ups!");
-                    playErrorAudio(); // ❌ Audio Actualizado
+                    // SILENCIO EN JUEGO: Se elimina speakLoud("¡Ups!")
+                    playErrorAudio(); 
 
                     setTimeout(() => { p.passed = true; if (lives.value <= 0) initGame(); }, 850);
                 }
@@ -194,8 +213,6 @@ const initGame = () => {
 const triggerWin = async () => {
     gameState.value = 'finished';
     showCoinRain.value = true;
-    
-    // 🛡️ REPORTE VIVO PARA LA LLAMITA (Partida completa)
     store.updateMissionProgress('play_any_game', 1);
 
     if (SoundUtils.playOwlHoot) SoundUtils.playOwlHoot();
@@ -206,6 +223,11 @@ const triggerWin = async () => {
         sessionCoins.value.copper = Math.min(sessionCoins.value.copper, 5);
     }
 
+    // Vocalización de Salida: Narra premio y botín
+    let mood = totalErrors.value === 0 ? 'gold' : (totalErrors.value <= 3 ? 'silver' : 'copper');
+    const finalMsg = `¡Vuelo legendario completado! Has ganado un botín de ${sessionCoins.value.gold} monedas de oro, ${sessionCoins.value.silver} de plata y ${sessionCoins.value.copper} de cobre.`;
+    speak(finalMsg, mood);
+
     if (sessionCoins.value.gold > 0) await store.addCoins('gold', sessionCoins.value.gold);
     if (sessionCoins.value.silver > 0) await store.addCoins('silver', sessionCoins.value.silver);
     if (sessionCoins.value.copper > 0) await store.addCoins('copper', sessionCoins.value.copper);
@@ -213,8 +235,15 @@ const triggerWin = async () => {
     emit('win', { ...sessionCoins.value });
 };
 
-onMounted(() => { document.body.style.overflow = 'hidden'; });
-onUnmounted(() => { if (gameLoopId) cancelAnimationFrame(gameLoopId); });
+onMounted(() => { 
+    document.body.style.overflow = 'hidden'; 
+    vocalizeRules();
+});
+
+onUnmounted(() => { 
+    if (gameLoopId) cancelAnimationFrame(gameLoopId);
+    window.speechSynthesis.cancel(); // Limpieza obligatoria
+});
 </script>
 
 <template>
@@ -259,10 +288,15 @@ onUnmounted(() => { if (gameLoopId) cancelAnimationFrame(gameLoopId); });
 
                 <div class="flex flex-col items-center mt-6 text-center">
                     <div class="text-7xl mb-2 drop-shadow-xl animate-float">🦉</div>
-                    <h1 class="game-title text-4xl text-white drop-shadow-lg font-black italic uppercase">Vuelo Matemático</h1>
+                    <h1 class="game-title text-4xl text-white drop-shadow-lg font-black italic uppercase">Vuelo Legendario</h1>
                 </div>
 
-                <div class="rules-panel-runner shadow-2xl w-full">
+                <div class="rules-panel-runner shadow-2xl w-full relative">
+                    <button @click="vocalizeRules" 
+                            class="absolute -top-3 -right-3 bg-indigo-600 text-white p-2 rounded-full shadow-lg active:scale-90 transition-all border-2 border-white">
+                        <Volume2 size="20" />
+                    </button>
+
                     <div class="rules-badge-runner uppercase font-black tracking-widest">Manual de Vuelo</div>
                     <div class="flex flex-col gap-5 p-2">
                         <div class="flex gap-4 items-start">
@@ -353,51 +387,35 @@ onUnmounted(() => { if (gameLoopId) cancelAnimationFrame(gameLoopId); });
 </template>
 
 <style scoped>
-/* 🛡️ BLINDAJE TÉCNICO MASTER-CONTAINER v2.9.3 */
 .master-container { position: fixed; inset: 0; z-index: 9999; display: flex; justify-content: center; align-items: center; background-color: #ffffff; overflow: hidden; touch-action: none !important; height: 100dvh; top: 0; left: 0; }
 .app-canvas { display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; transition: all 0.4s; user-select: none; touch-action: none !important; width: 100vw; height: 100dvh; }
-
 @media (min-width: 1025px) { .app-canvas { width: 1024px; height: 90dvh; border-radius: 45px; border: 8px solid white; box-shadow: 0 40px 100px rgba(0,0,0,0.3); } }
-
 .header-runner { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1.25rem; background: white; border-bottom: 2px solid #f1f5f9; z-index: 100; }
 .trophy-counter-runner { display: flex; align-items: center; gap: 0.5rem; }
-
-.session-loot-capsule {
-    display: flex; align-items: center; background: white; padding: 6px 16px;
-    border-radius: 9999px; border: 2px solid #f1f5f9;
-}
-
+.session-loot-capsule { display: flex; align-items: center; background: white; padding: 6px 16px; border-radius: 9999px; border: 2px solid #f1f5f9; }
 .loot-indicator { display: flex; align-items: center; gap: 6px; padding: 0 10px; }
 .loot-indicator img { width: 1.2rem; height: 1.2rem; object-fit: contain; }
 .loot-indicator span { font-weight: 900; color: #1e293b; }
-
 .btn-close-runner { background: #fee2e2; color: #ef4444; width: 36px; height: 36px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; }
-
 .op-panel-runner { border-width: 4px; padding: 1rem 2rem; border-radius: 2.5rem; display: inline-block; min-width: 240px; }
 .portal-circle { width: 100%; height: 100%; border-radius: 9999px; border-width: 7px; display: flex; align-items: center; justify-content: center; }
-
 .rules-panel-runner { width: 92%; max-width: 400px; background: white; padding: 1.5rem; border-radius: 2.5rem; border: 2px solid #e2e8f0; position: relative; }
 .rules-badge-runner { position: absolute; top: -12px; left: 1.5rem; background: #4f46e5; color: white; font-size: 10px; font-weight: 900; padding: 4px 12px; border-radius: 9999px; }
-
 .victory-overlay { position: absolute; inset: 0; z-index: 300; background: #f8fafc; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; text-align: center; }
 .victory-title { font-size: 2.5rem; line-height: 1; margin-bottom: 2rem; }
 .prize-card { background: #f5f3ff; border: 4px solid #ede9fe; border-radius: 2.5rem; padding: 1.5rem; width: 100%; max-width: 280px; margin-bottom: 2rem; }
 .prize-item { display: flex; flex-direction: column; align-items: center; }
 .prize-item img { width: 2.5rem; height: 2.5rem; }
 .prize-item span { font-size: 1.5rem; font-weight: 900; color: #4338ca; }
-
 .game-title { font-weight: 900; color: #312e81; text-transform: uppercase; font-style: italic; letter-spacing: -0.05em; }
 .animate-float { animation: float 3s ease-in-out infinite; }
 @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
-
 .animate-bubble-pop { animation: bubblePop 0.65s ease-out forwards; }
 @keyframes bubblePop { 0% { transform: scale(1); opacity: 1; } 100% { transform: scale(2.5); opacity: 0; } }
 .animate-shatter { animation: violentShake 0.85s linear forwards; }
 @keyframes violentShake { 10%, 30%, 50%, 70%, 90% { transform: translate(-8px, 4px); } 20%, 40%, 60%, 80% { transform: translate(8px, -4px); } 100% { opacity: 0; } }
-
 .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
 .pop-enter-active { animation: pop-in 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
 @keyframes pop-in { from { opacity: 0; transform: scale(0.95) translateY(20px); } to { opacity: 1; transform: scale(1) translateY(0); } }
 </style>

@@ -1,18 +1,48 @@
 <script setup>
 /** * ARCHIVO: SOPA DE NÚMEROS - NumberSearch.vue
- * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.3 + BLINDAJE DVH + REPORTE DE MISIONES
- * LOGICA: Sopa de números (Resultados algebraicos) + Comunicación viva con el Store.
+ * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.4 - CONSOLIDACIÓN MOTOR DE VOZ
+ * LOGICA: Sopa de números. Silencio en juego. Locución en reglas y premiación.
  */
-import { ref, onMounted } from 'vue';
-import { X as CloseIcon, Trophy, AlertCircle, Sparkles, Search, PlayCircle, BookOpen, ChevronRight } from 'lucide-vue-next';
+import { ref, onMounted, onUnmounted, watch } from 'vue';
+import { 
+    X as CloseIcon, Trophy, Sparkles, Search, 
+    PlayCircle, BookOpen, ChevronRight, Volume2 
+} from 'lucide-vue-next';
 import SimpleConfetti from './SimpleConfetti.vue';
 import CoinRain from './CoinRain.vue';
 import { useGamificationStore } from '../stores/useGamificationStore';
-import { speak } from '../utils/voice';
 import { playOwlHoot, playCoinSound } from '../utils/sound';
 
 const emit = defineEmits(['close', 'win']);
 const store = useGamificationStore();
+
+// --- 🔊 MOTOR DE VOZ UNIFICADO (Web Speech API) ---
+const speak = (text, mood = 'intro') => {
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'es-ES';
+
+    if (mood === 'gold') {
+        utterance.pitch = 1.4; // Entusiasta
+        utterance.rate = 1.1; 
+    } else if (mood === 'silver') {
+        utterance.pitch = 1.0; 
+        utterance.rate = 1.0;
+    } else if (mood === 'copper') {
+        utterance.pitch = 0.8; // Alentadora
+        utterance.rate = 0.9;
+    } else {
+        // Intro / Instrucciones
+        utterance.pitch = 1.1;
+        utterance.rate = 1.0;
+    }
+    window.speechSynthesis.speak(utterance);
+};
+
+const playRulesVocal = () => {
+    speak("¡Bienvenido a Número Oculto! Resuelve las operaciones de arriba y busca los resultados en la cuadrícula. Selecciona los números en orden para tacharlos. ¡Suerte, investigador!");
+};
 
 // --- ESTADO DEL JUEGO ---
 const gameState = ref('rules'); 
@@ -22,32 +52,14 @@ const currentSelection = ref([]);
 const showCoinRain = ref(false);
 const perfectGame = ref(true);
 const confirmedCells = ref(new Set());
-const isAudioUnlocked = ref(false);
 
 const sessionCoins = ref({ gold: 0, silver: 0, copper: 0 });
 
-// --- MOTOR DE AUDIO ---
+// --- MOTOR DE AUDIO (.MP3 INTACTOS) ---
 const playCorrectSound = () => {
     const audio = new Audio('/audios/correct1.mp3');
     audio.volume = 1.0;
     audio.play().catch(e => console.warn("Audio bloqueado:", e));
-};
-
-const speakLoud = (text, isExclamation = false) => {
-    if (!('speechSynthesis' in window)) return;
-    window.speechSynthesis.cancel(); 
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.volume = 1.0;
-    utterance.lang = 'es-ES';
-    if (isExclamation) { utterance.rate = 1.4; utterance.pitch = 1.5; }
-    else { utterance.rate = 1.1; utterance.pitch = 1.0; }
-    window.speechSynthesis.speak(utterance);
-};
-
-const unlockAudio = () => {
-    if (isAudioUnlocked.value) return;
-    speakLoud(""); 
-    isAudioUnlocked.value = true;
 };
 
 // --- NAVEGACIÓN ---
@@ -128,12 +140,11 @@ const initGame = () => {
             gridReady = true;
         }
     }
-    speakLoud("¡Sopa de números activada!");
+    // SILENCIO EN JUEGO: Se elimina locución de activación
 };
 
 const handleCellClick = (cell) => {
     if (gameState.value !== 'playing' || currentSelection.value.includes(cell)) return;
-    unlockAudio();
     
     cell.status = 'selected';
     currentSelection.value.push(cell);
@@ -147,8 +158,6 @@ const handleCellClick = (cell) => {
             confirmedCells.value.add(c.id);
         });
         playCorrectSound();
-
-        // 🛡️ REPORTE QUIRÚRGICO A MISIONES: Notificamos al Store cada hallazgo
         store.updateMissionProgress('search_numbers', 1);
 
         if (match.opType === '+') sessionCoins.value.copper++;
@@ -160,7 +169,7 @@ const handleCellClick = (cell) => {
     } else if (!challenges.value.some(ch => ch.result.startsWith(typedValue) && !ch.found)) {
         perfectGame.value = false;
         currentSelection.value.forEach(c => c.status = 'error');
-        speakLoud("No", true);
+        // SILENCIO EN JUEGO: Se elimina el speak de error "No"
 
         setTimeout(() => {
             currentSelection.value.forEach(c => { 
@@ -176,15 +185,19 @@ const triggerWin = async () => {
     showCoinRain.value = true;
     playCoinSound();
     playOwlHoot();
-    
-    // 🛡️ REPORTE DE PARTIDA COMPLETADA:
     store.updateMissionProgress('play_any_game', 1);
     
+    let mood = 'gold';
     if (!perfectGame.value) {
+        mood = 'silver';
         sessionCoins.value.gold = Math.max(1, Math.floor(sessionCoins.value.gold / 2));
         sessionCoins.value.silver = Math.max(1, Math.floor(sessionCoins.value.silver / 2));
         sessionCoins.value.copper = Math.max(1, Math.floor(sessionCoins.value.copper / 2));
     }
+
+    // Vocalización de Salida: Narra premio y botín
+    const finalMsg = `¡Botín asegurado! Has ganado ${sessionCoins.value.gold} monedas de oro, ${sessionCoins.value.silver} de plata y ${sessionCoins.value.copper} de cobre.`;
+    speak(finalMsg, mood);
 
     try {
         if (sessionCoins.value.gold > 0) await store.addCoins('gold', sessionCoins.value.gold);
@@ -193,6 +206,14 @@ const triggerWin = async () => {
         emit('win', { ...sessionCoins.value });
     } catch (e) { console.error(e); }
 };
+
+onMounted(() => {
+    playRulesVocal();
+});
+
+onUnmounted(() => {
+    window.speechSynthesis.cancel();
+});
 </script>
 
 <template>
@@ -201,7 +222,7 @@ const triggerWin = async () => {
         <CoinRain v-if="showCoinRain" type="gold" :count="30" class="z-[400]" />
 
         <header v-if="gameState === 'playing'" class="header-sopa shrink-0">
-            <div class="trophy-counter">
+            <div class="trophy-counter flex items-center gap-1">
                 <Trophy size="18" class="text-green-600" />
                 <span class="font-black text-base text-green-700">
                     {{ challenges.filter(c => c.found).length }}/12
@@ -229,11 +250,14 @@ const triggerWin = async () => {
                         </div>
                         <div class="glass-handle"></div>
                     </div>
-                    
                     <h1 class="game-title text-3xl mt-2">NÚMERO OCULTO</h1>
                 </div>
 
-                <div class="rules-panel-sopa shadow-xl w-full">
+                <div class="rules-panel-sopa shadow-xl w-full relative">
+                    <button @click="playRulesVocal" class="absolute -top-3 -right-3 bg-indigo-600 text-white p-2 rounded-full shadow-lg active:scale-90 transition-all border-2 border-white">
+                        <Volume2 size="20" />
+                    </button>
+
                     <div class="rules-badge uppercase font-black tracking-widest">Manual del Investigador</div>
                     <div class="flex flex-col gap-5 p-2">
                         <div class="flex gap-4 items-start">
@@ -246,7 +270,7 @@ const triggerWin = async () => {
                         </div>
                         <div class="flex gap-4 items-start">
                             <div class="bg-amber-100 p-2 rounded-xl"><Sparkles class="text-amber-600" size="20" /></div>
-                            <p class="text-sm font-bold text-slate-600">¡Suma: 🥉 | Resta: 🥈 | Multi: 🥇! No falles para duplicar tu premio.</p>
+                            <p class="text-sm font-bold text-slate-600">¡Suma cobre, Resta plata y Multi oro! No falles para duplicar el botín.</p>
                         </div>
                     </div>
                 </div>
@@ -317,132 +341,40 @@ const triggerWin = async () => {
 </template>
 
 <style scoped>
-/* 🛡️ BLINDAJE TÉCNICO v2.9.3 */
-.master-container {
-    position: fixed; inset: 0; z-index: 9999;
-    display: flex; justify-content: center; align-items: center;
-    background-color: #ffffff; overflow: hidden;
-    touch-action: none !important;
-    height: 100dvh; top: 0; left: 0; /* Blindaje de viewport dinámico */
-}
-
-.app-canvas {
-    display: flex; flex-direction: column; justify-content: space-between;
-    position: relative; overflow: hidden; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    user-select: none; width: 100vw; height: 100dvh;
-}
-
+.master-container { position: fixed; inset: 0; z-index: 9999; display: flex; justify-content: center; align-items: center; background-color: #ffffff; overflow: hidden; touch-action: none !important; height: 100dvh; top: 0; left: 0; }
+.app-canvas { display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); user-select: none; width: 100vw; height: 100dvh; }
 @media (min-width: 1025px) { .app-canvas { width: 1024px; height: 90dvh; border-radius: 45px; border: 8px solid white; box-shadow: 0 40px 100px rgba(0,0,0,0.2); } }
-
-.header-sopa {
-    width: 100%; display: flex; align-items: center; justify-content: space-between;
-    padding: 0.75rem 1.25rem; background: white; border-bottom: 2px solid #f1f5f9; z-index: 50;
-}
-
-.session-loot-capsule {
-    display: flex; align-items: center; background: white; padding: 6px 16px;
-    border-radius: 9999px; border: 2px solid #f1f5f9;
-}
-
+.header-sopa { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1.25rem; background: white; border-bottom: 2px solid #f1f5f9; z-index: 50; }
+.session-loot-capsule { display: flex; align-items: center; background: white; padding: 6px 16px; border-radius: 9999px; border: 2px solid #f1f5f9; }
 .loot-indicator { display: flex; align-items: center; gap: 6px; padding: 0 10px; }
 .loot-indicator img { width: 1.15rem; height: 1.15rem; object-fit: contain; }
 .loot-indicator span { font-weight: 900; color: #1e293b; font-size: 0.9rem; }
-
 .btn-close-sopa { background: #fee2e2; color: #ef4444; width: 36px; height: 36px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; }
-
-/* --- LUPA 3D CSS --- */
-.magnifying-glass-3d {
-    position: relative;
-    width: 76px;
-    height: 76px;
-    margin-bottom: 10px;
-}
-.glass-frame {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.9), rgba(165,180,252,0.3));
-    border: 7px solid #4f46e5;
-    box-shadow: inset -3px -3px 6px rgba(0,0,0,0.15), 3px 5px 0px #312e81;
-    z-index: 2;
-    backdrop-filter: blur(2px);
-}
-.glass-reflection {
-    position: absolute;
-    top: 8px;
-    left: 12px;
-    width: 22px;
-    height: 14px;
-    background: rgba(255,255,255,0.7);
-    border-radius: 50%;
-    transform: rotate(-30deg);
-}
-.glass-handle {
-    position: absolute;
-    top: 48px;
-    left: 48px;
-    width: 16px;
-    height: 40px;
-    background: linear-gradient(90deg, #334155, #0f172a);
-    border-radius: 8px;
-    transform: rotate(-45deg);
-    box-shadow: 3px 4px 0px rgba(0,0,0,0.3);
-    z-index: 1;
-}
-.glass-handle::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    height: 8px;
-    background: #facc15;
-    border-radius: 0 0 8px 8px;
-}
-
-/* OPTIMIZACIÓN DE TAMAÑO PARA MÓVILES */
-.sopa-grid-container { 
-    width: 90%; 
-    max-width: 340px; /* Reducido de 380 a 340 para que quepa en todos los móviles */
-    aspect-ratio: 1/1; 
-    background: white; 
-    border-radius: 2rem; 
-    padding: 6px; 
-    border: 4px solid white; 
-    outline: 4px solid #f1f5f9; 
-}
-
+.magnifying-glass-3d { position: relative; width: 76px; height: 76px; margin-bottom: 10px; }
+.glass-frame { position: absolute; top: 0; left: 0; width: 60px; height: 60px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.9), rgba(165,180,252,0.3)); border: 7px solid #4f46e5; box-shadow: inset -3px -3px 6px rgba(0,0,0,0.15), 3px 5px 0px #312e81; z-index: 2; backdrop-filter: blur(2px); }
+.glass-reflection { position: absolute; top: 8px; left: 12px; width: 22px; height: 14px; background: rgba(255,255,255,0.7); border-radius: 50%; transform: rotate(-30deg); }
+.glass-handle { position: absolute; top: 48px; left: 48px; width: 16px; height: 40px; background: linear-gradient(90deg, #334155, #0f172a); border-radius: 8px; transform: rotate(-45deg); box-shadow: 3px 4px 0px rgba(0,0,0,0.3); z-index: 1; }
+.glass-handle::after { content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 8px; background: #facc15; border-radius: 0 0 8px 8px; }
+.sopa-grid-container { width: 90%; max-width: 340px; aspect-ratio: 1/1; background: white; border-radius: 2rem; padding: 6px; border: 4px solid white; outline: 4px solid #f1f5f9; }
 .cell-btn { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 900; font-style: italic; border: 0.5px solid #f1f5f9; }
 .cell-neutral { color: #cbd5e1; }
 .cell-selected { background: #fde047; color: #854d0e; border-radius: 8px; transform: scale(1.05); }
 .cell-correct { background: #dcfce7; color: #15803d; }
 .cell-error { background: #fee2e2; color: #b91c1c; animation: shake 0.2s ease-in-out 2; }
-
 .challenge-pill { padding: 4px; border-radius: 8px; border: 2px solid #e0e7ff; text-align: center; }
 .pill-found { background: #f0fdf4; border-color: #bbf7d0; opacity: 0.4; color: #166534; transform: scale(0.9); }
 .pill-active { background: white; color: #312e81; }
-
 .rules-panel-sopa { width: 92%; background: white; padding: 1.5rem; border-radius: 2rem; border: 2px solid #e2e8f0; position: relative; }
 .rules-badge { position: absolute; top: -12px; left: 1.5rem; background: #4f46e5; color: white; font-size: 10px; font-weight: 900; padding: 4px 12px; border-radius: 9999px; }
-
-.victory-overlay {
-    position: absolute; inset: 0; z-index: 300; background: white;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    padding: 2rem; text-align: center;
-}
+.victory-overlay { position: absolute; inset: 0; z-index: 300; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; text-align: center; }
 .victory-title { font-size: 2.2rem; line-height: 1; margin-bottom: 1rem; }
 .prize-card { background: #f5f3ff; border: 4px solid #ede9fe; border-radius: 3rem; padding: 1.5rem; width: 100%; max-width: 280px; margin-bottom: 1.5rem; }
 .prize-item { display: flex; flex-direction: column; align-items: center; }
 .prize-item img { width: 2.5rem; height: 2.5rem; margin-bottom: 4px; }
 .prize-item span { font-size: 1.5rem; font-weight: 900; color: #4338ca; }
-
 .game-title { font-weight: 900; color: #312e81; text-transform: uppercase; font-style: italic; letter-spacing: -0.05em; }
 .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
 @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
 .pop-enter-active { animation: pop-in 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
 @keyframes pop-in { from { opacity: 0; transform: scale(0.9) translateY(15px); } to { opacity: 1; transform: scale(1) translateY(0); } }

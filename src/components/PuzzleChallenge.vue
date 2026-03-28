@@ -1,20 +1,54 @@
 <script setup>
 /** * ARCHIVO: ROMPECABEZAS MATE - PuzzleChallenge.vue
- * NOTA INTERNA: ESTRUCTURA MAESTRA v4.0 + BLINDAJE DVH + PIEZAS 3D HIPERREALISTAS
- * LOGICA: Reporte de cada pieza al Store para avance de misiones en tiempo real.
+ * NOTA INTERNA: ESTRUCTURA MAESTRA v4.2 - CONSOLIDACIÓN MOTOR DE VOZ FINAL
+ * LOGICA: Silencio absoluto en juego. Locución quirúrgica en reglas y premiación.
  */
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
 import { puzzleImages } from '../data/puzzleImages';
-import { Lock, Trophy, X as CloseIcon, Sparkles, BookOpen, PlayCircle, MousePointer2, ChevronRight, RotateCcw } from 'lucide-vue-next';
+import { 
+    Lock, Trophy, X as CloseIcon, Sparkles, BookOpen, PlayCircle, 
+    MousePointer2, ChevronRight, RotateCcw, Volume2 
+} from 'lucide-vue-next';
 import SimpleConfetti from './SimpleConfetti.vue';
 import CoinRain from './CoinRain.vue';
 import VirtualKeyPad from './VirtualKeypad.vue';
 import { useGamificationStore } from '../stores/useGamificationStore';
-import { speak } from '../utils/voice';
 import { playOwlHoot, playCoinSound } from '../utils/sound';
 
 const emit = defineEmits(['close', 'win']);
 const gamificationStore = useGamificationStore();
+
+// --- 🔊 MOTOR DE VOZ UNIFICADO (Web Speech API) ---
+const speak = (text, mood = 'intro') => {
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'es-ES';
+
+    // Configuración de estados según Compendio Maestro
+    if (mood === 'gold') {
+        utterance.pitch = 1.4; // Entusiasta y aguda
+        utterance.rate = 1.1;
+    } else if (mood === 'silver') {
+        utterance.pitch = 1.0;
+        utterance.rate = 1.0;
+    } else if (mood === 'copper') {
+        utterance.pitch = 0.8; // Grave y pausada (aliento)
+        utterance.rate = 0.9;
+    } else {
+        // Modo 'intro' o instrucciones
+        utterance.pitch = 1.1;
+        utterance.rate = 1.0;
+    }
+
+    window.speechSynthesis.speak(utterance);
+};
+
+// Función para narrar las instrucciones iniciales
+const vocalizeRules = () => {
+    speak("¡A construir el puzzle! Toca cualquier pieza gris para revelar un reto matemático. Resuelve la operación correctamente para desbloquear la imagen oculta. ¡Suma cobre, resta plata y multiplica o divide para ganar oro!");
+};
 
 // --- 1. ESTADO DEL JUEGO ---
 const gameState = ref('rules'); 
@@ -33,6 +67,15 @@ const showMathModal = ref(false);
 const challenge = ref({ a: 0, b: 0, op: '', result: 0 });
 const userAnswer = ref('');
 const feedbackStatus = ref('neutral'); 
+
+// --- ⚡ ESTRATEGIA DE AUDIO (WATCHERS) ---
+watch(gameState, (newState) => {
+    if (newState === 'rules') {
+        vocalizeRules();
+    }
+});
+
+// NOTA: Se ha eliminado el watch sobre showMathModal para garantizar el SILENCIO EN JUEGO.
 
 // --- 2. LÓGICA DE NAVEGACIÓN ---
 const startGame = () => {
@@ -135,7 +178,7 @@ const checkAutomaticAnswer = () => {
         feedbackStatus.value = 'error';
         errorsInCurrentSquare.value++;
         totalErrors.value++;
-        speak("¡Oh no!", { volume: 1.0, pitch: 1.2 });
+        // SILENCIO EN JUEGO: Se elimina el speak de error "Oh no"
         setTimeout(() => { userAnswer.value = ''; feedbackStatus.value = 'neutral'; }, 800);
     }
 };
@@ -150,11 +193,19 @@ const checkWinCondition = async () => {
         
         gamificationStore.updateMissionProgress('play_any_game', 1);
 
+        let mood = 'gold';
+        if (totalErrors.value > 6) mood = 'copper';
+        else if (totalErrors.value > 2) mood = 'silver';
+
         if (totalErrors.value > 6) {
             sessionCoins.value.gold = Math.min(sessionCoins.value.gold, 5);
             sessionCoins.value.silver = Math.min(sessionCoins.value.silver, 5);
             sessionCoins.value.copper = Math.min(sessionCoins.value.copper, 5);
         }
+
+        // Vocalización de Salida: Narra premio y botín
+        const finalMsg = `¡Puzzle completado! Has ganado un botín de ${sessionCoins.value.gold} monedas de oro, ${sessionCoins.value.silver} de plata y ${sessionCoins.value.copper} de cobre. ¡Excelente trabajo, arquitecto!`;
+        speak(finalMsg, mood);
 
         await gamificationStore.addCoins('gold', sessionCoins.value.gold);
         await gamificationStore.addCoins('silver', sessionCoins.value.silver);
@@ -164,7 +215,11 @@ const checkWinCondition = async () => {
 };
 
 onMounted(() => {
-    if (gameState.value === 'playing') initGame();
+    if (gameState.value === 'rules') vocalizeRules();
+});
+
+onUnmounted(() => {
+    window.speechSynthesis.cancel();
 });
 </script>
 
@@ -199,7 +254,6 @@ onMounted(() => {
                 </button>
 
                 <div class="flex flex-col items-center mt-4">
-                    
                     <div class="puzzle-3d-epic animate-puzzle-float">
                         <div class="puzzle-shadow"></div>
                         <div class="puzzle-block block-blue">
@@ -214,11 +268,15 @@ onMounted(() => {
                             <div class="glossy-shine"></div>
                         </div>
                     </div>
-
                     <h1 class="game-title text-4xl uppercase italic font-black text-indigo-900 mt-2 drop-shadow-sm">PUZZLE MÁGICO</h1>
                 </div>
 
-                <div class="rules-panel-puzzle shadow-xl w-full bg-white/90 backdrop-blur-sm mt-4 shrink-0">
+                <div class="rules-panel-puzzle shadow-xl w-full bg-white/90 backdrop-blur-sm mt-4 shrink-0 relative">
+                    <button @click="vocalizeRules" 
+                            class="absolute -top-3 -right-3 bg-indigo-600 text-white p-2 rounded-full shadow-lg hover:scale-110 active:scale-95 transition-all border-2 border-white">
+                        <Volume2 size="24" />
+                    </button>
+
                     <div class="rules-badge uppercase font-black tracking-widest">Manual del Constructor</div>
                     <div class="flex flex-col gap-3 p-2 mt-2">
                         <div class="flex gap-4 items-start">
@@ -231,7 +289,7 @@ onMounted(() => {
                         </div>
                         <div class="flex gap-4 items-start">
                             <div class="bg-amber-100 p-2 rounded-xl shrink-0"><Trophy class="text-amber-600" size="18" /></div>
-                            <p class="text-xs font-bold text-slate-700 leading-tight">¡Suma: 🥉 | Resta: 🥈 | Mult/Div: 🥇! Completa las 10 piezas.</p>
+                            <p class="text-xs font-bold text-slate-700 leading-tight">¡Suma cobre, Resta plata y Multi/Div gana oro! Completa las 10 piezas.</p>
                         </div>
                     </div>
                 </div>
@@ -250,7 +308,6 @@ onMounted(() => {
             </div>
 
             <div v-else-if="gameState === 'playing'" class="flex-1 flex flex-col items-center justify-center p-4 animate-fade-in relative overflow-hidden">
-                
                 <div class="flex-1 flex flex-col items-center justify-center w-full min-h-0">
                     <div v-if="selectedImage" class="puzzle-board-container shadow-2xl relative w-full max-h-full">
                       <img :src="getImageUrl(selectedImage.fileName)" class="absolute inset-0 w-full h-full object-cover" />
@@ -263,11 +320,8 @@ onMounted(() => {
                       </div>
                     </div>
                 </div>
-
                 <div class="text-center px-4 uppercase shrink-0 mt-4 mb-2">
-                    <p class="text-indigo-700 font-black text-sm tracking-widest animate-pulse">
-                      Toca una pieza para desbloquear
-                    </p>
+                    <p class="text-indigo-700 font-black text-sm tracking-widest animate-pulse">Toca una pieza para desbloquear</p>
                 </div>
             </div>
 
@@ -277,11 +331,11 @@ onMounted(() => {
                 <h2 class="victory-title text-indigo-950 font-black italic shrink-0">¡PUZZLE COMPLETADO!</h2>
                 
                 <div class="prize-card border-b-[10px] border-indigo-100 bg-white/70 backdrop-blur-md shadow-lg shrink-0">
-                   <div class="flex justify-around items-center w-full">
+                    <div class="flex justify-around items-center w-full">
                       <div class="prize-item"><img src="/images/coin-gold.png" /><span>+{{ sessionCoins.gold }}</span></div>
                       <div class="prize-item border-x border-slate-300 px-6"><img src="/images/coin-silver.png" /><span>+{{ sessionCoins.silver }}</span></div>
                       <div class="prize-item"><img src="/images/coin-copper.png" /><span>+{{ sessionCoins.copper }}</span></div>
-                   </div>
+                    </div>
                 </div>
 
                 <div class="flex flex-col gap-4 w-full max-w-[280px] shrink-0">
@@ -297,6 +351,7 @@ onMounted(() => {
           <div v-if="showMathModal" class="math-modal-overlay">
             <div class="math-card shadow-2xl">
               <button @click="showMathModal = false" class="btn-close-modal border border-slate-200 shadow-sm"><CloseIcon :size="20" stroke-width="3" class="text-slate-600" /></button>
+              
               <p class="modal-hint font-bold uppercase tracking-tighter opacity-50 text-indigo-900">Resuelve la pieza</p>
               <div class="math-expression">
                 {{ challenge.a }} <span class="op-symbol text-indigo-500">{{ challenge.op }}</span> {{ challenge.b }}
@@ -316,144 +371,40 @@ onMounted(() => {
 </template>
 
 <style scoped>
-/* 🛡️ BLINDAJE TÉCNICO MASTER-CONTAINER v4.0 */
-.master-container {
-    position: fixed; inset: 0; z-index: 9999;
-    display: flex; justify-content: center; align-items: center;
-    background-color: #ffffff; overflow: hidden;
-    touch-action: none !important;
-}
-
-.app-canvas {
-    display: flex; flex-direction: column; justify-content: space-between;
-    position: relative; overflow: hidden; transition: all 0.4s;
-    user-select: none; width: 100vw; height: 100dvh;
-}
-
+/* (Mantenemos los estilos originales sin cambios para no romper el blindaje visual) */
+.master-container { position: fixed; inset: 0; z-index: 9999; display: flex; justify-content: center; align-items: center; background-color: #ffffff; overflow: hidden; touch-action: none !important; }
+.app-canvas { display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; transition: all 0.4s; user-select: none; width: 100vw; height: 100dvh; }
 @media (min-width: 1025px) { .app-canvas { width: 1024px; height: 90dvh; border-radius: 45px; border: 8px solid white; box-shadow: 0 40px 100px rgba(0,0,0,0.2); } }
-
-/* HEADER HOMOLOGADO */
-.header-standard {
-    width: 100%; display: flex; align-items: center; justify-content: space-between;
-    padding: 0.75rem 1.25rem; border-bottom: 1px solid rgba(226, 232, 240, 0.6); z-index: 50;
-}
-
+.header-standard { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1.25rem; border-bottom: 1px solid rgba(226, 232, 240, 0.6); z-index: 50; }
 .trophy-section { display: flex; align-items: center; gap: 0.5rem; }
-
-.session-loot-capsule {
-    display: flex; align-items: center; background: white; padding: 6px 16px;
-    border-radius: 9999px; border: 2px solid #f1f5f9; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-}
-
+.session-loot-capsule { display: flex; align-items: center; background: white; padding: 6px 16px; border-radius: 9999px; border: 2px solid #f1f5f9; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
 .loot-item { display: flex; align-items: center; gap: 6px; padding: 0 10px; }
 .loot-item img { width: 1.2rem; height: 1.2rem; }
 .loot-item span { font-weight: 900; color: #1e293b; }
-
 .btn-close-circle { background: white; color: #ef4444; width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
-
-/* --- 🧩 PIEZAS DE PUZZLE 3D HIPERREALISTAS CSS --- */
-.puzzle-3d-epic {
-    position: relative;
-    width: 150px;
-    height: 130px;
-    margin-bottom: 1rem;
-    transform: perspective(800px) rotateX(25deg) rotateY(-15deg);
-    transform-style: preserve-3d;
-}
-
-.puzzle-shadow {
-    position: absolute;
-    bottom: -15px;
-    left: 20px;
-    width: 110px;
-    height: 35px;
-    background: radial-gradient(ellipse at center, rgba(0,0,0,0.3) 0%, transparent 70%);
-    filter: blur(5px);
-}
-
-.puzzle-block {
-    position: absolute;
-    width: 65px;
-    height: 65px;
-    border-radius: 12px;
-    /* Efecto 3D de Resina/Plástico grueso */
-    box-shadow: 
-        inset 4px 4px 8px rgba(255, 255, 255, 0.7), 
-        inset -5px -5px 12px rgba(0, 0, 0, 0.4), 
-        6px 12px 18px rgba(0, 0, 0, 0.35);
-}
-
-.block-blue {
-    top: 10px;
-    left: 15px;
-    background: linear-gradient(135deg, #60a5fa 0%, #1d4ed8 100%);
-    border: 1px solid #1e3a8a;
-    z-index: 2;
-}
-
-.block-green {
-    top: 50px;
-    left: 65px;
-    background: linear-gradient(135deg, #4ade80 0%, #15803d 100%);
-    border: 1px solid #14532d;
-    z-index: 1;
-}
-
-/* Salientes (Knobs) */
-.knob {
-    position: absolute;
-    width: 26px;
-    height: 26px;
-    background: inherit;
-    border-radius: 50%;
-    box-shadow: inset 3px 3px 5px rgba(255,255,255,0.5), inset -3px -3px 6px rgba(0,0,0,0.4);
-}
-
+.puzzle-3d-epic { position: relative; width: 150px; height: 130px; margin-bottom: 1rem; transform: perspective(800px) rotateX(25deg) rotateY(-15deg); transform-style: preserve-3d; }
+.puzzle-shadow { position: absolute; bottom: -15px; left: 20px; width: 110px; height: 35px; background: radial-gradient(ellipse at center, rgba(0,0,0,0.3) 0%, transparent 70%); filter: blur(5px); }
+.puzzle-block { position: absolute; width: 65px; height: 65px; border-radius: 12px; box-shadow: inset 4px 4px 8px rgba(255, 255, 255, 0.7), inset -5px -5px 12px rgba(0, 0, 0, 0.4), 6px 12px 18px rgba(0, 0, 0, 0.35); }
+.block-blue { top: 10px; left: 15px; background: linear-gradient(135deg, #60a5fa 0%, #1d4ed8 100%); border: 1px solid #1e3a8a; z-index: 2; }
+.block-green { top: 50px; left: 65px; background: linear-gradient(135deg, #4ade80 0%, #15803d 100%); border: 1px solid #14532d; z-index: 1; }
+.knob { position: absolute; width: 26px; height: 26px; background: inherit; border-radius: 50%; box-shadow: inset 3px 3px 5px rgba(255,255,255,0.5), inset -3px -3px 6px rgba(0,0,0,0.4); }
 .block-blue .knob-right { right: -13px; top: 19px; }
 .block-blue .knob-bottom { bottom: -13px; left: 19px; }
 .block-green .knob-right { right: -13px; top: 19px; }
-
-/* Entrantes (Holes) simulando profundidad con sombra interna */
-.hole {
-    position: absolute;
-    width: 26px;
-    height: 26px;
-    background: #1e293b; /* Color profundo para el hueco */
-    border-radius: 50%;
-    box-shadow: inset 4px 4px 6px rgba(0,0,0,0.8), inset -2px -2px 4px rgba(255,255,255,0.2);
-}
-
+.hole { position: absolute; width: 26px; height: 26px; background: #1e293b; border-radius: 50%; box-shadow: inset 4px 4px 6px rgba(0,0,0,0.8), inset -2px -2px 4px rgba(255,255,255,0.2); }
 .block-green .hole-top { top: -11px; left: 19px; }
 .block-green .hole-left { left: -11px; top: 19px; }
-
-/* Reflejo brillante de cristal superior */
-.glossy-shine {
-    position: absolute;
-    top: 2px;
-    left: 2px;
-    width: 80%;
-    height: 40%;
-    background: linear-gradient(180deg, rgba(255,255,255,0.6), rgba(255,255,255,0));
-    border-radius: 10px 10px 20px 20px;
-    pointer-events: none;
-}
-
+.glossy-shine { position: absolute; top: 2px; left: 2px; width: 80%; height: 40%; background: linear-gradient(180deg, rgba(255,255,255,0.6), rgba(255,255,255,0)); border-radius: 10px 10px 20px 20px; pointer-events: none; }
 .animate-puzzle-float { animation: puzzleFloat 4s ease-in-out infinite; }
 @keyframes puzzleFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
-
-/* ---------------------------------- */
-
 .puzzle-board-container { width: 100%; max-width: 320px; aspect-ratio: 4/5; background: white; border-radius: 1.5rem; overflow: hidden; border: 6px solid white; margin: 0 auto;}
-
 .rules-panel-puzzle { width: 92%; max-width: 400px; padding: 1.2rem; border-radius: 2rem; border: 2px solid rgba(226, 232, 240, 0.8); position: relative; }
 .rules-badge { position: absolute; top: -12px; left: 1.5rem; background: #6366f1; color: white; font-size: 10px; font-weight: 900; padding: 4px 12px; border-radius: 9999px; }
-
 .victory-title { font-size: 2rem; line-height: 1; margin-bottom: 1.5rem; }
 .prize-card { border-radius: 2rem; padding: 1.5rem; width: 100%; max-width: 320px; margin-bottom: 1.5rem; border: 2px solid white;}
 .prize-item { display: flex; flex-direction: column; align-items: center; }
 .prize-item img { width: 2.2rem; height: 2.2rem; }
 .prize-item span { font-size: 1.3rem; font-weight: 900; color: #4338ca; }
-
 .math-modal-overlay { position: absolute; inset: 0; z-index: 350; background: rgba(30, 27, 75, 0.6); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; padding: 1.5rem; height: 100dvh; }
 .math-card { background-color: white; border-radius: 2.5rem; padding: 1.5rem; width: 100%; max-width: 320px; border-top: 8px solid #6366f1; display: flex; flex-direction: column; align-items: center; position: relative; }
 .btn-close-modal { position: absolute; top: 1rem; right: 1rem; background: white; padding: 0.5rem; border-radius: 9999px; }
@@ -461,19 +412,11 @@ onMounted(() => {
 .answer-text { width: 100%; text-align: center; font-size: 3rem; font-weight: 900; padding: 0.5rem 0; border-radius: 1.5rem; border: 4px solid #f1f5f9; background-color: #f8fafc; }
 .answer-text.correct { background: #f0fdf4; border-color: #4ade80; color: #166534; }
 .answer-text.error { background: #fef2f2; border-color: #f87171; color: #991b1b; animation: shake 0.3s; }
-
-.btn-primary-action {
-  color: white; font-weight: 900; font-size: 1.2rem;
-  padding: 1.2rem; border-radius: 1.5rem; border-bottom: 6px solid #1d4ed8;
-  display: flex; align-items: center; justify-content: center;
-  transition: 0.1s; cursor: pointer;
-}
+.btn-primary-action { color: white; font-weight: 900; font-size: 1.2rem; padding: 1.2rem; border-radius: 1.5rem; border-bottom: 6px solid #1d4ed8; display: flex; align-items: center; justify-content: center; transition: 0.1s; cursor: pointer; }
 .btn-primary-action:active { transform: translateY(3px); border-bottom-width: 2px; }
-
 .game-title { font-weight: 900; color: #312e81; text-transform: uppercase; font-style: italic; letter-spacing: -0.05em; }
 .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
 @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
 .pop-enter-active { animation: pop-in 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
 @keyframes pop-in { from { opacity: 0; transform: scale(0.95) translateY(20px); } to { opacity: 1; transform: scale(1) translateY(0); } }

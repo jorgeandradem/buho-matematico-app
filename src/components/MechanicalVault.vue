@@ -1,17 +1,16 @@
 <script setup>
-/** * ARCHIVO: LA BÓVEDA -MechanicalVault.vue
- * NOTA INTERNA: v3.4.0 - SONIDOS MECÁNICOS + BÓVEDA 3D ANIMADA + MISSION SYNC
+/** * ARCHIVO: LA BÓVEDA - MechanicalVault.vue
+ * NOTA INTERNA: v3.5.0 - MOTOR DE VOZ UNIFICADO + SILENCIO EN ACCIÓN + REPETICIÓN REGLAS
  * LOGICA: Registro de 'vault_solve' + Desplazamiento vertical.
  * DISEÑO: Intro/Fin en Beige, Acción en Slate. Números XL con sombra cilíndrica.
  */
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { 
   X, Lock, Unlock, PlayCircle, Trophy,
-  RotateCw, Medal, Star, ShieldCheck
+  RotateCw, Medal, Star, ShieldCheck, Volume2
 } from 'lucide-vue-next';
 import CoinRain from './CoinRain.vue';
 import { useGamificationStore } from '../stores/useGamificationStore';
-import { speak } from '../utils/voice';
 
 // --- IMPORTACIÓN DE SONIDOS MECÁNICOS ---
 import dialTickSound from '@/assets/sounds/boveda/dial-tick.mp3';
@@ -19,6 +18,39 @@ import vaultOpenSound from '@/assets/sounds/boveda/vault-open.mp3';
 
 const emit = defineEmits(['close']);
 const store = useGamificationStore();
+
+// --- 🔊 MOTOR DE VOZ UNIFICADO (OFFLINE/ONLINE) ---
+const speak = (text, mood = 'intro') => {
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'es-ES';
+
+    // Configuración de estados solicitados
+    switch (mood) {
+        case 'gold':
+            utterance.pitch = 1.4;
+            utterance.rate = 1.1;
+            break;
+        case 'silver':
+            utterance.pitch = 1.0;
+            utterance.rate = 1.0;
+            break;
+        case 'copper':
+            utterance.pitch = 0.8;
+            utterance.rate = 0.9;
+            break;
+        default: // intro
+            utterance.pitch = 1.1;
+            utterance.rate = 1.0;
+            break;
+    }
+    window.speechSynthesis.speak(utterance);
+};
+
+const vocalizeRules = () => {
+    speak("¡Bienvenido a La Bóveda! Tu misión es crackear el algoritmo secreto. Desliza los diales para descomponer el número en unidades de mil, centenas, decenas y unidades. ¡Consigue el botín!", "intro");
+};
 
 // --- ESTADO DEL JUEGO ---
 const gameState = ref('rules'); 
@@ -65,7 +97,6 @@ const handleStart = (e, index) => {
     startY.value = e.touches ? e.touches[0].clientY : e.clientY;
     startDigitValue.value = userDigits.value[index];
     
-    // Desbloqueo silencioso de audio para iOS
     const unlock = new Audio(dialTickSound);
     unlock.volume = 0;
     unlock.play().catch(() => {});
@@ -82,7 +113,7 @@ const handleMove = (e) => {
     
     if (userDigits.value[isDragging.value] !== nextDigit) {
         userDigits.value[isDragging.value] = nextDigit;
-        playTick(); // ✅ Sonido de engranaje metálico
+        playTick(); 
         if (navigator.vibrate) navigator.vibrate(10);
     }
 };
@@ -104,12 +135,9 @@ const gemStyles = [
 const checkCombination = () => {
     const isCorrect = userDigits.value.every((v, i) => v === targetCode.value[i]);
     if (isCorrect) {
-        // ✅ SONIDO DE APERTURA PESADA
         new Audio(vaultOpenSound).play().catch(() => {});
-        
         gameState.value = 'opening';
-        speak("¡Acceso concedido!");
-
+        // SILENCIO EN JUEGO SEGÚN REGLAS (Solo SFX mecánico)
         store.updateMissionProgress('vault_solve', 1);
 
         setTimeout(() => {
@@ -123,7 +151,7 @@ const checkCombination = () => {
     } else {
         new Audio('/audios/wrong.mp3').play().catch(() => {});
         totalErrors.value++;
-        speak("Combinación incorrecta.");
+        // SILENCIO EN JUEGO SEGÚN REGLAS
     }
 };
 
@@ -140,8 +168,26 @@ const endGame = async () => {
     gameState.value = 'finished';
     showCoinRain.value = true;
     new Audio('/audios/finish.mp3').play().catch(() => {});
+    
+    // Vocalización de Salida: Narrar premio y botín
+    let medal = 'gold';
+    let prize = "la medalla de oro";
+    if (totalErrors.value > 2 && totalErrors.value <= 5) { medal = 'silver'; prize = "la medalla de plata"; }
+    else if (totalErrors.value > 5) { medal = 'copper'; prize = "la medalla de bronce"; }
+
+    speak(`¡Bóveda vaciada con éxito! Has ganado ${prize} y un botín de ${sessionCoins.value.gold} monedas de oro puro.`, medal);
+
     await store.processEndGameRewards({ gold: sessionCoins.value.gold }, totalErrors.value);
 };
+
+// --- CICLO DE VIDA ---
+onMounted(() => {
+    if (gameState.value === 'rules') vocalizeRules();
+});
+
+onUnmounted(() => {
+    if (window.speechSynthesis) window.speechSynthesis.cancel();
+});
 </script>
 
 <template>
@@ -181,7 +227,6 @@ const endGame = async () => {
                 </button>
 
                 <div class="flex flex-col items-center">
-                    
                     <div class="vault-3d-epic animate-vault-float mb-6">
                         <div class="vault-frame">
                             <div class="vault-door">
@@ -206,6 +251,10 @@ const endGame = async () => {
                 </div>
 
                 <div class="rules-panel shadow-xl border-4 border-amber-200">
+                    <button @click="vocalizeRules" class="absolute top-2 right-2 bg-indigo-600 text-white p-2 rounded-full border-2 border-white shadow-md active:scale-90">
+                        <Volume2 size="18" />
+                    </button>
+
                     <div class="rules-badge">INSTRUCCIONES</div>
                     <div class="text-slate-700 font-bold text-center text-sm leading-relaxed mb-4">
                         <p class="mb-2">Este reto corresponde a <span class="text-indigo-700 font-black">LA BÓVEDA</span>.</p>
@@ -312,7 +361,7 @@ const endGame = async () => {
 .loot-item { display: flex; align-items: center; gap: 6px; padding: 0 10px; font-weight: 900; color: #334155; }
 .btn-close-circle { border-radius: 9999px; width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; }
 
-/* --- 🛡️ BÓVEDA 3D CSS HIPERREALISTA --- */
+/* --- 🛡️ BÓVEDA 3D CSS --- */
 .vault-3d-epic {
   position: relative;
   width: 130px;
@@ -369,13 +418,12 @@ const endGame = async () => {
 .b3 { width: 30px; height: 14px; left: -10px; top: 50%; transform: translateY(-50%); border-radius: 0 5px 5px 0; }
 .b4 { width: 30px; height: 14px; right: -10px; top: 50%; transform: translateY(-50%); border-radius: 5px 0 0 5px; }
 
-/* Manija central giratoria */
 .vault-wheel {
   position: absolute;
   width: 50px;
   height: 50px;
   border-radius: 50%;
-  border: 6px solid #eab308; /* Anillo dorado exterior */
+  border: 6px solid #eab308;
   box-shadow: inset 0 2px 4px rgba(0,0,0,0.4), 0 4px 6px rgba(0,0,0,0.5);
   display: flex;
   justify-content: center;
@@ -403,7 +451,6 @@ const endGame = async () => {
 .s3 { width: 4px; height: 60px; transform: rotate(45deg); }
 .s4 { width: 60px; height: 4px; transform: rotate(45deg); }
 
-/* Animación del giro de intento de apertura */
 .animate-wheel-turn {
   animation: wheel-crack 3s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
 }
@@ -425,7 +472,6 @@ const endGame = async () => {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-8px); }
 }
-/* -------------------------------------- */
 
 /* ELEMENTOS VISUALES */
 .game-title { font-weight: 900; text-transform: uppercase; letter-spacing: -0.05em; }

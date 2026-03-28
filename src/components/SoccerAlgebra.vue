@@ -1,15 +1,47 @@
 <script setup>
-/** * ARCHIVO: SoccerAlgebra.vue
- * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.3 + BLINDAJE DVH + REPORTE VIVO
- * LOGICA: Operaciones algebraicas con reporte de goles al Store para misiones.
+/** * ARCHIVO: FÚTBOL ÁLGEBRA - SoccerAlgebra.vue
+ * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.4 - CONSOLIDACIÓN MOTOR DE VOZ FINAL
+ * LOGICA: Silencio absoluto en juego. Locución quirúrgica en reglas y premiación.
  */
-import { ref, computed, onMounted } from 'vue';
-import { Trophy, X, Star, PlayCircle, RotateCcw, BookOpen, ChevronRight } from 'lucide-vue-next';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import { Trophy, X, Star, PlayCircle, RotateCcw, BookOpen, ChevronRight, Volume2 } from 'lucide-vue-next';
 import { gsap } from 'gsap';
-import { useGamificationStore } from '@/stores/useGamificationStore'; 
+import { useGamificationStore } from '../stores/useGamificationStore'; 
 
 const emit = defineEmits(['close', 'win']);
 const store = useGamificationStore();
+
+// --- 🔊 MOTOR DE VOZ UNIFICADO (Web Speech API) ---
+const speak = (text, mood = 'intro') => {
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'es-ES';
+
+    // Configuración de estados según Compendio Maestro
+    if (mood === 'gold') {
+        utterance.pitch = 1.4; // Entusiasta y aguda
+        utterance.rate = 1.1; 
+    } else if (mood === 'silver') {
+        utterance.pitch = 1.0; 
+        utterance.rate = 1.0;
+    } else if (mood === 'copper') {
+        utterance.pitch = 0.8; // Grave y pausada (aliento)
+        utterance.rate = 0.9;
+    } else {
+        // Modo 'intro' o instrucciones
+        utterance.pitch = 1.1;
+        utterance.rate = 1.0;
+    }
+
+    window.speechSynthesis.speak(utterance);
+};
+
+// Función para narrar las instrucciones iniciales mejoradas
+const vocalizeRules = () => {
+    speak("¡Bienvenido a Fútbol Álgebra! Calcula el valor de la incógnita equis que aparece en la pizarra del estadio. Patea el balón que tenga el resultado correcto para anotar un golazo. Necesitas diez goles para completar la misión. ¡Suma para ganar cobre, resta para plata y multiplica o divide para ganar oro!");
+};
 
 // --- 1. SISTEMA DE RECOMPENSAS EN TIEMPO REAL ---
 const sessionCoins = ref({ gold: 0, silver: 0, copper: 0 });
@@ -27,7 +59,14 @@ const levelName = computed(() => {
   return 'Oro (Tablas)';
 });
 
-// Sonidos calibrados
+// --- 👀 WATCHERS DE ESTRATEGIA ---
+watch(gameState, (newState) => {
+    if (newState === 'rules') {
+        vocalizeRules();
+    }
+});
+
+// Sonidos (.mp3 INTACTOS)
 const soundKick = new Audio(new URL('../assets/sounds/soccer/kick.mp3', import.meta.url).href);
 const soundGoal = new Audio(new URL('../assets/sounds/soccer/goal.mp3', import.meta.url).href);
 soundGoal.volume = 0.75; 
@@ -110,7 +149,6 @@ const kickBall = (ball) => {
           soundGoal.play();
           if (navigator.vibrate) navigator.vibrate([50, 30, 50]);
 
-          // 🛡️ REPORTE QUIRÚRGICO A MISIONES: Cada gol avanza la llamita
           store.updateMissionProgress('soccer_goal_algebra', 1);
 
           const opType = currentEquation.value.type;
@@ -131,13 +169,17 @@ const kickBall = (ball) => {
 
 const endGame = async () => { 
   gameState.value = 'finished'; 
-  
-  // 🛡️ REPORTE DE PARTIDA COMPLETADA PARA LA RACHA:
   store.updateMissionProgress('play_any_game', 1);
 
   await store.addMultipleCoins({...sessionCoins.value});
   await store.updateMissionProgress('complete_challenge', 1);
   soundCoins.play().catch(() => {}); 
+
+  // Vocalización de Salida: Narra premio y botín
+  let mood = sessionCoins.value.gold > 0 ? 'gold' : 'silver';
+  const finalMsg = `¡Misión lograda campeón! Has ganado un botín de ${sessionCoins.value.gold} monedas de oro, ${sessionCoins.value.silver} de plata y ${sessionCoins.value.copper} de cobre. ¡Goleada histórica!`;
+  speak(finalMsg, mood);
+
   emit('win', { ...sessionCoins.value });
 };
 
@@ -146,6 +188,14 @@ const resetGame = () => {
   sessionCoins.value = { gold: 0, silver: 0, copper: 0 };
   startGame();
 };
+
+onMounted(() => { 
+    if (gameState.value === 'rules') vocalizeRules();
+});
+
+onUnmounted(() => {
+    window.speechSynthesis.cancel();
+});
 </script>
 
 <template>
@@ -171,7 +221,7 @@ const resetGame = () => {
         </button>
 
         <div class="flex flex-col items-center mt-6 w-full text-center">
-          <h1 class="game-title text-4xl mb-10 italic font-black text-indigo-900">SOCCER ALGEBRA</h1>
+          <h1 class="game-title text-4xl mb-10 italic font-black text-indigo-900">FÚTBOL ÁLGEBRA</h1>
           
           <div class="spherical-ball-rules-wrapper animate-float">
             <svg viewBox="35 35 130 130" xmlns="http://www.w3.org/2000/svg" class="ball-svg-full-size">
@@ -190,10 +240,16 @@ const resetGame = () => {
           </div>
         </div>
 
-        <div class="rules-panel shadow-2xl w-full">
+        <div class="rules-panel shadow-2xl w-full relative">
+          <button @click="vocalizeRules" class="absolute -top-3 -right-3 bg-indigo-600 text-white p-2 rounded-full shadow-lg active:scale-90 transition-all border-2 border-white">
+              <Volume2 size="20" />
+          </button>
+
           <div class="rules-badge uppercase font-black tracking-widest">MANUAL DEL CAMPEÓN</div>
           <ul class="p-4 space-y-4 text-slate-700 font-bold list-none">
-            <li class="flex gap-3 text-sm">🥅 <span>Anota 10 goles para ganar la racha.</span></li>
+            <li class="flex gap-3 text-sm">⚽ <span>Calcula la <b>X</b> que falta en la pizarra del estadio.</span></li>
+            <li class="flex gap-3 text-sm">🥅 <span>Patea el balón con el resultado correcto para anotar.</span></li>
+            <li class="flex gap-3 text-sm">🏆 <span>Anota 10 goles para ganar el trofeo y tu botín.</span></li>
             <li class="flex gap-3 text-sm text-indigo-700">➕ <span>Suma: 🥉 | Resta: 🥈 | Mult/Div: 🥇</span></li>
           </ul>
         </div>
@@ -276,17 +332,16 @@ const resetGame = () => {
 </template>
 
 <style scoped>
-/* 🛡️ BLINDAJE TÉCNICO MASTER-CONTAINER v2.9.3 */
 .master-container { position: fixed; inset: 0; z-index: 9999; display: flex; justify-content: center; align-items: center; background-color: #ffffff; overflow: hidden; height: 100dvh; top: 0; left: 0; }
 .app-canvas { display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; transition: all 0.4s; width: 100vw; height: 100dvh; }
 
-@media (min-width: 1025px) { .app-canvas { width: 1024px; height: 90dvh; border-radius: 45px; border: 8px solid white; box-shadow: 0 40px 100px rgba(0,0,0,0.2); } }
+@media (min-width: 1025px) { .app-canvas { width: 1024px; height: 90dvh; border-radius: 45px; box-shadow: 0 40px 100px rgba(0,0,0,0.2); border: 8px solid white; } }
 
 .header-standard { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1.25rem; background: white; border-bottom: 2px solid #f1f5f9; z-index: 100; }
 .session-loot-capsule { display: flex; align-items: center; background: white; padding: 6px 16px; border-radius: 9999px; border: 2px solid #f1f5f9; }
 .loot-item { display: flex; align-items: center; gap: 6px; padding: 0 10px; font-weight: 900; }
 .loot-item img { width: 1.2rem; height: 1.2rem; object-fit: contain; }
-.btn-close-circle { background: #fee2e2; color: #ef4444; width: 36px; height: 36px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; }
+.btn-close-circle { background: #fee2e2; color: #ef4444; width: 36px; height: 36px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; border: 2px solid #fca5a5; }
 
 .spherical-ball-rules-wrapper { position: relative; width: 180px; height: 180px; display: flex; align-items: center; justify-content: center; }
 .ball-svg-full-size { width: 100%; height: 100%; }

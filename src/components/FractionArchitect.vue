@@ -1,17 +1,53 @@
 <script setup>
-/** * ARCHIVO: FractionArchitect.vue
- * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.3 + BOTÓN 3D HOMOLOGADO + PIZZA 3D CSS
- * LOGICA: 3 Niveles Progresivos (Aprendiz, Chef, Maestro) con inyección atómica.
+/** * ARCHIVO: PIZZA ARQUITECTO - FractionArchitect.vue
+ * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.4 - CONSOLIDACIÓN MOTOR DE VOZ FINAL
+ * LOGICA: Silencio absoluto en juego. Locución quirúrgica en reglas y premiación.
  */
 
-import { ref, computed, watch, onMounted } from 'vue';
-import { X, Trophy, Star, ChefHat, CheckCircle2, PlayCircle, Pizza, Info, Plus, Minus, Coins, RotateCcw, Utensils, ChevronRight } from 'lucide-vue-next';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
+import { 
+  X, Trophy, Star, ChefHat, CheckCircle2, PlayCircle, 
+  Pizza, Info, Plus, Minus, Coins, RotateCcw, 
+  Utensils, ChevronRight, Volume2 
+} from 'lucide-vue-next';
 import { gsap } from 'gsap'; 
 import { useGamificationStore } from '@/stores/useGamificationStore';
 import CoinRain from './CoinRain.vue';
 
 const emit = defineEmits(['close']);
 const store = useGamificationStore(); 
+
+// --- 🔊 MOTOR DE VOZ UNIFICADO (Web Speech API) ---
+const speak = (text, mood = 'intro') => {
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'es-ES';
+
+    // Configuración de estados según Compendio Maestro
+    if (mood === 'gold') {
+        utterance.pitch = 1.4; // Entusiasta y aguda
+        utterance.rate = 1.1; 
+    } else if (mood === 'silver') {
+        utterance.pitch = 1.0; 
+        utterance.rate = 1.0;
+    } else if (mood === 'copper') {
+        utterance.pitch = 0.8; // Grave y pausada (aliento)
+        utterance.rate = 0.9;
+    } else {
+        // Modo 'intro' o instrucciones
+        utterance.pitch = 1.1;
+        utterance.rate = 1.0;
+    }
+
+    window.speechSynthesis.speak(utterance);
+};
+
+// Función para narrar las instrucciones iniciales
+const vocalizeRules = () => {
+    speak("¡Bienvenido a Pizza Arquitecto! Tu misión es hornear la fracción indicada colocando exactamente las porciones necesarias. Aprende equivalencias y sumas para ganar monedas. ¡A cocinar Chef!");
+};
 
 // --- 1. SISTEMA DE RECOMPENSAS EN TIEMPO REAL ---
 const sessionCoins = ref({ gold: 0, silver: 0, copper: 0 });
@@ -22,6 +58,13 @@ const gameState = ref('rules');
 const currentLevel = ref(1);
 const totalLevels = 10;
 const isVictoryLevel = ref(false); 
+
+// --- ⚡ WATCHERS DE ESTRATEGIA ---
+watch(gameState, (newState) => {
+    if (newState === 'rules') {
+        vocalizeRules();
+    }
+});
 
 // --- NAVEGACIÓN HOMOLOGADA QUIRÚRGICA ---
 const handleCloseSurgical = () => {
@@ -175,9 +218,21 @@ const finishGame = async () => {
   await store.addMultipleCoins({...sessionCoins.value});
   await store.updateMissionProgress('complete_challenge', 1);
   playSound('finish1'); playSound('coins');
+
+  // Vocalización de Salida: Narra premio y botín
+  let mood = sessionCoins.value.gold > 0 ? 'gold' : 'silver';
+  const resultText = `¡Pizza completada Chef! Has ganado un botín de ${sessionCoins.value.gold} monedas de oro, ${sessionCoins.value.silver} de plata y ${sessionCoins.value.copper} de cobre. ¡Buen provecho!`;
+  speak(resultText, mood);
 };
 
-onMounted(() => generateNewOrder());
+onMounted(() => {
+    generateNewOrder();
+    if (gameState.value === 'rules') vocalizeRules();
+});
+
+onUnmounted(() => {
+    window.speechSynthesis.cancel();
+});
 </script>
 
 <template>
@@ -220,10 +275,15 @@ onMounted(() => generateNewOrder());
             </div>
           </div>
 
-          <h1 class="game-title text-4xl uppercase font-black italic text-indigo-950 tracking-tighter mt-4">Pizza Architect</h1>
+          <h1 class="game-title text-4xl uppercase font-black italic text-indigo-950 tracking-tighter mt-4">Pizza Arquitecto</h1>
         </div>
 
-        <div class="rules-panel shadow-2xl w-full">
+        <div class="rules-panel shadow-2xl w-full relative">
+          <button @click="vocalizeRules" 
+                  class="absolute -top-3 -right-3 bg-indigo-600 text-white p-2 rounded-full shadow-lg active:scale-90 transition-all border-2 border-white">
+              <Volume2 size="24" />
+          </button>
+
           <div class="rules-badge uppercase font-black tracking-widest">Manual del Chef</div>
           <div class="p-5 space-y-6 mt-2">
             <div class="flex gap-4 items-start">
@@ -341,108 +401,34 @@ onMounted(() => generateNewOrder());
 .app-canvas { display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; background-color: #f8fafc; transition: all 0.4s; width: 100vw; height: 100dvh; }
 @media (min-width: 1025px) { .app-canvas { width: 1024px; height: 90dvh; border-radius: 45px; box-shadow: 0 40px 100px rgba(0,0,0,0.2); border: 8px solid white; } }
 
-/* CABECERA Y BOTONES (Homologado) */
 .header-standard { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1.25rem; background: white; border-bottom: 2px solid #f1f5f9; transition: all 0.3s ease; }
 .session-loot-capsule { display: flex; align-items: center; background: white; padding: 6px 16px; border-radius: 9999px; border: 2px solid #f1f5f9; }
 .loot-item { display: flex; align-items: center; gap: 6px; padding: 0 10px; font-weight: 900; }
 .loot-item img { width: 1.2rem; height: 1.2rem; }
 
-/* NUEVO BOTÓN 'X' SOBRE CÍRCULO BLANCO HOMOLOGADO */
 .btn-close-circle { background: white; color: #ef4444; border: 2px solid #fca5a5; width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.2s; position: relative; z-index: 1001; flex-shrink: 0; }
 .btn-close-circle:active { transform: scale(0.9); }
 
-/* 🍕 PIZZA 3D CSS ESPECTACULAR */
-.pizza-3d-container {
-    width: 160px;
-    height: 120px;
-    position: relative;
-    margin-top: 10px;
-    margin-bottom: 5px;
-}
-
+.pizza-3d-container { width: 160px; height: 120px; position: relative; margin-top: 10px; margin-bottom: 5px; }
 .animate-float-slow { animation: floatSlow 4s ease-in-out infinite; }
 @keyframes floatSlow { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
 
-/* Tabla de madera */
-.pizza-board {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 160px;
-    height: 60px;
-    background: #8b5a2b;
-    border-radius: 50%;
-    box-shadow: 0 10px 0 #5c3a21, 0 15px 15px rgba(0,0,0,0.4);
-    z-index: 1;
-}
+.pizza-board { position: absolute; bottom: 0; left: 0; width: 160px; height: 60px; background: #8b5a2b; border-radius: 50%; box-shadow: 0 10px 0 #5c3a21, 0 15px 15px rgba(0,0,0,0.4); z-index: 1; }
+.pizza-board-inner { position: absolute; bottom: 5px; left: 5px; width: 150px; height: 50px; background: #cd853f; border-radius: 50%; z-index: 2; }
+.pizza-crust { position: absolute; bottom: 10px; left: 10px; width: 140px; height: 50px; background: #f4a460; border-radius: 50%; box-shadow: inset 0 -4px 0 #d2691e; z-index: 3; }
+.pizza-cheese { position: absolute; bottom: 14px; left: 15px; width: 130px; height: 42px; background: radial-gradient(circle at 50% 50%, #ffdf00, #ffcc00); border-radius: 50%; box-shadow: inset 0 -2px 0 #e6b800; z-index: 4; overflow: hidden; }
 
-/* Interior de la tabla */
-.pizza-board-inner {
-    position: absolute;
-    bottom: 5px;
-    left: 5px;
-    width: 150px;
-    height: 50px;
-    background: #cd853f;
-    border-radius: 50%;
-    z-index: 2;
-}
-
-/* Borde crujiente (Crust) */
-.pizza-crust {
-    position: absolute;
-    bottom: 10px;
-    left: 10px;
-    width: 140px;
-    height: 50px;
-    background: #f4a460;
-    border-radius: 50%;
-    box-shadow: inset 0 -4px 0 #d2691e;
-    z-index: 3;
-}
-
-/* Queso derretido */
-.pizza-cheese {
-    position: absolute;
-    bottom: 14px;
-    left: 15px;
-    width: 130px;
-    height: 42px;
-    background: radial-gradient(circle at 50% 50%, #ffdf00, #ffcc00);
-    border-radius: 50%;
-    box-shadow: inset 0 -2px 0 #e6b800;
-    z-index: 4;
-    overflow: hidden;
-}
-
-/* Ingredientes: Pepperoni */
-.pepperoni {
-    position: absolute;
-    width: 24px;
-    height: 10px;
-    background: radial-gradient(circle at 30% 30%, #ff6b6b, #cc0000);
-    border-radius: 50%;
-    box-shadow: inset -2px -2px 4px rgba(0,0,0,0.3);
-}
+.pepperoni { position: absolute; width: 24px; height: 10px; background: radial-gradient(circle at 30% 30%, #ff6b6b, #cc0000); border-radius: 50%; box-shadow: inset -2px -2px 4px rgba(0,0,0,0.3); }
 .p1 { top: 10px; left: 20px; }
 .p2 { top: 20px; left: 60px; }
 .p3 { top: 12px; left: 90px; }
 .p4 { top: 25px; left: 30px; }
 
-/* Ingredientes: Hojitas de Albahaca */
-.basil {
-    position: absolute;
-    width: 14px;
-    height: 6px;
-    background: #228b22;
-    border-radius: 50% 0 50% 0;
-    box-shadow: inset 0 -1px 0 #006400;
-}
+.basil { position: absolute; width: 14px; height: 6px; background: #228b22; border-radius: 50% 0 50% 0; box-shadow: inset 0 -1px 0 #006400; }
 .b1 { top: 18px; left: 45px; transform: rotate(30deg); }
 .b2 { top: 28px; left: 80px; transform: rotate(-45deg); }
 .b3 { top: 15px; left: 70px; transform: rotate(70deg); }
 
-/* PANELES Y TEXTOS */
 .rules-panel { background: white; border-radius: 2.5rem; border: 2px solid #e2e8f0; position: relative; }
 .rules-badge { position: absolute; top: -12px; left: 1.5rem; background: #4f46e5; color: white; font-size: 10px; font-weight: 900; padding: 4px 12px; border-radius: 9999px; }
 

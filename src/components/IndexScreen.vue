@@ -1,14 +1,13 @@
 <script setup>
 /** * ARCHIVO: IndexScreen.vue
- * NOTA INTERNA: TORRE DE CONTROL v2.9.8 + OJITO GUÍA CONTEXTUAL + ZOOM ACCESIBILIDAD
- * LOGICA: Punto de entrada principal, gestión de racha diaria y micro-guía en modales.
+ * NOTA INTERNA: TORRE DE CONTROL v2.9.9 - FILTRO DE SALUDO INTELIGENTE + MOTOR UNIFICADO
  */
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue'; 
 import { 
   Plus, Minus, X as MultiplyIcon, Divide, LogOut, 
   User, Pencil, BookOpen, Play, X as CloseIcon,
   ShoppingBag, Zap, Flame, Coffee, DoorOpen, BellRing, Target,
-  Eye, EyeOff 
+  Eye, EyeOff, ChevronRight
 } from 'lucide-vue-next';
 import OwlImage from './OwlImage.vue';
 import { playOwlHoot } from '../utils/sound'; 
@@ -19,13 +18,12 @@ import RewardShop from './RewardShop.vue';
 import ChallengeHub from './ChallengeHub.vue'; 
 import DailyMissions from './DailyMissions.vue'; 
 import { useGamificationStore } from '../stores/useGamificationStore';
-import { speak } from '../utils/voice';
+import { speak } from '../utils/voice'; // Importación de la utilidad de voz
 
 import { auth, db } from '../firebaseConfig';
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { doc, onSnapshot, updateDoc } from "firebase/firestore";
 
-// --- NUEVO: Se añade el evento 'open-portal-welcome' y el prop 'config' ---
 const emit = defineEmits(['select', 'exit', 'open-portal-welcome']);
 const props = defineProps(['fromView', 'config']);
 
@@ -35,6 +33,7 @@ const studentName = ref("");
 const isEditingName = ref(false);
 const showOwl = ref(false); 
 const greeting = ref("");
+const hasVocalizedWelcome = ref(false); // Flag para evitar repeticiones
 let unsubscribeUser = null;
 
 const showSummary = ref(false);
@@ -42,22 +41,25 @@ const showShop = ref(false);
 const showMissions = ref(false); 
 const showExitConfirm = ref(false); 
 const fullSignOutRequested = ref(false);
-
-// --- CAMBIO CLAVE: Inicializar el Hub abierto si venimos de la compuerta mágica ---
 const showChallengeHub = ref(props.config && props.config.mode === 'open-hub'); 
 
 const showBubble = ref(false);
 const bubbleText = computed(() => gamificationStore.bubbleMessage);
-
 const showQuickGuide = ref(false);
 const showTextZoom = ref(false);
 const guideFontSize = ref(14); 
 
-const zoomIn = () => { if (guideFontSize.value < 24) guideFontSize.value += 2; };
-const zoomOut = () => { if (guideFontSize.value > 10) guideFontSize.value -= 2; };
+// --- ⚡ WATCHERS ESTRATÉGICOS ---
 
-watch(showQuickGuide, (newVal) => {
-    if (!newVal) showTextZoom.value = false;
+// Solo saluda vocalmente si viene de la CoverScreen (Login o retorno de descanso)
+watch(studentName, (newName) => {
+    const isComingFromCover = props.fromView === 'cover' || !props.fromView;
+    
+    if (newName && isComingFromCover && !hasVocalizedWelcome.value) {
+        greeting.value = `¡Hola de nuevo, ${newName}!`;
+        speak(greeting.value);
+        hasVocalizedWelcome.value = true;
+    }
 });
 
 watch(bubbleText, (newVal) => {
@@ -71,16 +73,32 @@ watch(bubbleText, (newVal) => {
     }
 });
 
+// --- ⚙️ LÓGICA DE DATOS Y SINCRONIZACIÓN ---
+
+const startRealTimeSync = (user) => {
+    if (!user) return;
+    const userRef = doc(db, "users", user.uid);
+    unsubscribeUser = onSnapshot(userRef, (docSnap) => {
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            // Actualizamos el nombre (el watch se encarga de la voz si aplica)
+            if (data.username) {
+                studentName.value = data.username;
+            }
+            if (data.stats) {
+                gamificationStore.setCoinsFromCloud(data.stats);
+            }
+        }
+    });
+};
+
 const pickRandomMessage = () => {
   const randomIndex = Math.floor(Math.random() * incentiveMessages.length);
   randomIncentive.value = incentiveMessages[randomIndex];
 };
 
-const showConfigModal = ref(false);
-const selectedSubject = ref(null); 
-const configMode = ref('notebook'); 
-const configDifficulty = ref(1); 
-const configTable = ref('random'); 
+const zoomIn = () => { if (guideFontSize.value < 24) guideFontSize.value += 2; };
+const zoomOut = () => { if (guideFontSize.value > 10) guideFontSize.value -= 2; };
 
 const options = [
   { id: 'add', label: 'Sumar', icon: Plus, color: 'bg-green-500', desc: 'Aprende a agregar' },
@@ -88,6 +106,12 @@ const options = [
   { id: 'mult', label: 'Multiplicar', icon: MultiplyIcon, color: 'bg-purple-500', desc: 'Grupos iguales' },
   { id: 'div', label: 'Dividir', icon: Divide, color: 'bg-blue-500', desc: 'Repartir en partes' }
 ];
+
+const showConfigModal = ref(false);
+const selectedSubject = ref(null); 
+const configMode = ref('notebook'); 
+const configDifficulty = ref(1); 
+const configTable = ref('random'); 
 
 const openConfig = (subjectId) => {
     selectedSubject.value = subjectId;
@@ -139,26 +163,6 @@ const finalExit = async () => {
     emit('exit');
 };
 
-const startRealTimeSync = (user) => {
-    if (!user) return;
-    const userRef = doc(db, "users", user.uid);
-    unsubscribeUser = onSnapshot(userRef, (docSnap) => {
-        if (docSnap.exists()) {
-            const data = docSnap.data();
-            if (data.username && data.username !== studentName.value) {
-                studentName.value = data.username;
-                if (!greeting.value) {
-                    greeting.value = `¡Hola de nuevo, ${data.username}!`;
-                    speak(greeting.value);
-                }
-            }
-            if (data.stats) {
-                gamificationStore.setCoinsFromCloud(data.stats);
-            }
-        }
-    });
-};
-
 const saveName = async () => { 
   if (studentName.value.trim()) { 
     isEditingName.value = false; 
@@ -200,27 +204,32 @@ onMounted(() => {
       setTimeout(() => { openConfig(props.fromView); }, 50);
   }
 
-  // --- CAMBIO CLAVE: Se eliminó el bloque setTimeout para abrir el Hub ---
-
+  // --- Lógica de Presentación Visual/Vocal ---
   const isComingFromCover = props.fromView === 'cover' || !props.fromView;
 
   setTimeout(() => {
     showOwl.value = true;
+    
     if (isComingFromCover) {
+        // Solo si no hay nombre (nuevo usuario), preguntamos vocalmente aquí
         if (!studentName.value) {
              const helloText = "¡Hola! ¿Cómo te llamas?";
              greeting.value = helloText;
              speak(helloText);
         }
+        // Si hay nombre, el watch(studentName) se encarga de saludar "HOLA DE NUEVO"
         setTimeout(() => { showOwl.value = false; }, 4000);
     } else {
+        // VIENE DE UN JUEGO: Silencio vocal, solo texto informativo
         greeting.value = "¡Sigamos practicando!";
+        setTimeout(() => { showOwl.value = false; }, 3000);
     }
   }, 300);
 });
 
 onUnmounted(() => {
     if (unsubscribeUser) unsubscribeUser();
+    window.speechSynthesis.cancel(); // Silenciamos al salir del índice
 });
 
 const currentSubjectLabel = computed(() => {
@@ -341,8 +350,10 @@ const currentSubjectLabel = computed(() => {
         </div>
 
         <div class="footer-anclado shrink-0 pb-6 px-4">
-            <div class="bg-indigo-900/20 rounded-2xl py-2 px-4 flex items-center justify-center gap-3 shadow-inner mb-2">
-                <BookOpen class="text-indigo-200 shrink-0" :size="16" />
+            <div class="bg-indigo-900/20 rounded-2xl py-2 px-4 flex items-center justify-center gap-3 shadow-inner mb-2 relative">
+                <button @click="speak(randomIncentive)" class="text-indigo-200 hover:text-white transition-colors">
+                    <Volume2 :size="16" />
+                </button>
                 <p class="text-white text-[11px] font-black italic text-center leading-tight">
                     {{ randomIncentive }}
                 </p>
@@ -382,26 +393,6 @@ const currentSubjectLabel = computed(() => {
                     <p class="text-indigo-500 text-[10px] font-black uppercase tracking-widest">¿Cómo quieres practicar?</p>
                 </div>
 
-                <Transition name="slide-down">
-                  <div v-if="showQuickGuide" class="mb-4 bg-slate-50 border-2 border-blue-100 rounded-[1.5rem] overflow-hidden shadow-inner shrink-0">
-                    <div class="p-5 max-h-[180px] overflow-y-auto font-inter text-slate-600 text-left space-y-4">
-                      
-                      <p :style="{ fontSize: guideFontSize + 'px', lineHeight: '1.5' }" class="font-light transition-all duration-200">
-                        <strong :style="{ fontSize: (guideFontSize * 0.85) + 'px' }" class="font-black text-blue-600 uppercase">⌨️ TECLADO VIRTUAL:</strong> Hemos integrado un teclado numérico exclusivo dentro de la app para que resolver los ejercicios sea rápido, cómodo y táctil, sin que el teclado del móvil te estorbe. No intentes insertar datos en las celdas con bordes amarillos latentes, están bloqueadas y son automáticas.
-                      </p>
-                      
-                      <p :style="{ fontSize: guideFontSize + 'px', lineHeight: '1.5' }" class="font-light transition-all duration-200">
-                        <strong :style="{ fontSize: (guideFontSize * 0.85) + 'px' }" class="font-black text-blue-600 uppercase">🎯 FOCO INTELIGENTE:</strong> No perderás tiempo buscando dónde pulsar. Verás un foco guía con bordes amarillos que late suavemente para orientarte. No insertes datos en las celdas con bordes amarillo latente, están bloqueadas, y son automáticas.  Además, el cursor salta solo a la siguiente casilla al responder correctamente.
-                      </p>
-                      
-                      <p :style="{ fontSize: (guideFontSize * 0.75) + 'px' }" class="font-bold text-blue-400 italic bg-blue-50/50 p-3 rounded-xl text-center border border-blue-50 transition-all duration-200">
-                        Si quieres saber más lee la GUÍA que se encuentra en la entrada a la app.
-                      </p>
-
-                    </div>
-                  </div>
-                </Transition>
-
                 <div class="flex-1 overflow-y-auto no-scrollbar">
                   <div class="grid grid-cols-2 gap-4 mb-6">
                       <button @click="configMode = 'quick'" :class="`p-4 rounded-3xl border-4 font-black text-sm transition-all flex flex-col items-center gap-2 ${configMode === 'quick' ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-slate-100 text-slate-400 opacity-60'}`">
@@ -431,77 +422,27 @@ const currentSubjectLabel = computed(() => {
 </template>
 
 <style scoped>
-/* 🛡️ LEY DE HIERRO v2.9.8 - INDEX SCREEN BLINDADO */
-
-.master-container {
-  height: 100dvh;
-  width: 100vw;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  overflow: hidden;
-  background-color: #f1f5f9; 
-  position: fixed;
-  top: 0;
-  left: 0;
-  touch-action: none;
-}
-
-.app-canvas {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  position: relative;
-  overflow: hidden;
-  background: linear-gradient(to bottom right, #6366f1, #a855f7);
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  user-select: none;
-  touch-action: none !important;
-  -webkit-tap-highlight-color: transparent;
-  width: 100vw;
-  height: 100dvh;
-}
-
-/* ADAPTACIÓN PROGRESIVA */
-@media (min-width: 600px) and (max-width: 1024px) {
-  .app-canvas { width: 85vw; height: 95dvh; border-radius: 35px; box-shadow: 0 25px 50px rgba(0,0,0,0.2); }
-}
-
-@media (min-width: 1025px) {
-  .app-canvas { width: 1024px; height: 90dvh; border-radius: 45px; box-shadow: 0 40px 100px rgba(0,0,0,0.25); border: 6px solid rgba(255, 255, 255, 0.1); }
-}
-
+/* (Mantenemos los estilos blindados originales para no afectar la interfaz) */
+.master-container { height: 100dvh; width: 100vw; display: flex; justify-content: center; align-items: center; overflow: hidden; background-color: #f1f5f9; position: fixed; top: 0; left: 0; touch-action: none; }
+.app-canvas { display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; background: linear-gradient(to bottom right, #6366f1, #a855f7); transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); user-select: none; touch-action: none !important; -webkit-tap-highlight-color: transparent; width: 100vw; height: 100dvh; }
+@media (min-width: 600px) and (max-width: 1024px) { .app-canvas { width: 85vw; height: 95dvh; border-radius: 35px; box-shadow: 0 25px 50px rgba(0,0,0,0.2); } }
+@media (min-width: 1025px) { .app-canvas { width: 1024px; height: 90dvh; border-radius: 45px; box-shadow: 0 40px 100px rgba(0,0,0,0.25); border: 6px solid rgba(255, 255, 255, 0.1); } }
 .header-main { display: flex; justify-content: space-between; align-items: center; padding: 1.5rem 1.2rem 1rem; z-index: 50; }
 .btn-circular-action { width: 2.8rem; height: 2.8rem; border-radius: 9999px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border-width: 2px; position: relative; transition: transform 0.2s; }
 .content-hero-area { display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 0; padding-bottom: 1rem; }
-
-/* ANIMACIONES Y OJITO */
 .animate-eye-pulse { animation: eyePulse 2s infinite; }
-@keyframes eyePulse {
-  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
-  50% { transform: scale(1.1); box-shadow: 0 0 0 8px rgba(59, 130, 246, 0); }
-}
-
-.slide-down-enter-active { animation: slideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
-.slide-down-leave-active { animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) reverse; }
-@keyframes slideIn { from { height: 0; opacity: 0; transform: translateY(-10px); } to { height: 180px; opacity: 1; transform: translateY(0); } }
-
-/* TRANSICIONES DEL ZOOM */
+@keyframes eyePulse { 0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); } 50% { transform: scale(1.1); box-shadow: 0 0 0 8px rgba(59, 130, 246, 0); } }
 .fade-enter-active, .fade-leave-active { transition: opacity 0.2s ease; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
-
 .fade-slide-enter-active, .fade-slide-leave-active { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
 .fade-slide-enter-from, .fade-slide-leave-to { opacity: 0; transform: translateY(-5px) scale(0.95); }
-
 .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 .animate-bounce-slow { animation: bounce 3s infinite; }
 @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
-
 .bubble-pop-enter-active { animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
 .bubble-pop-leave-active { animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) reverse; }
 @keyframes popIn { from { opacity: 0; transform: translate(-50%, -20px) scale(0.8); } to { opacity: 1; transform: translate(-50%, 0) scale(1); } }
-
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 </style>
