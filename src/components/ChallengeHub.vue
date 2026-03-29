@@ -33,7 +33,7 @@ import ArchitectOfShapes from './ArchitectOfShapes.vue';
 // 🆕 INTEGRACIÓN DEL CERROJO MATEMÁTICO
 import MathLockModal from './MathLockModal.vue';
 
-// 🏗️ IMPORTACIÓN DE NUEVOS RETOS (VOLANDO)
+// 🚀 JUEGOS ACTIVADOS
 import DecimalMarket from './DecimalMarket.vue';
 import AngleNavigation from './AngleNavigation.vue';
 
@@ -60,13 +60,11 @@ const games = [
   { id: 'watchmaker', name: 'El Relojero', icon: Clock, color: 'bg-amber-500', desc: 'Domina las manecillas y gana Plata' },
   { id: 'vault', name: 'La Bóveda', icon: Lock, color: 'bg-slate-600', desc: 'Hackea el valor posicional y gana Oro' },
   { id: 'architect', name: 'Arquitecto de Formas', icon: Layout, color: 'bg-blue-500', desc: 'Cuerpos Geométricos y Mármol' },
-  
-  // 🔐 NUEVO RETO: CERROJO MÁGICO
   { id: 'lock', name: 'Cerrojo Mágico', icon: KeyRound, color: 'bg-yellow-500', desc: 'Abre el cofre del tesoro' },
-
-  // 🆕 RETOS EN CONSTRUCCIÓN (VOLANDO)
-  { id: 'market', name: 'Mercado Decimal', icon: ShoppingCart, color: 'bg-amber-700', desc: 'Cambio Steampunk y la Regla del 100', isVolando: true },
-  { id: 'angles', name: 'Navegación Ángulos', icon: Compass, color: 'bg-cyan-500', desc: 'Navega esquivando icebergs', isVolando: true }
+  
+  // 🚀 RETOS ACTIVADOS (Ya no están "VOLANDO")
+  { id: 'market', name: 'Mercado Decimal', icon: ShoppingCart, color: 'bg-amber-700', desc: 'Cambio Steampunk y la Regla del 100' },
+  { id: 'angles', name: 'Navegación Ángulos', icon: Compass, color: 'bg-cyan-500', desc: 'Navega esquivando icebergs' }
 ];
 
 const totalPages = computed(() => Math.ceil(games.length / gamesPerPage));
@@ -177,24 +175,8 @@ const handleLockSuccess = (payload) => {
            <MathLockModal @close="closeGame" @success="handleLockSuccess" />
         </div>
         
-        <div v-if="activeGame === 'market' || activeGame === 'angles'" class="w-full h-full flex flex-col items-center justify-center bg-slate-50 relative rounded-[2rem] overflow-hidden px-4">
-            <button @click="closeGame" class="absolute top-4 left-4 sm:top-6 sm:left-6 flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 sm:px-5 sm:py-3 rounded-2xl font-black shadow-lg hover:bg-indigo-700 transition z-10 text-xs sm:text-base">
-                <ChevronLeft size="24" class="hidden sm:block" />
-                <ChevronLeft size="18" class="sm:hidden" />
-                <span class="hidden sm:inline">AL PORTAL DE DESAFÍOS</span>
-                <span class="sm:hidden">VOLVER</span>
-            </button>
-            <div class="text-center flex flex-col items-center w-full max-w-sm mx-auto">
-                <span class="text-[80px] sm:text-[120px] inline-block animate-bounce mb-2">🦉</span>
-                <h1 class="text-4xl sm:text-5xl font-black text-indigo-900 uppercase italic">VOLANDO</h1>
-                <h2 class="text-lg sm:text-2xl font-bold text-slate-600 mt-2 text-center break-words">{{ activeGame === 'market' ? 'Mercado Decimal' : 'Navegación de Ángulos' }}</h2>
-                <div class="mt-6 sm:mt-8 bg-white px-4 py-3 sm:px-6 rounded-full border-2 border-indigo-100 shadow-sm flex items-center justify-center gap-2 sm:gap-3 w-full">
-                    <component :is="activeGame === 'market' ? ShoppingCart : Compass" class="text-indigo-500 shrink-0" size="24"/>
-                    <span class="font-bold text-slate-700 text-xs sm:text-base whitespace-nowrap">Preparando reto...</span>
-                </div>
-            </div>
-        </div>
-
+        <DecimalMarket v-if="activeGame === 'market'" @close="closeGame" />
+        <AngleNavigation v-if="activeGame === 'angles'" @close="closeGame" />
       </div>
     </div>
   </div>
@@ -270,7 +252,7 @@ const handleLockSuccess = (payload) => {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  align-items: stretch; /* Forza a los items a llenar el ancho */
+  align-items: stretch;
   width: 100%;
   gap: 0.75rem;
   padding-bottom: 1rem;
@@ -282,7 +264,7 @@ const handleLockSuccess = (payload) => {
   padding: 0.2rem;
   border-bottom: 4px solid #e2e8f0;
   width: 100%;
-  flex: none; /* Elimina estiramientos indeseados cuando hay pocos items */
+  flex: none;
   max-height: 110px;
   min-height: 80px;
   cursor: pointer;

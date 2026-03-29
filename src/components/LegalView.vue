@@ -1,5 +1,5 @@
 <script setup>
-import { ref, nextTick, computed } from 'vue';
+import { ref, nextTick, computed, watch } from 'vue';
 import { 
   ChevronDown, ShieldCheck, Lock, Gavel, Cpu, Info,
   ZoomIn, Shrink, Type
@@ -12,7 +12,7 @@ const isZoomed = ref(false);
 const sectionRefs = ref([]);
 
 // --- 🧪 ESTADO DE LECTURA INMERSIVA ---
-const fontSize = ref(24); 
+const fontSize = ref(22); // Tamaño inicial para modo lectura modificado a 22
 const readingTheme = ref('light'); // 'light', 'sepia', 'dark'
 
 // 🎨 ESTILOS REACTIVOS (El truco para que la fuente obedezca al 100%)
@@ -21,6 +21,13 @@ const readingStyles = computed(() => ({
   fontFamily: '"Inter Variable", sans-serif',
   transition: 'all 0.3s ease'
 }));
+
+// Restablecer el zoom a 22 cada vez que se abre el modo inmersivo
+watch(isZoomed, (isOpen) => {
+    if (isOpen) {
+        fontSize.value = 22;
+    }
+});
 
 /**
  * Lógica para abrir secciones y posicionar la lectura al inicio.
@@ -53,7 +60,7 @@ const toggle = async (id) => {
 const toggleZoom = () => {
   if (isZoomed.value) {
     readingTheme.value = 'light';
-    fontSize.value = 24;
+    fontSize.value = 22;
     activeTab.value = null;
   }
   isZoomed.value = !isZoomed.value;
@@ -172,7 +179,7 @@ const sections = [
               <Type :size="14" class="text-indigo-400" />
               <span class="text-xs font-black text-indigo-900 w-4 text-center">{{ fontSize }}</span>
             </div>
-            <button @click="fontSize < 48 && fontSize++" 
+            <button @click="fontSize < 40 && fontSize++" 
                     class="flex-1 max-w-[120px] h-10 bg-indigo-100 text-indigo-700 rounded-xl font-black text-2xl active:scale-95 transition-all flex items-center justify-center shadow-sm">
               +
             </button>

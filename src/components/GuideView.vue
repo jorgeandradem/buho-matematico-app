@@ -1,5 +1,5 @@
 <script setup>
-import { ref, nextTick, computed } from 'vue';
+import { ref, nextTick, computed, watch } from 'vue';
 import { 
   BookOpen, Sparkles, ChevronDown, MousePointer2, Eye, 
   Eraser, Keyboard, GraduationCap, Trophy, User, 
@@ -14,7 +14,7 @@ const isZoomed = ref(false);
 const sectionRefs = ref([]);
 
 // --- 🧪 ESTADO DE LECTURA INMERSIVA ---
-const fontSize = ref(24);      // Tamaño inicial para modo lectura
+const fontSize = ref(22);      // Tamaño inicial para modo lectura
 const readingTheme = ref('light'); // 'light', 'sepia', 'dark'
 
 // 🎨 ESTILOS REACTIVOS (Herencia directa para que el contenido obedezca)
@@ -23,6 +23,13 @@ const readingStyles = computed(() => ({
   fontFamily: '"Inter", sans-serif',
   transition: 'all 0.3s ease'
 }));
+
+// Restablecer el zoom a 22 cada vez que se abre el modo inmersivo
+watch(isZoomed, (isOpen) => {
+    if (isOpen) {
+        fontSize.value = 22;
+    }
+});
 
 // Lógica de Scroll Original
 const toggle = async (id) => {
@@ -52,7 +59,7 @@ const toggle = async (id) => {
 const toggleZoom = () => {
   if (isZoomed.value) {
     readingTheme.value = 'light';
-    fontSize.value = 24;
+    fontSize.value = 22;
     activeSection.value = null;
   }
   isZoomed.value = !isZoomed.value;
@@ -169,7 +176,7 @@ const toggleZoom = () => {
               <span class="text-xs font-black text-indigo-900 w-4 text-center">{{ fontSize }}</span>
             </div>
 
-            <button @click="fontSize < 48 && fontSize++" 
+            <button @click="fontSize < 40 && fontSize++" 
                     class="flex-1 max-w-[120px] h-10 bg-indigo-100 text-indigo-700 rounded-xl font-black text-2xl active:scale-95 transition-all flex items-center justify-center shadow-sm">
               +
             </button>

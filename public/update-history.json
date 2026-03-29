@@ -1,5 +1,12 @@
 [
   {
+    "updateId": "upd_1774819523952",
+    "version": "2.10.5",
+    "date": "29/03/2026",
+    "title": "EVOLUCIÓN DEL NIDO",
+    "description": "Capitán, hemos añadido: Mercado Decimal (Caja Steampunk) y Navegación Ángulos (Timón 3D). Mejorado: Motor de voz unificado y validaciones náuticas."
+  },
+  {
     "updateId": "upd_1774729523952",
     "version": "2.10.4",
     "date": "28/03/2026",

@@ -7,7 +7,7 @@ import {
   Plus, Minus, X as MultiplyIcon, Divide, LogOut, 
   User, Pencil, BookOpen, Play, X as CloseIcon,
   ShoppingBag, Zap, Flame, Coffee, DoorOpen, BellRing, Target,
-  Eye, EyeOff, ChevronRight
+  Eye, EyeOff, ChevronRight, Volume2
 } from 'lucide-vue-next';
 import OwlImage from './OwlImage.vue';
 import { playOwlHoot } from '../utils/sound'; 
@@ -18,7 +18,7 @@ import RewardShop from './RewardShop.vue';
 import ChallengeHub from './ChallengeHub.vue'; 
 import DailyMissions from './DailyMissions.vue'; 
 import { useGamificationStore } from '../stores/useGamificationStore';
-import { speak } from '../utils/voice'; // Importación de la utilidad de voz
+import { speak } from '../utils/voice';
 
 import { auth, db } from '../firebaseConfig';
 import { onAuthStateChanged, signOut } from "firebase/auth";
@@ -33,7 +33,7 @@ const studentName = ref("");
 const isEditingName = ref(false);
 const showOwl = ref(false); 
 const greeting = ref("");
-const hasVocalizedWelcome = ref(false); // Flag para evitar repeticiones
+const hasVocalizedWelcome = ref(false);
 let unsubscribeUser = null;
 
 const showSummary = ref(false);
@@ -47,11 +47,17 @@ const showBubble = ref(false);
 const bubbleText = computed(() => gamificationStore.bubbleMessage);
 const showQuickGuide = ref(false);
 const showTextZoom = ref(false);
-const guideFontSize = ref(14); 
+const guideFontSize = ref(20); // <-- Zoom por defecto en 20
 
 // --- ⚡ WATCHERS ESTRATÉGICOS ---
 
-// Solo saluda vocalmente si viene de la CoverScreen (Login o retorno de descanso)
+// Restablecer el zoom a 20 cada vez que se abre la burbuja de ayuda
+watch(showQuickGuide, (isOpen) => {
+    if (isOpen) {
+        guideFontSize.value = 20;
+    }
+});
+
 watch(studentName, (newName) => {
     const isComingFromCover = props.fromView === 'cover' || !props.fromView;
     
@@ -81,7 +87,6 @@ const startRealTimeSync = (user) => {
     unsubscribeUser = onSnapshot(userRef, (docSnap) => {
         if (docSnap.exists()) {
             const data = docSnap.data();
-            // Actualizamos el nombre (el watch se encarga de la voz si aplica)
             if (data.username) {
                 studentName.value = data.username;
             }
@@ -97,8 +102,8 @@ const pickRandomMessage = () => {
   randomIncentive.value = incentiveMessages[randomIndex];
 };
 
-const zoomIn = () => { if (guideFontSize.value < 24) guideFontSize.value += 2; };
-const zoomOut = () => { if (guideFontSize.value > 10) guideFontSize.value -= 2; };
+const zoomIn = () => { if (guideFontSize.value < 28) guideFontSize.value += 2; }; // Límite superior subido un poco
+const zoomOut = () => { if (guideFontSize.value > 12) guideFontSize.value -= 2; };
 
 const options = [
   { id: 'add', label: 'Sumar', icon: Plus, color: 'bg-green-500', desc: 'Aprende a agregar' },
@@ -204,23 +209,19 @@ onMounted(() => {
       setTimeout(() => { openConfig(props.fromView); }, 50);
   }
 
-  // --- Lógica de Presentación Visual/Vocal ---
   const isComingFromCover = props.fromView === 'cover' || !props.fromView;
 
   setTimeout(() => {
     showOwl.value = true;
     
     if (isComingFromCover) {
-        // Solo si no hay nombre (nuevo usuario), preguntamos vocalmente aquí
         if (!studentName.value) {
              const helloText = "¡Hola! ¿Cómo te llamas?";
              greeting.value = helloText;
              speak(helloText);
         }
-        // Si hay nombre, el watch(studentName) se encarga de saludar "HOLA DE NUEVO"
         setTimeout(() => { showOwl.value = false; }, 4000);
     } else {
-        // VIENE DE UN JUEGO: Silencio vocal, solo texto informativo
         greeting.value = "¡Sigamos practicando!";
         setTimeout(() => { showOwl.value = false; }, 3000);
     }
@@ -229,7 +230,7 @@ onMounted(() => {
 
 onUnmounted(() => {
     if (unsubscribeUser) unsubscribeUser();
-    window.speechSynthesis.cancel(); // Silenciamos al salir del índice
+    window.speechSynthesis.cancel();
 });
 
 const currentSubjectLabel = computed(() => {
@@ -314,7 +315,7 @@ const currentSubjectLabel = computed(() => {
                  <div v-if="showOwl" class="w-20 h-20 sm:w-24 sm:h-24 transition-all duration-500 shrink-0"><OwlImage customClass="w-full h-full object-contain" /></div>
                  <div class="bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded-full flex items-center gap-2 border border-white/30 shadow-sm w-full max-w-[140px]">
                     <User :size="14" class="text-white" />
-                    <input v-if="isEditingName" type="text" v-model="studentName" @keyup.enter="saveName" class="bg-transparent text-white font-black text-xs outline-none w-full" autoFocus />
+                    <input v-if="isEditingName" type="text" v-model="studentName" @keyup.enter="saveName" class="bg-transparent text-white font-black text-xs outline-none w-full" autofocus />
                     <span v-else class="text-white font-black text-[10px] truncate w-full cursor-pointer uppercase tracking-tighter" @click="isEditingName = true">{{ studentName || "HOLA!" }}</span>
                     <Pencil v-if="!isEditingName" :size="12" class="text-indigo-200" />
                  </div>
@@ -394,6 +395,27 @@ const currentSubjectLabel = computed(() => {
                 </div>
 
                 <div class="flex-1 overflow-y-auto no-scrollbar">
+                  
+                  <Transition name="slide-down">
+                    <div v-if="showQuickGuide" class="mb-4 bg-slate-50 border-2 border-blue-100 rounded-[1.5rem] overflow-hidden shadow-inner shrink-0">
+                      <div class="p-5 max-h-[180px] overflow-y-auto scrollbar-thin font-inter text-slate-600 text-left space-y-4">
+                        
+                        <p :style="{ fontSize: guideFontSize + 'px', lineHeight: '1.5' }" class="font-light transition-all duration-200">
+                          <strong :style="{ fontSize: (guideFontSize * 0.85) + 'px' }" class="font-black text-blue-600 uppercase">⌨️ TECLADO VIRTUAL:</strong> Hemos integrado un teclado numérico exclusivo dentro de la app para que resolver los ejercicios sea rápido, cómodo y táctil, sin que el teclado del móvil te estorbe. No intentes insertar datos en las celdas con bordes amarillos latentes, están bloqueadas y son automáticas.
+                        </p>
+                        
+                        <p :style="{ fontSize: guideFontSize + 'px', lineHeight: '1.5' }" class="font-light transition-all duration-200">
+                          <strong :style="{ fontSize: (guideFontSize * 0.85) + 'px' }" class="font-black text-blue-600 uppercase">🎯 FOCO INTELIGENTE:</strong> No perderás tiempo buscando dónde pulsar. Verás un foco guía con bordes amarillos que late suavemente para orientarte. No insertes datos en las celdas con bordes amarillo latente, están bloqueadas, y son automáticas.  Además, el cursor salta solo a la siguiente casilla al responder correctamente.
+                        </p>
+                        
+                        <p :style="{ fontSize: (guideFontSize * 0.75) + 'px' }" class="font-bold text-blue-400 italic bg-blue-50/50 p-3 rounded-xl text-center border border-blue-50 transition-all duration-200">
+                          Si quieres saber más lee la GUÍA DE USO que se encuentra en la entrada a la app.
+                        </p>
+
+                      </div>
+                    </div>
+                  </Transition>
+
                   <div class="grid grid-cols-2 gap-4 mb-6">
                       <button @click="configMode = 'quick'" :class="`p-4 rounded-3xl border-4 font-black text-sm transition-all flex flex-col items-center gap-2 ${configMode === 'quick' ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-slate-100 text-slate-400 opacity-60'}`">
                         <Zap :size="24" /> RÁPIDA
@@ -422,7 +444,6 @@ const currentSubjectLabel = computed(() => {
 </template>
 
 <style scoped>
-/* (Mantenemos los estilos blindados originales para no afectar la interfaz) */
 .master-container { height: 100dvh; width: 100vw; display: flex; justify-content: center; align-items: center; overflow: hidden; background-color: #f1f5f9; position: fixed; top: 0; left: 0; touch-action: none; }
 .app-canvas { display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; background: linear-gradient(to bottom right, #6366f1, #a855f7); transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); user-select: none; touch-action: none !important; -webkit-tap-highlight-color: transparent; width: 100vw; height: 100dvh; }
 @media (min-width: 600px) and (max-width: 1024px) { .app-canvas { width: 85vw; height: 95dvh; border-radius: 35px; box-shadow: 0 25px 50px rgba(0,0,0,0.2); } }
@@ -436,6 +457,8 @@ const currentSubjectLabel = computed(() => {
 .fade-enter-from, .fade-leave-to { opacity: 0; }
 .fade-slide-enter-active, .fade-slide-leave-active { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
 .fade-slide-enter-from, .fade-slide-leave-to { opacity: 0; transform: translateY(-5px) scale(0.95); }
+.slide-down-enter-active, .slide-down-leave-active { transition: all 0.3s ease-out; }
+.slide-down-enter-from, .slide-down-leave-to { opacity: 0; transform: translateY(-15px); }
 .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 .animate-bounce-slow { animation: bounce 3s infinite; }
@@ -443,6 +466,9 @@ const currentSubjectLabel = computed(() => {
 .bubble-pop-enter-active { animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
 .bubble-pop-leave-active { animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) reverse; }
 @keyframes popIn { from { opacity: 0; transform: translate(-50%, -20px) scale(0.8); } to { opacity: 1; transform: translate(-50%, 0) scale(1); } }
+.scrollbar-thin::-webkit-scrollbar { width: 6px; }
+.scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+.scrollbar-thin::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 20px; }
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 </style>
