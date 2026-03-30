@@ -4,11 +4,12 @@ import { Plus, Minus, X as MultiplyIcon, Divide } from 'lucide-vue-next';
 
 import CoverScreen from './components/CoverScreen.vue';
 import WelcomeScreen from './components/WelcomeScreen.vue'; 
-import PortalWelcomeScreen from './components/PortalWelcomeScreen.vue'; /* INYECTADO: Compuerta del Hub */
+import PortalWelcomeScreen from './components/PortalWelcomeScreen.vue'; 
 import IndexScreen from './components/IndexScreen.vue';
 import GenericTableModule from './components/GenericTableModule.vue';
 import DivisionModule from './components/DivisionModule.vue';
 import ReloadPrompt from './components/ReloadPrompt.vue';
+import CrystalDimension from './components/CrystalDimension.vue'; /* INYECTADO: Dimensión de Cristal */
 
 import { useGamificationStore } from '@/stores/useGamificationStore';
 
@@ -32,7 +33,7 @@ const navigateTo = (viewName, config) => {
       currentConfig.value = safeConfig;
       currentView.value = viewName;
   } else {
-      currentConfig.value = {}; // Reset para evitar que parámetros viejos se filtren
+      currentConfig.value = {}; 
       currentView.value = viewName;
   }
 };
@@ -72,6 +73,13 @@ const navigateTo = (viewName, config) => {
           @select="(cfg) => navigateTo('module', cfg)"
           @exit="navigateTo('cover')"
           @open-portal-welcome="navigateTo('portal-welcome')"
+          @open-crystal-dimension="navigateTo('crystal-dimension')"
+        />
+
+        <CrystalDimension 
+          v-else-if="currentView === 'crystal-dimension'"
+          @close="navigateTo('index')"
+          @sumar-premios="gamificationStore.completeCrystalDimension()"
         />
 
         <GenericTableModule 

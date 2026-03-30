@@ -1,5 +1,5 @@
 /** * ARCHIVO: useGamificationStore.js
- * NOTA INTERNA: BANCO CENTRAL v3.2.0 - INTEGRACIÓN NEWS SCANNER
+ * NOTA INTERNA: BANCO CENTRAL v3.2.0 - INTEGRACIÓN NEWS SCANNER + DIMENSIÓN CRISTAL
  * LOGICA: Sincronización Privada (UID) + Memoria de Actualizaciones.
  */
 import { defineStore } from 'pinia';
@@ -339,6 +339,15 @@ export const useGamificationStore = defineStore('gamification', {
       this.completedIslands.push(islandId);
       this.pirateLevel = (this.pirateLevel < 10) ? this.pirateLevel + 1 : 1;
       this.addCoins(rewardType, rewardAmount);
+    },
+
+    // --- 💎 DIMENSIÓN DE CRISTAL ---
+    completeCrystalDimension() {
+      // Recompensa de 5 monedas de plata por terminar los 3 retos del portal
+      this.addCoins('silver', 5);
+      
+      // Añadimos progreso general para misiones tipo "Juega cualquier juego"
+      this.updateMissionProgress('play_any_game', 1);
     },
 
     saveTicket(ticket) {

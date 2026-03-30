@@ -1,22 +1,23 @@
 <script setup>
 /** * ARCHIVO: IndexScreen.vue
- * NOTA INTERNA: TORRE DE CONTROL v2.9.9 - FILTRO DE SALUDO INTELIGENTE + MOTOR UNIFICADO
+ * NOTA INTERNA: TORRE DE CONTROL v3.0.0 - INTEGRACIÓN TOTAL DIMENSIÓN CRISTAL
+ * LOGICA: Sincronización Privada + Gestión de Premios Cuánticos.
  */
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue'; 
 import { 
   Plus, Minus, X as MultiplyIcon, Divide, LogOut, 
   User, Pencil, BookOpen, Play, X as CloseIcon,
   ShoppingBag, Zap, Flame, Coffee, DoorOpen, BellRing, Target,
-  Eye, EyeOff, ChevronRight, Volume2
+  Eye, EyeOff, Volume2, Hexagon
 } from 'lucide-vue-next';
 import OwlImage from './OwlImage.vue';
-import { playOwlHoot } from '../utils/sound'; 
 import { incentiveMessages } from '../utils/messages';
 import StatusBoard from './StatusBoard.vue';
 import SessionSummary from './SessionSummary.vue';
 import RewardShop from './RewardShop.vue';
 import ChallengeHub from './ChallengeHub.vue'; 
 import DailyMissions from './DailyMissions.vue'; 
+import CrystalDimension from './CrystalDimension.vue'; // 💎 NUEVO: Importación del portal
 import { useGamificationStore } from '../stores/useGamificationStore';
 import { speak } from '../utils/voice';
 
@@ -36,9 +37,11 @@ const greeting = ref("");
 const hasVocalizedWelcome = ref(false);
 let unsubscribeUser = null;
 
+// --- 🧭 NAVEGACIÓN INTERNA ---
 const showSummary = ref(false);
 const showShop = ref(false); 
 const showMissions = ref(false); 
+const showCrystalDimension = ref(false); // 💎 Control del portal
 const showExitConfirm = ref(false); 
 const fullSignOutRequested = ref(false);
 const showChallengeHub = ref(props.config && props.config.mode === 'open-hub'); 
@@ -47,20 +50,16 @@ const showBubble = ref(false);
 const bubbleText = computed(() => gamificationStore.bubbleMessage);
 const showQuickGuide = ref(false);
 const showTextZoom = ref(false);
-const guideFontSize = ref(20); // <-- Zoom por defecto en 20
+const guideFontSize = ref(20); 
 
-// --- ⚡ WATCHERS ESTRATÉGICOS ---
+// --- ⚡ WATCHERS ---
 
-// Restablecer el zoom a 20 cada vez que se abre la burbuja de ayuda
 watch(showQuickGuide, (isOpen) => {
-    if (isOpen) {
-        guideFontSize.value = 20;
-    }
+    if (isOpen) guideFontSize.value = 20;
 });
 
 watch(studentName, (newName) => {
     const isComingFromCover = props.fromView === 'cover' || !props.fromView;
-    
     if (newName && isComingFromCover && !hasVocalizedWelcome.value) {
         greeting.value = `¡Hola de nuevo, ${newName}!`;
         speak(greeting.value);
@@ -79,7 +78,7 @@ watch(bubbleText, (newVal) => {
     }
 });
 
-// --- ⚙️ LÓGICA DE DATOS Y SINCRONIZACIÓN ---
+// --- ⚙️ SINCRONIZACIÓN Y ACCIONES ---
 
 const startRealTimeSync = (user) => {
     if (!user) return;
@@ -87,12 +86,8 @@ const startRealTimeSync = (user) => {
     unsubscribeUser = onSnapshot(userRef, (docSnap) => {
         if (docSnap.exists()) {
             const data = docSnap.data();
-            if (data.username) {
-                studentName.value = data.username;
-            }
-            if (data.stats) {
-                gamificationStore.setCoinsFromCloud(data.stats);
-            }
+            if (data.username) studentName.value = data.username;
+            if (data.stats) gamificationStore.setCoinsFromCloud(data.stats);
         }
     });
 };
@@ -102,7 +97,7 @@ const pickRandomMessage = () => {
   randomIncentive.value = incentiveMessages[randomIndex];
 };
 
-const zoomIn = () => { if (guideFontSize.value < 28) guideFontSize.value += 2; }; // Límite superior subido un poco
+const zoomIn = () => { if (guideFontSize.value < 28) guideFontSize.value += 2; }; 
 const zoomOut = () => { if (guideFontSize.value > 12) guideFontSize.value -= 2; };
 
 const options = [
@@ -137,33 +132,18 @@ const startGame = () => {
     });
 };
 
-const handleExitClick = () => {
-    showExitConfirm.value = true; 
-};
-
-const confirmTakeBreak = () => {
-    fullSignOutRequested.value = false; 
-    showExitConfirm.value = false;
-    showSummary.value = true; 
-};
-
-const confirmFullLogout = () => {
-    fullSignOutRequested.value = true; 
-    showExitConfirm.value = false;
-    showSummary.value = true; 
-};
+const handleExitClick = () => { showExitConfirm.value = true; };
+const confirmTakeBreak = () => { showExitConfirm.value = false; showSummary.value = true; };
+const confirmFullLogout = () => { fullSignOutRequested.value = true; showExitConfirm.value = false; showSummary.value = true; };
 
 const finalExit = async () => {
     showSummary.value = false;
     if (unsubscribeUser) unsubscribeUser(); 
-
     if (fullSignOutRequested.value) {
         try {
             await signOut(auth);
             localStorage.removeItem('buho_last_login'); 
-        } catch (e) {
-            console.error("Error al cerrar sesión:", e);
-        }
+        } catch (e) { console.error("Error logout:", e); }
     }
     emit('exit');
 };
@@ -172,16 +152,13 @@ const saveName = async () => {
   if (studentName.value.trim()) { 
     isEditingName.value = false; 
     const thanksText = `¡Gracias ${studentName.value}!`;
-    greeting.value = thanksText; 
-    speak(thanksText); 
+    greeting.value = thanksText; speak(thanksText); 
     const user = auth.currentUser;
     if (user) {
         try {
             const userRef = doc(db, "users", user.uid);
             await updateDoc(userRef, { username: studentName.value });
-        } catch (e) {
-            console.error("Error guardando nombre:", e);
-        }
+        } catch (e) { console.error(e); }
     }
   } 
 };
@@ -189,36 +166,27 @@ const saveName = async () => {
 onMounted(() => {
   gamificationStore.loadFromStorage();
   gamificationStore.checkDailyStreak();
-
   if (!gamificationStore.activeMissions || gamificationStore.activeMissions.length === 0) {
       gamificationStore.generateNewMissions();
   }
-
   pickRandomMessage();
-
   onAuthStateChanged(auth, (user) => {
-      if (user) {
-          startRealTimeSync(user); 
-      } else {
+      if (user) startRealTimeSync(user); 
+      else {
           const localName = localStorage.getItem('owlStudentName');
           if (localName) studentName.value = localName;
       }
   });
-
   if (props.fromView && ['add', 'sub', 'mult', 'div'].includes(props.fromView)) {
       setTimeout(() => { openConfig(props.fromView); }, 50);
   }
-
   const isComingFromCover = props.fromView === 'cover' || !props.fromView;
-
   setTimeout(() => {
     showOwl.value = true;
-    
     if (isComingFromCover) {
         if (!studentName.value) {
-             const helloText = "¡Hola! ¿Cómo te llamas?";
-             greeting.value = helloText;
-             speak(helloText);
+             greeting.value = "¡Hola! ¿Cómo te llamas?";
+             speak(greeting.value);
         }
         setTimeout(() => { showOwl.value = false; }, 4000);
     } else {
@@ -233,10 +201,7 @@ onUnmounted(() => {
     window.speechSynthesis.cancel();
 });
 
-const currentSubjectLabel = computed(() => {
-    const opt = options.find(o => o.id === selectedSubject.value);
-    return opt ? opt.label : '';
-});
+const currentSubjectLabel = computed(() => options.find(o => o.id === selectedSubject.value)?.label || '');
 </script>
 
 <template>
@@ -245,7 +210,7 @@ const currentSubjectLabel = computed(() => {
     
         <Transition name="bubble-pop">
             <div v-if="showBubble" class="absolute top-20 left-1/2 -translate-x-1/2 z-[200] w-[94%] max-w-xs">
-                <div class="bg-yellow-400 text-indigo-900 p-8 rounded-[2rem] shadow-2xl border-4 border-white flex items-center gap-5 relative min-h-[130px] h-auto transition-all">
+                <div class="bg-yellow-400 text-indigo-900 p-8 rounded-[2rem] shadow-2xl border-4 border-white flex items-center gap-5 relative min-h-[130px] h-auto">
                     <div class="bg-indigo-900/10 p-3 rounded-full shrink-0">
                         <BellRing class="animate-ring text-indigo-900" :size="30" />
                     </div>
@@ -262,6 +227,12 @@ const currentSubjectLabel = computed(() => {
         <RewardShop v-if="showShop" @close="showShop = false" />
         <DailyMissions v-if="showMissions" @close="showMissions = false" />
         <ChallengeHub v-if="showChallengeHub" @close="showChallengeHub = false" />
+        
+        <CrystalDimension 
+            v-if="showCrystalDimension" 
+            @close="showCrystalDimension = false"
+            @sumar-premios="gamificationStore.completeCrystalDimension()"
+        />
 
         <div v-if="showExitConfirm" class="absolute inset-0 z-[110] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in">
             <div class="bg-white rounded-[2.5rem] w-full max-w-sm p-8 shadow-2xl border-4 border-indigo-100 text-center flex flex-col gap-6">
@@ -269,14 +240,14 @@ const currentSubjectLabel = computed(() => {
                     <OwlImage customClass="w-14 h-14" />
                 </div>
                 <div>
-                    <h3 class="text-2xl font-black text-slate-800 mb-2 text-center uppercase leading-none">¿Ya terminaste?</h3>
-                    <p class="text-slate-500 font-bold leading-tight text-center">Elige cómo quieres salir:</p>
+                    <h3 class="text-2xl font-black text-slate-800 mb-2 uppercase leading-none">¿Ya terminaste?</h3>
+                    <p class="text-slate-500 font-bold leading-tight">Elige cómo quieres salir:</p>
                 </div>
                 <div class="flex flex-col gap-3">
-                    <button @click="confirmTakeBreak" class="w-full py-4 bg-green-500 hover:bg-green-600 text-white rounded-2xl font-black text-lg shadow-[0_4px_0_rgb(21,128,61)] active:translate-y-1 transition-all flex items-center justify-center gap-3 leading-none">
+                    <button @click="confirmTakeBreak" class="w-full py-4 bg-green-500 hover:bg-green-600 text-white rounded-2xl font-black text-lg shadow-[0_4px_0_rgb(21,128,61)] active:translate-y-1 transition-all flex items-center justify-center gap-3">
                         <Coffee :size="24" /> Tomar un descanso
                     </button>
-                    <button @click="confirmFullLogout" class="w-full py-3 bg-slate-100 hover:bg-red-50 text-slate-500 rounded-2xl font-bold text-sm transition-all flex items-center justify-center gap-2 border-2 border-transparent hover:border-red-200 hover:text-red-600">
+                    <button @click="confirmFullLogout" class="w-full py-3 bg-slate-100 hover:bg-red-50 text-slate-500 rounded-2xl font-bold text-sm transition-all flex items-center justify-center gap-2">
                         <DoorOpen :size="18" /> Cerrar sesión
                     </button>
                 </div>
@@ -304,90 +275,101 @@ const currentSubjectLabel = computed(() => {
         </header>
 
         <div class="content-hero-area flex-1">
-          <div class="w-full grid grid-cols-2 px-6 items-end mb-4">
+          <div class="w-full grid grid-cols-2 px-6 items-end mb-2 mt-2">
              <div class="flex items-center justify-center h-full">
-                 <div v-if="showOwl" class="bg-white rounded-2xl p-3 shadow-xl border-2 border-indigo-200 relative animate-fade-in w-full text-center">
+                 <div v-if="showOwl" class="bg-white rounded-2xl p-2 shadow-xl border-2 border-indigo-200 relative animate-fade-in w-full text-center">
                     <p class="text-indigo-900 font-black text-xs leading-tight">{{ greeting }}</p>
                     <div class="absolute -bottom-2 right-4 w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-t-[8px] border-t-white"></div>
                  </div>
              </div>
              <div class="flex flex-col items-center justify-end h-full">
-                 <div v-if="showOwl" class="w-20 h-20 sm:w-24 sm:h-24 transition-all duration-500 shrink-0"><OwlImage customClass="w-full h-full object-contain" /></div>
+                 <div v-if="showOwl" class="w-16 h-16 sm:w-20 sm:h-20 transition-all duration-500 shrink-0"><OwlImage customClass="w-full h-full object-contain" /></div>
                  <div class="bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded-full flex items-center gap-2 border border-white/30 shadow-sm w-full max-w-[140px]">
-                    <User :size="14" class="text-white" />
-                    <input v-if="isEditingName" type="text" v-model="studentName" @keyup.enter="saveName" class="bg-transparent text-white font-black text-xs outline-none w-full" autofocus />
-                    <span v-else class="text-white font-black text-[10px] truncate w-full cursor-pointer uppercase tracking-tighter" @click="isEditingName = true">{{ studentName || "HOLA!" }}</span>
-                    <Pencil v-if="!isEditingName" :size="12" class="text-indigo-200" />
+                    <User :size="14" class="text-white shrink-0" />
+                    <input v-if="isEditingName" type="text" v-model="studentName" @keyup.enter="saveName" class="bg-transparent text-white font-black text-[11px] outline-none w-full" autofocus />
+                    <span v-else class="text-white font-black text-[11px] truncate w-full cursor-pointer uppercase tracking-tighter" @click="isEditingName = true">{{ studentName || "HOLA!" }}</span>
+                    <Pencil v-if="!isEditingName" :size="12" class="text-indigo-200 shrink-0" />
                  </div>
              </div>
           </div>
 
-          <div class="grid grid-cols-2 gap-4 w-full px-4 mb-4">
+          <div class="grid grid-cols-2 gap-3 w-full px-4 mb-2">
             <button v-for="opt in options" :key="opt.id" @click="openConfig(opt.id)"
-              class="group bg-white p-3 rounded-[2.5rem] border-4 border-transparent hover:border-indigo-100 shadow-xl active:scale-95 flex flex-col items-center justify-center gap-2 transition-all h-28 sm:h-32">
-              <div :class="`w-12 h-12 rounded-2xl ${opt.color} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform`">
-                <component :is="opt.icon" :size="24" class="text-white" :stroke-width="3" />
+              class="group bg-white p-2 rounded-[2rem] border-4 border-transparent hover:border-indigo-100 shadow-xl active:scale-95 flex flex-col items-center justify-center gap-1 transition-all h-24 sm:h-28">
+              <div :class="`w-10 h-10 rounded-xl ${opt.color} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform shrink-0`">
+                <component :is="opt.icon" :size="22" class="text-white" :stroke-width="3" />
               </div>
               <div class="text-center">
-                <h3 class="text-lg font-black text-slate-800 leading-none uppercase tracking-tighter">{{ opt.label }}</h3>
-                <p class="text-slate-400 font-bold text-[9px] mt-1 tracking-widest uppercase">{{ opt.desc }}</p>
+                <h3 class="text-[15px] sm:text-base font-black text-slate-800 leading-none uppercase tracking-tighter">{{ opt.label }}</h3>
+                <p class="text-slate-400 font-bold text-[8px] sm:text-[9px] mt-0.5 tracking-widest uppercase">{{ opt.desc }}</p>
               </div>
             </button>
           </div>
 
-          <div class="px-4 w-full mb-4">
-              <button @click="emit('open-portal-welcome')" class="w-full bg-gradient-to-r from-yellow-400 to-orange-500 rounded-[2.5rem] p-1 shadow-[0_6px_0_rgb(194,65,12)] active:translate-y-1 transition-all group">
-                <div class="bg-white/10 rounded-[2.2rem] p-3 flex items-center gap-5">
-                    <div class="w-12 h-12 shrink-0 rounded-full bg-white flex items-center justify-center group-hover:scale-110 transition-transform shadow-inner">
-                        <Target size="26" class="text-orange-500" fill="currentColor" />
+          <div class="px-4 w-full mb-0 flex flex-col gap-2 shrink-0">
+              
+              <button @click="emit('open-portal-welcome')" class="w-full bg-gradient-to-r from-yellow-400 to-orange-500 rounded-[2.5rem] p-1 shadow-[0_4px_0_rgb(194,65,12)] active:translate-y-1 transition-all group">
+                <div class="bg-white/10 rounded-[2.2rem] py-2 px-4 flex items-center gap-4">
+                    <div class="w-10 h-10 shrink-0 rounded-full bg-white flex items-center justify-center group-hover:scale-110 transition-transform shadow-inner">
+                        <Target size="22" class="text-orange-500" fill="currentColor" />
                     </div>
                     <div class="text-left text-white flex-1">
                         <h3 class="font-black text-lg leading-tight uppercase tracking-tighter">Portal de Desafíos</h3>
-                        <p class="text-orange-100 text-[10px] font-bold uppercase">🎯 ¡Gana monedas extra aquí!</p>
+                        <p class="text-orange-100 text-[10px] font-bold uppercase leading-none mt-0.5">🎯 ¡Gana monedas extra aquí!</p>
                     </div>
                 </div>
               </button>
+
+              <button @click="showCrystalDimension = true" class="w-full bg-slate-950 rounded-[2.5rem] p-1 shadow-[0_4px_0_rgb(2,6,23),0_0_15px_rgba(34,211,238,0.4)] border border-cyan-500/30 active:translate-y-1 transition-all group relative overflow-hidden">
+                  <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-cyan-400/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                  <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-emerald-400/20 via-transparent to-transparent"></div>
+                  <div class="bg-white/5 backdrop-blur-md rounded-[2.2rem] py-2 px-4 flex items-center gap-4 relative z-10 border border-white/5">
+                      <div class="w-10 h-10 shrink-0 rounded-full bg-slate-900 border border-cyan-400/50 flex items-center justify-center group-hover:scale-110 group-hover:rotate-12 transition-all shadow-[inset_0_0_15px_rgba(34,211,238,0.3)]">
+                          <Hexagon size="22" class="text-cyan-400" />
+                      </div>
+                      <div class="text-left flex-1">
+                          <h3 class="font-black text-lg leading-tight uppercase tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-emerald-300 drop-shadow-[0_0_8px_rgba(34,211,238,0.5)]">Dimensión de Cristal</h3>
+                          <p class="text-cyan-200/80 text-[10px] font-bold uppercase tracking-widest leading-none mt-0.5">✨ Entra al Reino Cuántico</p>
+                      </div>
+                  </div>
+              </button>
+          </div>
+
+          <div class="w-full px-4 my-auto flex items-center justify-center min-h-[44px]">
+              <div class="bg-indigo-900/20 w-full rounded-2xl py-2 px-4 flex items-center justify-center gap-3 shadow-inner">
+                  <button @click="speak(randomIncentive)" class="text-indigo-200 hover:text-white transition-colors shrink-0">
+                      <Volume2 :size="16" />
+                  </button>
+                  <p class="text-white text-[11px] font-black italic text-center leading-tight">{{ randomIncentive }}</p>
+              </div>
           </div>
         </div>
 
-        <div class="footer-anclado shrink-0 pb-6 px-4">
-            <div class="bg-indigo-900/20 rounded-2xl py-2 px-4 flex items-center justify-center gap-3 shadow-inner mb-2 relative">
-                <button @click="speak(randomIncentive)" class="text-indigo-200 hover:text-white transition-colors">
-                    <Volume2 :size="16" />
-                </button>
-                <p class="text-white text-[11px] font-black italic text-center leading-tight">
-                    {{ randomIncentive }}
-                </p>
-            </div>
+        <div class="shrink-0 pb-6 px-4 w-full">
             <StatusBoard />
         </div>
 
         <div v-if="showConfigModal" class="absolute inset-0 z-[150] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
             <div class="bg-white rounded-[2.5rem] w-full max-w-sm p-8 shadow-2xl relative border-4 border-indigo-100 flex flex-col max-h-[90vh]">
-                
                 <div class="absolute top-4 left-4 flex gap-2 z-[160]">
-                    <button @click="showQuickGuide = !showQuickGuide" 
-                      class="p-2 bg-blue-50 text-blue-600 rounded-full hover:bg-blue-100 transition-all animate-eye-pulse shadow-sm h-10 w-10 flex items-center justify-center">
+                    <button @click="showQuickGuide = !showQuickGuide" class="p-2 bg-blue-50 text-blue-600 rounded-full hover:bg-blue-100 animate-eye-pulse h-10 w-10 flex items-center justify-center">
                       <component :is="showQuickGuide ? EyeOff : Eye" :size="20" :stroke-width="2.5" />
                     </button>
-                    
                     <Transition name="fade">
                         <button v-if="showQuickGuide" @click="showTextZoom = !showTextZoom" 
-                          :class="`rounded-full font-black text-sm transition-all shadow-sm h-10 w-10 flex items-center justify-center border-2 border-transparent ${showTextZoom ? 'bg-indigo-600 text-white' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border-indigo-100'}`">
-                          Aa
-                        </button>
+                          :class="`rounded-full font-black text-sm transition-all h-10 w-10 flex items-center justify-center border-2 ${showTextZoom ? 'bg-indigo-600 text-white border-transparent' : 'bg-indigo-50 text-indigo-600 border-indigo-100'}`">Aa</button>
                     </Transition>
                 </div>
 
                 <Transition name="fade-slide">
                     <div v-if="showTextZoom && showQuickGuide" class="absolute top-16 left-4 z-[170] bg-white rounded-xl shadow-xl border-2 border-indigo-100 flex items-center gap-2 p-2 mt-1">
-                        <button @click="zoomOut" class="w-8 h-8 flex items-center justify-center bg-slate-50 rounded-lg text-slate-500 hover:bg-red-50 hover:text-red-600 transition-colors font-black text-lg">-</button>
+                        <button @click="zoomOut" class="w-8 h-8 flex items-center justify-center bg-slate-50 rounded-lg text-slate-500 font-black text-lg">-</button>
                         <span class="text-[13px] font-black text-indigo-900 w-5 text-center">{{ guideFontSize }}</span>
-                        <button @click="zoomIn" class="w-8 h-8 flex items-center justify-center bg-slate-50 rounded-lg text-slate-500 hover:bg-green-50 hover:text-green-600 transition-colors font-black text-lg">+</button>
+                        <button @click="zoomIn" class="w-8 h-8 flex items-center justify-center bg-slate-50 rounded-lg text-slate-500 font-black text-lg">+</button>
                     </div>
                 </Transition>
 
-                <button @click="showConfigModal = false" class="absolute top-4 right-4 bg-slate-100 p-2 rounded-full text-slate-400 hover:text-red-500 transition-colors z-[160] h-10 w-10 flex items-center justify-center"><CloseIcon :size="20" /></button>
+                <button @click="showConfigModal = false" class="absolute top-4 right-4 bg-slate-100 p-2 rounded-full text-slate-400 hover:text-red-500 h-10 w-10 flex items-center justify-center"><CloseIcon :size="20" /></button>
                 
                 <div class="text-center mb-6 shrink-0 mt-8">
                     <h3 class="text-3xl font-black text-slate-800 uppercase tracking-tighter leading-none mb-1">{{ currentSubjectLabel }}</h3>
@@ -395,23 +377,15 @@ const currentSubjectLabel = computed(() => {
                 </div>
 
                 <div class="flex-1 overflow-y-auto no-scrollbar">
-                  
                   <Transition name="slide-down">
                     <div v-if="showQuickGuide" class="mb-4 bg-slate-50 border-2 border-blue-100 rounded-[1.5rem] overflow-hidden shadow-inner shrink-0">
                       <div class="p-5 max-h-[180px] overflow-y-auto scrollbar-thin font-inter text-slate-600 text-left space-y-4">
-                        
-                        <p :style="{ fontSize: guideFontSize + 'px', lineHeight: '1.5' }" class="font-light transition-all duration-200">
-                          <strong :style="{ fontSize: (guideFontSize * 0.85) + 'px' }" class="font-black text-blue-600 uppercase">⌨️ TECLADO VIRTUAL:</strong> Hemos integrado un teclado numérico exclusivo dentro de la app para que resolver los ejercicios sea rápido, cómodo y táctil, sin que el teclado del móvil te estorbe. No intentes insertar datos en las celdas con bordes amarillos latentes, están bloqueadas y son automáticas.
+                        <p :style="{ fontSize: guideFontSize + 'px', lineHeight: '1.5' }" class="font-light">
+                          <strong :style="{ fontSize: (guideFontSize * 0.85) + 'px' }" class="font-black text-blue-600 uppercase">⌨️ TECLADO VIRTUAL:</strong> Teclado numérico táctil integrado para evitar que el teclado nativo estorbe. Celdas amarillas bloqueadas.
                         </p>
-                        
-                        <p :style="{ fontSize: guideFontSize + 'px', lineHeight: '1.5' }" class="font-light transition-all duration-200">
-                          <strong :style="{ fontSize: (guideFontSize * 0.85) + 'px' }" class="font-black text-blue-600 uppercase">🎯 FOCO INTELIGENTE:</strong> No perderás tiempo buscando dónde pulsar. Verás un foco guía con bordes amarillos que late suavemente para orientarte. No insertes datos en las celdas con bordes amarillo latente, están bloqueadas, y son automáticas.  Además, el cursor salta solo a la siguiente casilla al responder correctamente.
+                        <p :style="{ fontSize: guideFontSize + 'px', lineHeight: '1.5' }" class="font-light">
+                          <strong :style="{ fontSize: (guideFontSize * 0.85) + 'px' }" class="font-black text-blue-600 uppercase">🎯 FOCO INTELIGENTE:</strong> Guía visual de bordes amarillos. El cursor salta solo al responder bien.
                         </p>
-                        
-                        <p :style="{ fontSize: (guideFontSize * 0.75) + 'px' }" class="font-bold text-blue-400 italic bg-blue-50/50 p-3 rounded-xl text-center border border-blue-50 transition-all duration-200">
-                          Si quieres saber más lee la GUÍA DE USO que se encuentra en la entrada a la app.
-                        </p>
-
                       </div>
                     </div>
                   </Transition>
@@ -425,16 +399,16 @@ const currentSubjectLabel = computed(() => {
                       </button>
                   </div>
 
-                  <div v-if="configMode === 'quick'" class="flex flex-col gap-3 animate-fade-in mb-6 p-4 bg-slate-50 rounded-3xl border-2 border-slate-100">
+                  <div v-if="configMode === 'quick'" class="flex flex-col gap-3 mb-6 p-4 bg-slate-50 rounded-3xl border-2 border-slate-100">
                       <p class="text-slate-400 text-[10px] font-black uppercase tracking-widest text-center">Selecciona una Tabla</p>
-                      <button @click="configTable = 'random'" :class="`w-full py-3 rounded-xl font-black text-xs border-2 transition-all ${configTable === 'random' ? 'bg-indigo-600 border-indigo-600 text-white shadow-md' : 'bg-white border-slate-200 text-slate-500'}`">🎲 ALEATORIAS</button>
+                      <button @click="configTable = 'random'" :class="`w-full py-3 rounded-xl font-black text-xs border-2 transition-all ${configTable === 'random' ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-white border-slate-200 text-slate-500'}`">🎲 ALEATORIAS</button>
                       <div class="grid grid-cols-5 gap-2">
-                          <button v-for="n in 10" :key="n" @click="configTable = n" :class="`aspect-square rounded-xl font-black text-sm border-2 transition-all flex items-center justify-center ${configTable === n ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-white border-slate-200 text-slate-500'}`">{{ n }}</button>
+                          <button v-for="n in 10" :key="n" @click="configTable = n" :class="`aspect-square rounded-xl font-black text-sm border-2 flex items-center justify-center ${configTable === n ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-white border-slate-200 text-slate-500'}`">{{ n }}</button>
                       </div>
                   </div>
                 </div>
 
-                <button @click="startGame" class="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-xl shadow-[0_6px_0_rgb(49,46,129)] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-3 uppercase tracking-widest shrink-0">
+                <button @click="startGame" class="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-xl shadow-[0_6px_0_rgb(49,46,129)] active:translate-y-1 transition-all flex items-center justify-center gap-3 uppercase shrink-0">
                     <Play :size="24" fill="currentColor" /> ¡JUGAR!
                 </button>
             </div>
@@ -445,30 +419,29 @@ const currentSubjectLabel = computed(() => {
 
 <style scoped>
 .master-container { height: 100dvh; width: 100vw; display: flex; justify-content: center; align-items: center; overflow: hidden; background-color: #f1f5f9; position: fixed; top: 0; left: 0; touch-action: none; }
-.app-canvas { display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; background: linear-gradient(to bottom right, #6366f1, #a855f7); transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); user-select: none; touch-action: none !important; -webkit-tap-highlight-color: transparent; width: 100vw; height: 100dvh; }
-@media (min-width: 600px) and (max-width: 1024px) { .app-canvas { width: 85vw; height: 95dvh; border-radius: 35px; box-shadow: 0 25px 50px rgba(0,0,0,0.2); } }
-@media (min-width: 1025px) { .app-canvas { width: 1024px; height: 90dvh; border-radius: 45px; box-shadow: 0 40px 100px rgba(0,0,0,0.25); border: 6px solid rgba(255, 255, 255, 0.1); } }
+.app-canvas { display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; background: linear-gradient(to bottom right, #6366f1, #a855f7); width: 100vw; height: 100dvh; }
+@media (min-width: 600px) and (max-width: 1024px) { .app-canvas { width: 85vw; height: 95dvh; border-radius: 35px; } }
+@media (min-width: 1025px) { .app-canvas { width: 1024px; height: 90dvh; border-radius: 45px; border: 6px solid rgba(255, 255, 255, 0.1); } }
+
 .header-main { display: flex; justify-content: space-between; align-items: center; padding: 1.5rem 1.2rem 1rem; z-index: 50; }
-.btn-circular-action { width: 2.8rem; height: 2.8rem; border-radius: 9999px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border-width: 2px; position: relative; transition: transform 0.2s; }
-.content-hero-area { display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 0; padding-bottom: 1rem; }
+.btn-circular-action { width: 2.8rem; height: 2.8rem; border-radius: 9999px; display: flex; align-items: center; justify-content: center; border-width: 2px; position: relative; transition: transform 0.2s; }
+
 .animate-eye-pulse { animation: eyePulse 2s infinite; }
-@keyframes eyePulse { 0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); } 50% { transform: scale(1.1); box-shadow: 0 0 0 8px rgba(59, 130, 246, 0); } }
+@keyframes eyePulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+
 .fade-enter-active, .fade-leave-active { transition: opacity 0.2s ease; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
-.fade-slide-enter-active, .fade-slide-leave-active { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
-.fade-slide-enter-from, .fade-slide-leave-to { opacity: 0; transform: translateY(-5px) scale(0.95); }
+
 .slide-down-enter-active, .slide-down-leave-active { transition: all 0.3s ease-out; }
 .slide-down-enter-from, .slide-down-leave-to { opacity: 0; transform: translateY(-15px); }
-.animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
 .animate-bounce-slow { animation: bounce 3s infinite; }
 @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+
 .bubble-pop-enter-active { animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-.bubble-pop-leave-active { animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) reverse; }
+.bubble-pop-leave-active { animation: popIn 0.3s reverse; }
 @keyframes popIn { from { opacity: 0; transform: translate(-50%, -20px) scale(0.8); } to { opacity: 1; transform: translate(-50%, 0) scale(1); } }
-.scrollbar-thin::-webkit-scrollbar { width: 6px; }
-.scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
-.scrollbar-thin::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 20px; }
+
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 </style>
