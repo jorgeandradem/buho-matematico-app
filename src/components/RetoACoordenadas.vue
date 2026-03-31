@@ -11,7 +11,7 @@ const objetivo = ref({ x: 0, y: 0, z: 0 });
 const posX = ref(1); const posY = ref(1); const posZ = ref(1);
 const waveActiva = ref(false);
 const estadoRespuesta = ref(''); 
-const mostrarPopup = ref(true); 
+const mostrarPopup = ref(false); // 🛠️ FIX: Ahora inicia en FALSE (juego abierto)
 
 const generarRonda = () => {
   waveActiva.value = false;
@@ -41,6 +41,13 @@ const verificarCoordenada = () => {
         generarRonda();
       } else {
         emit('completado', aciertos.value);
+        
+        // 🛠️ FIX: Auto-Reset silencioso para que quede listo si dan otra vuelta
+        setTimeout(() => {
+          rondaActual.value = 1;
+          aciertos.value = 0;
+          generarRonda();
+        }, 1000);
       }
     }, 2000);
   } else {
@@ -52,8 +59,14 @@ const verificarCoordenada = () => {
 </script>
 
 <template>
-  <div class="reto-contenedor w-full h-full flex flex-col items-center">
+  <div class="reto-contenedor w-full h-full flex flex-col items-center justify-start pt-20 md:pt-28 relative">
     
+    <div class="absolute top-[48px] md:top-[75px] left-1/2 -translate-x-1/2 bg-slate-900/90 backdrop-blur-md border border-cyan-500/50 rounded-lg px-3 py-1 flex items-center gap-2 shadow-[0_0_15px_rgba(34,211,238,0.3)] z-50 whitespace-nowrap">
+      <span class="text-[10px] md:text-xs text-cyan-200 font-bold uppercase tracking-widest">Premio:</span>
+      <img src="/images/coin-silver.png" class="w-4 h-4 object-contain" />
+      <span class="text-emerald-400 font-black text-sm">2</span>
+    </div>
+
     <button id="btn-abrir-reglas-0" @click="mostrarPopup = true" class="hidden"></button>
 
     <transition name="fade-popup">
@@ -66,8 +79,8 @@ const verificarCoordenada = () => {
         </div>
     </transition>
 
-    <div class="instruccion bg-cyan-950/80 border border-cyan-400/50 backdrop-blur-md px-4 py-2 rounded-xl shadow-[0_0_20px_rgba(34,211,238,0.2)] text-center z-40 mt-1 mb-2 w-[85%] md:w-auto">
-      <div class="flex justify-between items-center mb-1 border-b border-cyan-500/30 pb-1">
+    <div class="instruccion bg-cyan-950/80 border border-cyan-400/50 backdrop-blur-md px-4 py-2 rounded-xl shadow-[0_0_20px_rgba(34,211,238,0.2)] text-center z-40 mt-4 mb-2 w-[85%] md:w-auto">
+      <div class="flex justify-between items-center mb-1 border-b border-cyan-500/30 pb-1 gap-4">
         <span class="text-xs font-bold text-emerald-400">RONDA {{ rondaActual }}/{{ totalRondas }}</span>
         <span class="text-[10px] font-semibold text-cyan-200 uppercase tracking-widest">Ubica tu orbe:</span>
       </div>
@@ -92,25 +105,24 @@ const verificarCoordenada = () => {
       </div>
     </div>
 
-    <div class="controles-grua w-[80%] md:w-[400px] bg-slate-900/80 backdrop-blur-md p-3 md:p-4 rounded-xl md:rounded-2xl border border-cyan-500/50 flex flex-col gap-2 mb-4 z-50 mr-12 md:mr-0">
+    <div class="controles-grua w-[80%] md:w-[400px] bg-slate-900/80 backdrop-blur-md p-3 md:p-4 rounded-xl md:rounded-2xl border border-cyan-500/50 flex flex-col gap-2 mb-10 md:mb-4 z-50 mr-12 md:mr-0">
       <div class="flex items-center gap-2"><span class="font-bold text-emerald-400 text-xs md:text-sm w-4">X:</span> <input type="range" min="0" max="5" v-model="posX" class="w-full h-1.5 md:h-2 bg-emerald-900 rounded-lg appearance-none cursor-pointer"> <span class="font-mono text-white text-xs w-2">{{ posX }}</span></div>
       <div class="flex items-center gap-2"><span class="font-bold text-blue-400 text-xs md:text-sm w-4">Y:</span> <input type="range" min="0" max="5" v-model="posY" class="w-full h-1.5 md:h-2 bg-blue-900 rounded-lg appearance-none cursor-pointer"> <span class="font-mono text-white text-xs w-2">{{ posY }}</span></div>
       <div class="flex items-center gap-2"><span class="font-bold text-pink-400 text-xs md:text-sm w-4">Z:</span> <input type="range" min="0" max="5" v-model="posZ" class="w-full h-1.5 md:h-2 bg-pink-900 rounded-lg appearance-none cursor-pointer"> <span class="font-mono text-white text-xs w-2">{{ posZ }}</span></div>
       
-      <button @click="verificarCoordenada" class="mt-1 w-full py-1.5 md:py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-sm md:text-base rounded-lg border border-cyan-300 shadow-[0_0_10px_rgba(34,211,238,0.4)]">ESCANEAR</button>
+      <button @click="verificarCoordenada" class="mt-1 w-full py-1.5 md:py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-sm md:text-base rounded-lg border border-cyan-300 shadow-[0_0_10px_rgba(34,211,238,0.4)] uppercase tracking-widest">Escanear</button>
     </div>
   </div>
 </template>
 
 <style scoped>
-/* 🛠️ MEGA REDUCCIÓN PARA MÓVIL: Evita desbordamiento en pantallas pequeñas */
 .reto-contenedor { --u: 22px; }
 @media (min-width: 768px) { .reto-contenedor { --u: 50px; } }
 
 .fade-popup-enter-active, .fade-popup-leave-active { transition: opacity 0.3s, transform 0.3s; }
 .fade-popup-enter-from, .fade-popup-leave-to { opacity: 0; transform: scale(0.95); }
 
-.origen-cartesiano { position: absolute; top: 45%; left: 40%; }
+.origen-cartesiano { position: absolute; top: 40%; left: 40%; }
 @media (min-width: 768px) { .origen-cartesiano { top: 50%; left: 40%; } }
 .origen-label { position: absolute; top: 2px; left: -12px; color: rgba(255,255,255,0.8); font-family: monospace; font-size: 10px; }
 .numero-eje { position: absolute; color: rgba(255,255,255,0.7); font-family: monospace; font-size: 10px; font-weight: bold;}

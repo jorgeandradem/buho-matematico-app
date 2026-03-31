@@ -9,7 +9,7 @@ import IndexScreen from './components/IndexScreen.vue';
 import GenericTableModule from './components/GenericTableModule.vue';
 import DivisionModule from './components/DivisionModule.vue';
 import ReloadPrompt from './components/ReloadPrompt.vue';
-import CrystalDimension from './components/CrystalDimension.vue'; /* INYECTADO: Dimensión de Cristal */
+import CrystalDimension from './components/CrystalDimension.vue'; 
 
 import { useGamificationStore } from '@/stores/useGamificationStore';
 
@@ -43,66 +43,68 @@ const navigateTo = (viewName, config) => {
   <div id="master-wrapper">
     <ReloadPrompt />
     
-    <main class="app-canvas">
-      <Transition name="fast-fade" mode="out-in">
+    <Transition name="fast-fade" mode="out-in">
         
-        <CoverScreen 
-          v-if="currentView === 'cover'" 
-          :force-auth-mode="currentConfig.mode"
-          @show-welcome="navigateTo('welcome')" 
-          @start="navigateTo('index')" 
-        />
-
-        <WelcomeScreen 
-          v-else-if="currentView === 'welcome'"
-          @members="navigateTo('cover', { mode: 'login' })"
-          @newcomers="navigateTo('cover', { mode: 'register' })"
-          @close="navigateTo('cover')" 
-        />
-
-        <PortalWelcomeScreen 
-          v-else-if="currentView === 'portal-welcome'"
-          @proceed="navigateTo('index', { mode: 'open-hub' })"
-          @close="navigateTo('index')"
-        />
-
-        <IndexScreen 
-          v-else-if="currentView === 'index'"
-          :fromView="previousView"
-          :config="currentConfig"
-          @select="(cfg) => navigateTo('module', cfg)"
-          @exit="navigateTo('cover')"
-          @open-portal-welcome="navigateTo('portal-welcome')"
-          @open-crystal-dimension="navigateTo('crystal-dimension')"
-        />
-
         <CrystalDimension 
-          v-else-if="currentView === 'crystal-dimension'"
+          v-if="currentView === 'crystal-dimension'"
           @close="navigateTo('index')"
           @sumar-premios="gamificationStore.completeCrystalDimension()"
         />
 
-        <GenericTableModule 
-          v-else-if="['add', 'sub', 'mult'].includes(currentView) || (currentView === 'div' && currentConfig.mode === 'quick')"
-          :key="currentView + currentConfig.mode + currentConfig.difficulty + currentConfig.table"
-          :operation="currentConfig.id"
-          :title="currentConfig.id === 'add' ? 'Sumar' : (currentConfig.id === 'sub' ? 'Restar' : (currentConfig.id === 'mult' ? 'Multiplicar' : 'Dividir'))"
-          :colorTheme="currentConfig.id === 'add' ? 'green' : (currentConfig.id === 'sub' ? 'orange' : (currentConfig.id === 'mult' ? 'purple' : 'blue'))"
-          :icon="currentConfig.id === 'add' ? Plus : (currentConfig.id === 'sub' ? Minus : (currentConfig.id === 'mult' ? MultiplyIcon : Divide))"
-          :initialMode="currentConfig.mode"
-          :initialDifficulty="currentConfig.difficulty"
-          :initialTable="currentConfig.table"
-          @back="navigateTo('index')"
-        />
+        <main v-else class="app-canvas">
+            
+            <CoverScreen 
+              v-if="currentView === 'cover'" 
+              :force-auth-mode="currentConfig.mode"
+              @show-welcome="navigateTo('welcome')" 
+              @start="navigateTo('index')" 
+            />
 
-        <DivisionModule 
-          v-else-if="currentView === 'div' && currentConfig.mode === 'notebook'"
-          key="module-div-notebook"
-          @back="navigateTo('index')"
-        />
-        
-      </Transition>
-    </main>
+            <WelcomeScreen 
+              v-else-if="currentView === 'welcome'"
+              @members="navigateTo('cover', { mode: 'login' })"
+              @newcomers="navigateTo('cover', { mode: 'register' })"
+              @close="navigateTo('cover')" 
+            />
+
+            <PortalWelcomeScreen 
+              v-else-if="currentView === 'portal-welcome'"
+              @proceed="navigateTo('index', { mode: 'open-hub' })"
+              @close="navigateTo('index')"
+            />
+
+            <IndexScreen 
+              v-else-if="currentView === 'index'"
+              :fromView="previousView"
+              :config="currentConfig"
+              @select="(cfg) => navigateTo('module', cfg)"
+              @exit="navigateTo('cover')"
+              @open-portal-welcome="navigateTo('portal-welcome')"
+              @open-crystal-dimension="navigateTo('crystal-dimension')"
+            />
+
+            <GenericTableModule 
+              v-else-if="['add', 'sub', 'mult'].includes(currentView) || (currentView === 'div' && currentConfig.mode === 'quick')"
+              :key="currentView + currentConfig.mode + currentConfig.difficulty + currentConfig.table"
+              :operation="currentConfig.id"
+              :title="currentConfig.id === 'add' ? 'Sumar' : (currentConfig.id === 'sub' ? 'Restar' : (currentConfig.id === 'mult' ? 'Multiplicar' : 'Dividir'))"
+              :colorTheme="currentConfig.id === 'add' ? 'green' : (currentConfig.id === 'sub' ? 'orange' : (currentConfig.id === 'mult' ? 'purple' : 'blue'))"
+              :icon="currentConfig.id === 'add' ? Plus : (currentConfig.id === 'sub' ? Minus : (currentConfig.id === 'mult' ? MultiplyIcon : Divide))"
+              :initialMode="currentConfig.mode"
+              :initialDifficulty="currentConfig.difficulty"
+              :initialTable="currentConfig.table"
+              @back="navigateTo('index')"
+            />
+
+            <DivisionModule 
+              v-else-if="currentView === 'div' && currentConfig.mode === 'notebook'"
+              key="module-div-notebook"
+              @back="navigateTo('index')"
+            />
+
+        </main>
+
+    </Transition>
   </div>
 </template>
 

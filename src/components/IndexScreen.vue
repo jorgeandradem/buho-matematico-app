@@ -17,7 +17,6 @@ import SessionSummary from './SessionSummary.vue';
 import RewardShop from './RewardShop.vue';
 import ChallengeHub from './ChallengeHub.vue'; 
 import DailyMissions from './DailyMissions.vue'; 
-import CrystalDimension from './CrystalDimension.vue'; // 💎 NUEVO: Importación del portal
 import { useGamificationStore } from '../stores/useGamificationStore';
 import { speak } from '../utils/voice';
 
@@ -25,7 +24,8 @@ import { auth, db } from '../firebaseConfig';
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { doc, onSnapshot, updateDoc } from "firebase/firestore";
 
-const emit = defineEmits(['select', 'exit', 'open-portal-welcome']);
+// 🛠️ FIX: Añadimos 'open-crystal-dimension' a la lista de eventos permitidos
+const emit = defineEmits(['select', 'exit', 'open-portal-welcome', 'open-crystal-dimension']);
 const props = defineProps(['fromView', 'config']);
 
 const gamificationStore = useGamificationStore();
@@ -41,7 +41,6 @@ let unsubscribeUser = null;
 const showSummary = ref(false);
 const showShop = ref(false); 
 const showMissions = ref(false); 
-const showCrystalDimension = ref(false); // 💎 Control del portal
 const showExitConfirm = ref(false); 
 const fullSignOutRequested = ref(false);
 const showChallengeHub = ref(props.config && props.config.mode === 'open-hub'); 
@@ -228,12 +227,6 @@ const currentSubjectLabel = computed(() => options.find(o => o.id === selectedSu
         <DailyMissions v-if="showMissions" @close="showMissions = false" />
         <ChallengeHub v-if="showChallengeHub" @close="showChallengeHub = false" />
         
-        <CrystalDimension 
-            v-if="showCrystalDimension" 
-            @close="showCrystalDimension = false"
-            @sumar-premios="gamificationStore.completeCrystalDimension()"
-        />
-
         <div v-if="showExitConfirm" class="absolute inset-0 z-[110] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in">
             <div class="bg-white rounded-[2.5rem] w-full max-w-sm p-8 shadow-2xl border-4 border-indigo-100 text-center flex flex-col gap-6">
                 <div class="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mx-auto border-2 border-indigo-100">
@@ -320,7 +313,7 @@ const currentSubjectLabel = computed(() => options.find(o => o.id === selectedSu
                 </div>
               </button>
 
-              <button @click="showCrystalDimension = true" class="w-full bg-slate-950 rounded-[2.5rem] p-1 shadow-[0_4px_0_rgb(2,6,23),0_0_15px_rgba(34,211,238,0.4)] border border-cyan-500/30 active:translate-y-1 transition-all group relative overflow-hidden">
+              <button @click="emit('open-crystal-dimension')" class="w-full bg-slate-950 rounded-[2.5rem] p-1 shadow-[0_4px_0_rgb(2,6,23),0_0_15px_rgba(34,211,238,0.4)] border border-cyan-500/30 active:translate-y-1 transition-all group relative overflow-hidden">
                   <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-cyan-400/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
                   <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-emerald-400/20 via-transparent to-transparent"></div>
                   <div class="bg-white/5 backdrop-blur-md rounded-[2.2rem] py-2 px-4 flex items-center gap-4 relative z-10 border border-white/5">

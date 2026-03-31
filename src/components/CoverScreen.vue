@@ -64,7 +64,6 @@ const showRecovery = ref(false);
 const recoveryMode = ref('email'); 
 const showPassword = ref(false); 
 
-// Array para guardar múltiples cuentas encontradas (Homónimos)
 const foundAccounts = ref([]);
 
 const acceptedTerms = ref(false);
@@ -87,14 +86,12 @@ const currentDayNum = today.getDate();
 
 const maxAllowedYear = currentYear - 14; 
 
-// 1. Años: Desde (Año Actual - 14) bajando hasta 1900
 const yearsList = computed(() => {
     const arr = [];
     for (let y = maxAllowedYear; y >= 1900; y--) arr.push(y);
     return arr;
 });
 
-// 2. Meses: Bloqueo inteligente si seleccionan el año tope
 const allMonths = [
     { value: '01', label: 'Enero' }, { value: '02', label: 'Febrero' }, { value: '03', label: 'Marzo' },
     { value: '04', label: 'Abril' }, { value: '05', label: 'Mayo' }, { value: '06', label: 'Junio' },
@@ -109,7 +106,6 @@ const monthsList = computed(() => {
     return allMonths;
 });
 
-// 3. Días: Bloqueo inteligente según mes bisiesto y día tope exacto
 const daysList = computed(() => {
     if (!birthMonth.value || !birthYear.value) return [];
     
@@ -161,8 +157,6 @@ watch(recoveryMode, () => {
 });
 
 watch(authMode, () => { clearMessages(); clearDateFields(); });
-
-// --- 🔎 FUNCIONES FIREBASE DE RECUPERACIÓN (RADAR MÚLTIPLE + SEGURIDAD FIRESTORE) ---
 
 const findEmailClue = async () => {
   clearRecoveryMessages();
@@ -251,7 +245,6 @@ const handleForgotPassword = async () => {
   } finally { isLoading.value = false; }
 };
 
-// 🛡️ MOTOR PRINCIPAL DE AUTENTICACIÓN
 const handleAuth = async () => {
   clearMessages();
   const cleanEmail = form.email.trim().toLowerCase();
@@ -362,8 +355,8 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="master-container font-inter">
-    <main class="app-canvas shadow-pc">
+  <div class="cover-master font-inter">
+    <main class="cover-canvas shadow-pc">
       <SimpleConfetti :isActive="true" />
       
       <div v-if="(customError || customSuccess) && !showRecovery" class="absolute top-8 left-0 right-0 z-[2000] flex justify-center px-4 pointer-events-none">
@@ -627,13 +620,13 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-/* CONTENEDOR MAESTRO */
-.master-container { position: fixed; inset: 0; z-index: 9999; display: flex; justify-content: center; align-items: center; background-color: #f1f5f9; overflow: hidden; touch-action: none !important; }
-.app-canvas { display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; background: linear-gradient(to bottom right, #6366f1, #a855f7); transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); user-select: none; touch-action: none !important; -webkit-tap-highlight-color: transparent; width: 100vw; height: 100dvh; }
+/* 🛠️ FIX: Clases .cover-master y .cover-canvas exclusivas para no colisionar con la Dimensión Cuántica */
+.cover-master { position: fixed; inset: 0; z-index: 50; display: flex; justify-content: center; align-items: center; background-color: #f1f5f9; overflow: hidden; touch-action: none !important; }
+.cover-canvas { display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; background: linear-gradient(to bottom right, #6366f1, #a855f7); transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); user-select: none; touch-action: none !important; -webkit-tap-highlight-color: transparent; width: 100vw; height: 100dvh; }
 
 /* ADAPTACIÓN PC */
-@media (min-width: 1025px) { .app-canvas { width: 1024px; height: 90dvh; border-radius: 45px; box-shadow: 0 40px 100px rgba(0,0,0,0.2); border: 8px solid white; } }
-@media (min-width: 600px) and (max-width: 1024px) { .app-canvas { width: 85vw; height: 95dvh; border-radius: 35px; } }
+@media (min-width: 1025px) { .cover-canvas { width: 1024px; height: 90dvh; border-radius: 45px; box-shadow: 0 40px 100px rgba(0,0,0,0.2); border: 8px solid white; } }
+@media (min-width: 600px) and (max-width: 1024px) { .cover-canvas { width: 85vw; height: 95dvh; border-radius: 35px; } }
 
 .bg-silver-gradient { background: linear-gradient(135deg, rgba(200, 200, 205, 0.9) 0%, rgba(240, 240, 245, 0.95) 50%, rgba(190, 190, 195, 0.9) 100%); }
 .main-hero-area { flex: 1; display: flex; flex-direction: column; justify-content: flex-start; align-items: center; padding-top: 8.5rem; }
@@ -669,7 +662,6 @@ onMounted(async () => {
 .owl-delayed { opacity: 0; animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.1s forwards; }
 .btn-delayed { opacity: 0; animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.8s forwards, latent-button 3s ease-in-out 1.3s infinite; }
 
-/* Para forzar que no salga la flechita por defecto en los selects en algunos navegadores */
 select {
     -webkit-appearance: none;
     -moz-appearance: none;

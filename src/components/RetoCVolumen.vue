@@ -7,8 +7,8 @@ const rondaActual = ref(1);
 const totalRondas = 5;
 const aciertos = ref(0);
 
-// 🛠️ Añadido estado para mostrar el popup de reglas al inicio
-const mostrarPopup = ref(true);
+// 🛠️ FIX: Apagado por defecto para que el juego inicie abierto
+const mostrarPopup = ref(false);
 
 const objetivo = ref({ base: 0, profundidad: 0, altura: 0 });
 const volumenObjetivo = computed(() => objetivo.value.base * objetivo.value.profundidad * objetivo.value.altura);
@@ -51,6 +51,13 @@ watch([base, profundidad, altura], () => {
         generarRonda();
       } else {
         emit('completado', aciertos.value);
+        
+        // 🛠️ FIX: Auto-Reset silencioso para el carrusel infinito
+        setTimeout(() => {
+          rondaActual.value = 1;
+          aciertos.value = 0;
+          generarRonda();
+        }, 1500);
       }
     }, 2500); 
   }
@@ -58,8 +65,14 @@ watch([base, profundidad, altura], () => {
 </script>
 
 <template>
-  <div class="reto-contenedor w-full h-full flex flex-col items-center justify-start pt-4 relative">
+  <div class="reto-contenedor w-full h-full flex flex-col items-center justify-start pt-12 md:pt-16 relative">
     
+    <div class="absolute top-[48px] md:top-[75px] left-1/2 -translate-x-1/2 bg-slate-900/90 backdrop-blur-md border border-slate-500/50 rounded-lg px-3 py-1 flex items-center gap-2 shadow-[0_0_15px_rgba(34,211,238,0.3)] z-50 whitespace-nowrap">
+      <span class="text-[10px] md:text-xs text-cyan-200 font-bold uppercase tracking-widest">Premio:</span>
+      <img src="/images/coin-silver.png" class="w-4 h-4 object-contain" />
+      <span class="text-emerald-400 font-black text-sm">2</span>
+    </div>
+
     <button id="btn-abrir-reglas-2" @click="mostrarPopup = true" class="hidden"></button>
 
     <transition name="fade-popup">
@@ -72,7 +85,7 @@ watch([base, profundidad, altura], () => {
         </div>
     </transition>
 
-    <div class="instruccion bg-cyan-950/60 border border-cyan-400/50 backdrop-blur-md px-6 py-2 rounded-xl shadow-[0_0_20px_rgba(34,211,238,0.2)] text-center z-40 relative w-[90%] md:w-auto">
+    <div class="instruccion bg-cyan-950/60 border border-cyan-400/50 backdrop-blur-md px-6 py-2 rounded-xl shadow-[0_0_20px_rgba(34,211,238,0.2)] text-center z-40 relative mt-4 w-[85%] md:w-auto">
       <div class="flex justify-between items-center mb-1 border-b border-cyan-500/30 pb-1 gap-4">
         <span class="text-xs font-bold text-emerald-400">RONDA {{ rondaActual }}/{{ totalRondas }}</span>
         <span class="text-[10px] font-semibold text-cyan-200 uppercase tracking-widest">Calculadora</span>
@@ -105,10 +118,10 @@ watch([base, profundidad, altura], () => {
         </div>
       </div>
 
-      <div class="controles flex flex-col gap-6 bg-slate-900/60 backdrop-blur-md p-6 rounded-2xl border border-cyan-500/30">
+      <div class="controles flex flex-col gap-4 md:gap-6 bg-slate-900/60 backdrop-blur-md p-4 md:p-6 rounded-2xl border border-cyan-500/30 z-40 relative">
         <div class="text-center mb-2">
-          <p class="text-cyan-400 text-sm uppercase tracking-wider">Tu Volumen</p>
-          <p class="text-4xl font-black font-mono" :class="retoCompletadoRonda ? 'text-emerald-400 drop-shadow-[0_0_10px_rgba(16,185,129,0.8)]' : 'text-white'">
+          <p class="text-cyan-400 text-xs md:text-sm uppercase tracking-wider">Tu Volumen</p>
+          <p class="text-3xl md:text-4xl font-black font-mono" :class="retoCompletadoRonda ? 'text-emerald-400 drop-shadow-[0_0_10px_rgba(16,185,129,0.8)]' : 'text-white'">
             {{ volumenActual }}
           </p>
         </div>

@@ -7,7 +7,7 @@ const rondaActual = ref(1);
 const totalRondas = 5;
 const aciertos = ref(0);
 const retoCompletadoRonda = ref(false);
-const mostrarPopup = ref(true);
+const mostrarPopup = ref(false); // 🛠️ FIX: Ahora inicia en FALSE (juego abierto)
 
 // Coordenadas locales para los vértices (1 es = R)
 const figuras = [
@@ -38,11 +38,19 @@ const tocarVertice = (index) => {
     retoCompletadoRonda.value = true;
     aciertos.value++;
     const audioUnlock = new Audio('/audios/ding.mp3'); audioUnlock.play().catch(() => {});
+    
     setTimeout(() => {
       if (rondaActual.value < totalRondas) {
         rondaActual.value++; generarRonda();
       } else {
         emit('completado', aciertos.value);
+        
+        // 🛠️ FIX: Auto-Reset silencioso para que quede listo si dan otra vuelta
+        setTimeout(() => {
+          rondaActual.value = 1;
+          aciertos.value = 0;
+          generarRonda();
+        }, 1500); // 1.5s es suficiente para que la cara ya no se vea mientras gira
       }
     }, 1500);
   }
@@ -52,6 +60,12 @@ const tocarVertice = (index) => {
 <template>
   <div class="reto-contenedor w-full h-full flex flex-col items-center justify-start pt-4 md:pt-12 relative">
     
+    <div class="absolute top-2 left-2 md:top-4 md:left-4 bg-slate-900/80 backdrop-blur-md border border-slate-500/50 rounded-lg px-2 py-1 flex items-center gap-1.5 shadow-lg z-50">
+      <span class="text-[10px] md:text-xs text-slate-300 font-bold uppercase tracking-widest">Premio:</span>
+      <img src="/images/coin-silver.png" class="w-4 h-4 object-contain" />
+      <span class="text-emerald-400 font-black text-sm">2</span>
+    </div>
+
     <button id="btn-abrir-reglas-1" @click="mostrarPopup = true" class="hidden"></button>
 
     <transition name="fade-popup">

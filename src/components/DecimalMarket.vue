@@ -117,18 +117,16 @@ const addMoney = (amount) => {
   if (currentChangeAccumulated.value === expectedChange.value) {
     handleCorrect();
   } else if (currentChangeAccumulated.value > expectedChange.value) {
-    // Si se pasa, marca error visual y sonoro, pero NO lo devuelve a 0
     feedback.value = 'error';
     playSound('error');
   } else {
-    // Si deshace el error y vuelve a estar por debajo, quita la alerta roja
     feedback.value = 'idle';
   }
 };
 
 const undoMoney = () => {
   currentChangeAccumulated.value = 0;
-  feedback.value = 'idle'; // Regresa el recibo a color normal
+  feedback.value = 'idle'; 
 };
 
 const handleCorrect = () => {
@@ -203,51 +201,48 @@ onUnmounted(() => window.speechSynthesis.cancel());
         <CoinRain :type="bestCoinType" :count="40" />
       </div>
 
-      <header class="header-standard shrink-0 z-10 relative !py-2">
+      <header class="header-standard shrink-0 !py-2 !bg-white/80 backdrop-blur-sm border-b-2 border-amber-800/30">
         <template v-if="currentStep !== 1">
           <div class="trophy-section flex items-center gap-2 animate-fade-in">
             <Trophy size="22" class="text-amber-700 drop-shadow-sm" />
             <span class="text-xl font-black text-amber-900">{{ progress }}/{{ maxProgress }}</span>
           </div>
 
-          <div class="session-loot-capsule animate-fade-in">
-            <div class="loot-item"><img src="/images/coin-gold.png" alt="Oro" /><span>{{ sessionCoins.gold }}</span></div>
-            <div class="loot-item border-x border-amber-300"><img src="/images/coin-silver.png" alt="Plata" /><span>{{ sessionCoins.silver }}</span></div>
-            <div class="loot-item"><img src="/images/coin-copper.png" alt="Cobre" /><span>{{ sessionCoins.copper }}</span></div>
+          <div class="session-loot-capsule animate-fade-in !bg-white !border-amber-300">
+            <div class="loot-item"><img src="/images/coin-gold.png" alt="Oro" /><span class="font-bold text-amber-900">{{ sessionCoins.gold }}</span></div>
+            <div class="loot-item border-x border-amber-200"><img src="/images/coin-silver.png" alt="Plata" /><span class="font-bold text-amber-900">{{ sessionCoins.silver }}</span></div>
+            <div class="loot-item"><img src="/images/coin-copper.png" alt="Cobre" /><span class="font-bold text-amber-900">{{ sessionCoins.copper }}</span></div>
           </div>
         </template>
         
         <div v-else class="flex-1"></div>
 
-        <button @click="handleClose" class="btn-close-circle p-2 bg-white/50 rounded-full text-slate-800 hover:text-red-500 hover:bg-white transition-all backdrop-blur-sm shadow-sm">
-          <X size="20" stroke-width="3" />
+        <button @click="handleClose" class="btn-close-circle p-2 bg-white rounded-full text-amber-900 hover:text-red-600 hover:bg-amber-100 transition-all shadow-sm border border-amber-200">
+          <X size="20" stroke-width="2.5" />
         </button>
       </header>
 
-      <div v-if="currentStep === 1" class="game-content flex-1 flex flex-col items-center justify-start pt-2 pb-2 px-4 animate-fade-in z-10 relative">
-        <div class="text-center mt-2">
-          
+      <div v-if="currentStep === 1" class="game-content flex-1 flex flex-col items-center justify-between py-4 w-full animate-fade-in z-10 relative">
+        
+        <div class="text-center mt-2 shrink-0">
           <div class="css-3d-cart-wrapper mb-3">
              <div class="css-3d-cart">
-               <div class="cart-basket"></div>
-               <div class="cart-handle"></div>
-               <div class="cart-wheel wheel-left"></div>
-               <div class="cart-wheel wheel-right"></div>
+               <div class="cart-basket"></div><div class="cart-handle"></div><div class="cart-wheel wheel-left"></div><div class="cart-wheel wheel-right"></div>
              </div>
           </div>
-
           <h1 class="game-title text-amber-900 drop-shadow-sm leading-none">Mercado de Decimales</h1>
           <p class="text-amber-700 font-bold text-[10px] sm:text-xs tracking-widest uppercase mt-2 bg-amber-100/50 inline-block px-3 py-1 rounded-full border border-amber-200">Cambio Steampunk</p>
         </div>
         
-        <div class="rules-panel shadow-2xl bg-white/95 backdrop-blur-sm border-amber-800 border-4 w-full max-w-sm mt-6 flex-1 max-h-[30vh] flex flex-col">
-          <div class="rules-badge bg-amber-800 flex justify-between items-center w-full px-4 box-border left-0 top-[-14px]">
+        <div class="rules-panel bg-white/95 backdrop-blur-sm border-amber-800 border-4 mx-auto mt-6">
+          <div class="rules-badge bg-amber-800 flex justify-between items-center w-full px-4 box-border left-0 top-[-14px] rounded-full">
             <span>INSTRUCCIONES DE LA BÓVEDA</span>
-            <button @click="playIntroVoice" class="text-amber-200 hover:text-white transition-colors active:scale-90">
+            <button @click="playIntroVoice" class="text-amber-200 hover:text-white transition-colors active:scale-90 ml-4">
               <Volume2 size="16" />
             </button>
           </div>
-          <div class="rules-grid p-4 space-y-5 mt-2 text-slate-700 font-medium overflow-y-auto custom-scrollbar flex-1">
+          
+          <div class="rules-grid space-y-4 mt-4 text-slate-700 font-medium">
             <div class="flex items-center gap-4">
               <div class="icon-gear shrink-0"><ShoppingCart size="20" class="text-amber-700" /></div>
               <p class="text-xs sm:text-sm leading-tight">Mira la pantalla electrónica para ver el precio y el billete de pago.</p>
@@ -259,14 +254,14 @@ onUnmounted(() => window.speechSynthesis.cancel());
           </div>
         </div>
 
-        <button @click="startGame" class="btn-steampunk w-full max-w-sm mt-6 mb-8 flex justify-center items-center gap-2 text-lg shrink-0">
+        <button @click="startGame" class="btn-steampunk w-full max-w-sm mt-auto mb-4 flex justify-center items-center gap-2 text-lg shrink-0">
           ABRIR MERCADO <ChevronRight stroke-width="3" />
         </button>
       </div>
 
-      <div v-if="currentStep === 2" class="game-content flex-1 flex flex-col items-center justify-center py-2 animate-fade-in z-10 relative w-full">
+      <div v-if="currentStep === 2" class="game-content flex-1 flex flex-col items-center justify-center py-2 animate-fade-in z-10 relative w-full min-h-0">
         
-        <div class="pos-system w-full max-w-[360px] relative flex flex-col items-end px-2 pb-6 pt-6">
+        <div class="pos-system w-full max-w-[360px] relative flex flex-col items-end px-2 pb-6 pt-6 mx-auto">
            
            <div class="mechanical-arm"></div>
 
@@ -274,11 +269,11 @@ onUnmounted(() => window.speechSynthesis.cancel());
               <div class="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[length:100%_3px] pointer-events-none"></div>
               
               <div class="flex justify-between items-center mb-1">
-                 <p class="text-emerald-400 font-mono text-[9px] tracking-widest uppercase">COBRO #{{ progress + 1 }}</p>
+                 <p class="text-emerald-400 font-mono text-[14px] tracking-widest uppercase">COBRO #{{ progress + 1 }}</p>
                  <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
               </div>
               
-              <p class="text-emerald-300 font-mono text-[13px] leading-snug">
+              <p class="text-emerald-300 font-mono text-[18px] leading-snug">
                 Total: <strong class="text-white ml-1">{{ itemPrice.toFixed(2) }}€</strong><br>
                 Pagó:  <strong class="text-white ml-2">{{ paidWith.toFixed(2) }}€</strong><br>
               </p>
@@ -309,10 +304,10 @@ onUnmounted(() => window.speechSynthesis.cancel());
              <div class="drawer-casing mt-8 relative z-30 transition-all duration-300" :class="{'translate-y-4 scale-[1.01]': isDrawerOpen}">
                 
                 <div class="bg-zinc-900 border-2 border-zinc-700 rounded p-1.5 mb-3 text-center mx-3 shadow-inner">
-                  <span v-if="difference > 0" class="text-amber-400 font-mono text-[14px] font-bold tracking-widest uppercase">Faltan: {{ difference.toFixed(2) }}€</span>
-                  <span v-else-if="difference < 0" class="text-red-400 font-mono text-[10px] font-bold tracking-widest uppercase animate-pulse">Sobran: {{ Math.abs(difference).toFixed(2) }}€ (DESHACER)</span>
-                  <span v-else-if="difference === 0 && currentChangeAccumulated > 0" class="text-emerald-400 font-mono text-[10px] font-bold tracking-widest uppercase">¡Cambio Exacto!</span>
-                  <span v-else class="text-zinc-500 font-mono text-[10px] font-bold tracking-widest uppercase">Ingresa el Cambio</span>
+                  <span v-if="difference > 0" class="text-amber-400 font-mono text-[18px] font-bold tracking-widest uppercase">Faltan: {{ difference.toFixed(2) }}€</span>
+                  <span v-else-if="difference < 0" class="text-red-400 font-mono text-[14px] font-bold tracking-widest uppercase animate-pulse">Sobran: {{ Math.abs(difference).toFixed(2) }}€ (DESHACER)</span>
+                  <span v-else-if="difference === 0 && currentChangeAccumulated > 0" class="text-emerald-400 font-mono text-[14px] font-bold tracking-widest uppercase">¡Cambio Exacto!</span>
+                  <span v-else class="text-zinc-500 font-mono text-[14px] font-bold tracking-widest uppercase">Ingresa el Cambio</span>
                 </div>
 
                 <div class="flex gap-2 mb-2 px-2">
@@ -359,22 +354,22 @@ onUnmounted(() => window.speechSynthesis.cancel());
       <div v-if="currentStep === 3" class="game-content result-screen flex-1 flex flex-col items-center justify-center py-6 px-4 animate-fade-in z-10 relative">
         <h1 class="text-4xl font-black text-amber-900 mb-8 italic drop-shadow-md text-center uppercase tracking-tighter">¡NEGOCIO REDONDO!</h1>
         
-        <div class="final-loot-display flex gap-6 mb-12 bg-white/80 p-6 rounded-[2.5rem] shadow-2xl border-4 border-amber-300 backdrop-blur-sm">
+        <div class="final-loot-display flex gap-4 md:gap-6 mb-12 bg-white/80 p-4 md:p-6 rounded-[2.5rem] shadow-2xl border-4 border-amber-300 backdrop-blur-sm mx-auto">
             <div v-if="sessionCoins.gold > 0" class="loot-big gold-glow flex flex-col items-center gap-2">
-              <img src="/images/coin-gold.png" class="w-16 h-16 animate-bounce-slow" />
-              <span class="text-2xl font-black text-amber-500">+{{ sessionCoins.gold }}</span>
+              <img src="/images/coin-gold.png" class="w-12 h-12 md:w-16 md:h-16 animate-bounce-slow" />
+              <span class="text-xl md:text-2xl font-black text-amber-500">+{{ sessionCoins.gold }}</span>
             </div>
             <div v-if="sessionCoins.silver > 0" class="loot-big silver-glow flex flex-col items-center gap-2">
-              <img src="/images/coin-silver.png" class="w-16 h-16 animate-bounce-slow" style="animation-delay: 0.1s" />
-              <span class="text-2xl font-black text-slate-400">+{{ sessionCoins.silver }}</span>
+              <img src="/images/coin-silver.png" class="w-12 h-12 md:w-16 md:h-16 animate-bounce-slow" style="animation-delay: 0.1s" />
+              <span class="text-xl md:text-2xl font-black text-slate-400">+{{ sessionCoins.silver }}</span>
             </div>
             <div v-if="sessionCoins.copper > 0" class="loot-big copper-glow flex flex-col items-center gap-2">
-              <img src="/images/coin-copper.png" class="w-16 h-16 animate-bounce-slow" style="animation-delay: 0.2s" />
-              <span class="text-2xl font-black text-amber-700">+{{ sessionCoins.copper }}</span>
+              <img src="/images/coin-copper.png" class="w-12 h-12 md:w-16 md:h-16 animate-bounce-slow" style="animation-delay: 0.2s" />
+              <span class="text-xl md:text-2xl font-black text-amber-700">+{{ sessionCoins.copper }}</span>
             </div>
         </div>
 
-        <div class="action-buttons flex flex-col w-full max-w-xs gap-4 mb-8 shrink-0">
+        <div class="action-buttons flex flex-col w-full max-w-xs mx-auto gap-4 mb-8 shrink-0">
           <button @click="resetGame" class="w-full py-4 bg-white border-4 border-amber-300 text-amber-800 rounded-2xl font-black text-lg shadow-sm active:scale-95 transition-all flex items-center justify-center gap-3">
             <RotateCcw stroke-width="3" /> OTRA RACHA
           </button>
@@ -389,20 +384,41 @@ onUnmounted(() => window.speechSynthesis.cancel());
 </template>
 
 <style scoped>
-/* CONTENEDOR MAESTRO */
+/* 🛠️ CSS BLINDADO DE LA PLANTILLA MAESTRA */
+
 .master-container {
-  position: fixed; inset: 0; z-index: 9999;
-  display: flex; justify-content: center; align-items: center;
-  background-color: #f1f5f9; overflow: hidden; touch-action: none !important;
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #f1f5f9; 
+  overflow: hidden;
 }
 
 .app-canvas {
-  display: flex; flex-direction: column; justify-content: space-between;
-  position: relative; overflow: hidden; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  user-select: none; touch-action: none !important; -webkit-tap-highlight-color: transparent;
-  width: 100vw; height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  background-color: #f8fafc;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+
+  width: 100vw;
+  height: 100dvh;
+  overflow-y: auto; 
+  overflow-x: hidden;
 }
 
+/* FONDO STEAMPUNK */
 .steampunk-bg {
   background: #fdf5e6;
   background-image: radial-gradient(#d2b48c 1.5px, transparent 1.5px);
@@ -410,109 +426,150 @@ onUnmounted(() => window.speechSynthesis.cancel());
 }
 
 @media (min-width: 1025px) {
-  .app-canvas { width: 1024px; height: 90dvh; border-radius: 45px; box-shadow: 0 40px 100px rgba(0,0,0,0.25); border: 8px solid white; }
+  .app-canvas {
+    width: 1024px; 
+    height: 90dvh;
+    border-radius: 45px;
+    box-shadow: 0 40px 100px rgba(0,0,0,0.15);
+    border: 8px solid white;
+    padding: 0; 
+    overflow: hidden; 
+  }
 }
+
 @media (min-width: 600px) and (max-width: 1024px) {
-  .app-canvas { width: 85vw; height: 95dvh; border-radius: 35px; }
+  .app-canvas { 
+    width: 85vw; 
+    max-width: 800px; 
+    height: 95dvh; 
+    border-radius: 35px; 
+    box-shadow: 0 20px 50px rgba(0,0,0,0.1);
+    padding: 0;
+  }
 }
 
 .header-standard {
-  width: 100%; display: flex; align-items: center; justify-content: space-between;
-  padding: 0.75rem 1.25rem; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(8px);
-  border-bottom: 2px solid rgba(210, 180, 140, 0.3);
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
 }
 
 .session-loot-capsule {
-  display: flex; align-items: center; background: white; padding: 6px 16px;
-  border-radius: 9999px; border: 2px solid #fde68a; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  display: flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 9999px;
+  border: 2px solid #e2e8f0;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
 }
-.loot-item { display: flex; align-items: center; gap: 6px; padding: 0 10px; font-weight: 900; color: #451a03; }
-.loot-item img { width: 1.2rem; height: 1.2rem; object-fit: contain; }
 
-.game-title { font-size: 2rem; font-weight: 900; text-transform: uppercase; font-style: italic; letter-spacing: -0.05em; }
+.loot-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px;
+}
 
-/* NUEVO ICONO CARRITO 3D CSS PORTADA */
+.loot-item img {
+  width: 1.1rem;
+  height: 1.1rem;
+  object-fit: contain; 
+}
+
+.game-title {
+  font-size: clamp(1.2rem, 5vw, 2rem);
+  font-weight: 900;
+  text-transform: uppercase;
+  font-style: italic; 
+  letter-spacing: -0.05em;
+}
+
+.rules-panel {
+  width: 92%;
+  max-width: 600px; 
+  padding: 1.2rem 1rem 1rem 1rem;
+  border-radius: 1.5rem;
+  position: relative;
+  box-shadow: 0 10px 25px -5px rgba(0,0,0,0.15);
+}
+
+.rules-badge {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%); 
+  color: white;
+  font-size: 11px;
+  font-weight: 900;
+  padding: 4px 14px;
+  border-radius: 9999px;
+  letter-spacing: 0.05em;
+}
+
+/* Ocultar barra de scroll global */
+.app-canvas::-webkit-scrollbar { display: none; }
+.app-canvas { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ESTILOS ESPECÍFICOS DEL JUEGO STEAMPUNK */
+
 .css-3d-cart-wrapper {
-  display: inline-flex; padding: 20px;
+  display: inline-flex; padding: 15px;
   background: rgba(251, 191, 36, 0.2); border-radius: 50%;
   border: 4px solid #b45309; box-shadow: 0 10px 20px rgba(0,0,0,0.1), inset 0 4px 10px rgba(255,255,255,0.5);
 }
 
-.css-3d-cart {
-  width: 60px; height: 50px; position: relative;
-}
-
+.css-3d-cart { width: 50px; height: 40px; position: relative; }
 .cart-basket {
-  position: absolute; top: 0; left: 10px; width: 50px; height: 35px;
+  position: absolute; top: 0; left: 8px; width: 42px; height: 28px;
   background: repeating-linear-gradient(90deg, transparent, transparent 4px, #b45309 4px, #b45309 6px),
               repeating-linear-gradient(0deg, transparent, transparent 4px, #b45309 4px, #b45309 6px);
-  border: 3px solid #92400e; border-top-width: 5px; border-radius: 2px 2px 8px 8px;
-  box-shadow: inset 0 -5px 10px rgba(0,0,0,0.3);
+  border: 3px solid #92400e; border-top-width: 4px; border-radius: 2px 2px 6px 6px;
+  box-shadow: inset 0 -4px 8px rgba(0,0,0,0.3);
 }
-
 .cart-handle {
-  position: absolute; top: -5px; left: -5px; width: 25px; height: 20px;
+  position: absolute; top: -4px; left: -4px; width: 20px; height: 16px;
   border-left: 4px solid #92400e; border-bottom: 4px solid #92400e;
   border-radius: 0 0 0 5px;
 }
-
 .cart-wheel {
-  position: absolute; bottom: -5px; width: 14px; height: 14px;
+  position: absolute; bottom: -4px; width: 12px; height: 12px;
   background: #451a03; border-radius: 50%;
   border: 2px solid #78350f; box-shadow: 0 2px 4px rgba(0,0,0,0.4);
 }
-.wheel-left { left: 15px; }
-.wheel-right { right: 5px; }
+.wheel-left { left: 12px; }
+.wheel-right { right: 4px; }
 
-
-.rules-panel { border-radius: 1.75rem; position: relative; }
-.rules-badge { position: absolute; color: white; font-size: 11px; font-weight: 900; padding: 6px 16px; border-radius: 9999px; letter-spacing: 0.05em; }
-
-.icon-gear {
-  background: #fef3c7; border: 3px solid #b45309; padding: 10px; 
-  border-radius: 50%; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
-}
+.icon-gear { background: #fef3c7; border: 3px solid #b45309; padding: 8px; border-radius: 50%; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1); }
 
 .btn-steampunk {
   background: linear-gradient(to bottom, #d97706, #b45309); color: white; 
-  padding: 1.2rem 2rem; border-radius: 16px; font-weight: 900; border: 2px solid #78350f;
+  padding: 1rem 1.5rem; border-radius: 16px; font-weight: 900; border: 2px solid #78350f;
   box-shadow: 0 6px 0 #78350f, 0 15px 20px rgba(120, 53, 15, 0.4); transition: all 0.1s;
 }
 .btn-steampunk:active { transform: translateY(6px); box-shadow: 0 0 0 #78350f, 0 5px 10px rgba(120, 53, 15, 0.4); }
 
-/* SISTEMA POS COMPLETO (BRAZO + PANTALLA + MÁQUINA) */
-.pos-system {
-  padding-top: 3.5rem; /* Espacio extra asegurado para el brazo y monitor */
-}
+.pos-system { padding-top: 3.5rem; }
 
 .mechanical-arm {
-  position: absolute;
-  top: 60px; /* Bajamos el inicio del brazo */
-  left: 20px;
-  width: 35px;
-  height: 180px; /* Aumentamos altura para separar monitor de caja */
-  border-left: 14px solid #78350f;
-  border-top: 14px solid #78350f;
-  border-top-left-radius: 16px;
-  z-index: 5;
-  box-shadow: -4px 4px 6px rgba(0,0,0,0.3);
+  position: absolute; top: 60px; left: 20px; width: 30px; height: 160px; 
+  border-left: 12px solid #78350f; border-top: 12px solid #78350f;
+  border-top-left-radius: 16px; z-index: 5; box-shadow: -4px 4px 6px rgba(0,0,0,0.3);
 }
 .mechanical-arm::before {
-  content: ''; position: absolute;
-  top: -14px; left: -14px; width: 28px; height: 28px;
-  background: radial-gradient(circle, #b45309, #78350f);
-  border-radius: 50%; border: 3px solid #451a03;
+  content: ''; position: absolute; top: -12px; left: -12px; width: 24px; height: 24px;
+  background: radial-gradient(circle, #b45309, #78350f); border-radius: 50%; border: 3px solid #451a03;
 }
 .led-monitor::before {
-  content: ''; position: absolute;
-  top: 20px; left: -18px; width: 14px; height: 20px;
+  content: ''; position: absolute; top: 20px; left: -18px; width: 14px; height: 20px;
   background: #451a03; border-top: 2px solid #271102; border-bottom: 2px solid #271102;
 }
 
 .register-machine {
   background: linear-gradient(135deg, #78350f, #451a03); 
-  padding: 15px 20px 25px 20px; border-radius: 20px; border: 8px solid #271102; 
-  box-shadow: 0 25px 0 #1a0b01, inset 0 5px 15px rgba(255,255,255,0.1);
+  padding: 15px 15px 20px 15px; border-radius: 20px; border: 8px solid #271102; 
+  box-shadow: 0 20px 0 #1a0b01, inset 0 5px 15px rgba(255,255,255,0.1);
 }
 
 .thermal-receipt {
@@ -523,50 +580,40 @@ onUnmounted(() => window.speechSynthesis.cancel());
 
 .drawer-casing {
   background: #5c3a18; border-radius: 12px; padding-top: 10px;
-  box-shadow: inset 0 10px 20px rgba(0,0,0,0.5);
-  border: 4px solid #271102;
+  box-shadow: inset 0 10px 20px rgba(0,0,0,0.5); border: 4px solid #271102;
 }
 
-/* GAVETA MONEDAS CSS FOTORREALISTA */
-.coin-drawer {
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
-  padding: 15px 12px; background: #271102; border-radius: 0 0 8px 8px;
-}
+.coin-drawer { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 12px; background: #271102; border-radius: 0 0 8px 8px; }
 
 .euro-coin {
   border-radius: 50%; display: flex; align-items: center; justify-content: center;
-  font-weight: 900; font-size: 0.9rem; aspect-ratio: 1;
+  font-weight: 900; font-size: 0.8rem; aspect-ratio: 1;
   box-shadow: 0 4px 6px rgba(0,0,0,0.5), inset 0 -2px 4px rgba(0,0,0,0.3);
   cursor: pointer; transition: transform 0.1s;
 }
+@media (min-width: 380px) { .euro-coin { font-size: 0.9rem; } }
 .euro-coin:active { transform: scale(0.9) translateY(2px); }
 .euro-coin:disabled { opacity: 0.5; pointer-events: none; }
 
-.coin-copper { background: linear-gradient(135deg, #b87333, #8a5a29); color: white; border: 3px solid #5c3a18; }
-.coin-gold { background: linear-gradient(135deg, #ffd700, #daa520); color: #5c4000; border: 3px solid #b8860b; }
-.coin-1euro { background: radial-gradient(circle, #f8fafc 35%, #ffd700 40%); color: #1e293b; border: 4px solid #b8860b; }
-.coin-2euro { background: radial-gradient(circle, #ffd700 35%, #f8fafc 40%); color: #5c4000; border: 4px solid #94a3b8; }
+.coin-copper { background: linear-gradient(135deg, #b87333, #8a5a29); color: white; border: 2px solid #5c3a18; }
+.coin-gold { background: linear-gradient(135deg, #ffd700, #daa520); color: #5c4000; border: 2px solid #b8860b; }
+.coin-1euro { background: radial-gradient(circle, #f8fafc 35%, #ffd700 40%); color: #1e293b; border: 3px solid #b8860b; }
+.coin-2euro { background: radial-gradient(circle, #ffd700 35%, #f8fafc 40%); color: #5c4000; border: 3px solid #94a3b8; }
 
-/* GAVETA BILLETES CSS */
-.bill-drawer {
-  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
-  padding: 15px 12px; background: #271102; border-radius: 0 0 8px 8px;
-}
+.bill-drawer { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 12px; background: #271102; border-radius: 0 0 8px 8px; }
 
 .euro-bill {
   border-radius: 4px; display: flex; align-items: center; justify-content: center;
-  font-weight: 900; font-size: 1.1rem; padding: 12px 5px; color: white;
+  font-weight: 900; font-size: 0.9rem; padding: 10px 4px; color: white;
   box-shadow: 0 4px 6px rgba(0,0,0,0.5), inset 0 0 10px rgba(255,255,255,0.3);
-  border: 1px dashed rgba(255,255,255,0.4);
-  cursor: pointer; transition: transform 0.1s;
+  border: 1px dashed rgba(255,255,255,0.4); cursor: pointer; transition: transform 0.1s;
 }
+@media (min-width: 380px) { .euro-bill { font-size: 1.1rem; padding: 12px 5px; } }
 .euro-bill:active { transform: scale(0.95) translateY(2px); }
 .euro-bill:disabled { opacity: 0.5; pointer-events: none; }
 
-/* ANIMACIONES Y EFECTOS */
 .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
 .animate-bounce-slow { animation: bounceSlow 3s infinite ease-in-out; }
 @keyframes bounceSlow { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
 
@@ -581,6 +628,4 @@ onUnmounted(() => window.speechSynthesis.cancel());
 .gold-glow { filter: drop-shadow(0 0 15px rgba(251, 191, 36, 0.6)); }
 .silver-glow { filter: drop-shadow(0 0 15px rgba(148, 163, 184, 0.6)); }
 .copper-glow { filter: drop-shadow(0 0 15px rgba(180, 83, 9, 0.6)); }
-.custom-scrollbar::-webkit-scrollbar { width: 6px; }
-.custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
 </style>
