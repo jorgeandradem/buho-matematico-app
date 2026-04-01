@@ -1,5 +1,12 @@
 [
   {
+    "updateId": "upd_1775169600000",
+    "version": "2.11.4",
+    "date": "01/04/2026",
+    "title": "RUMBO DE RETORNO",
+    "description": "Capitán, hemos recalibrado los compases. Se implementó una nueva lógica de navegación en el Timón de Ángulos: el botón de cierre (X) ahora actúa como retorno inteligente a la Bitácora del Capitán si el reto está en curso, garantizando que el alumno pueda consultar las reglas sin perder su sesión. Además, se estandarizó la visibilidad total de la interfaz de salida en la esquina superior derecha, con blindaje de profundidad (Z-Index) para evitar solapamientos con los marcos del navío."
+  },
+  {
     "updateId": "upd_1775160000000",
     "version": "2.11.3",
     "date": "01/04/2026",

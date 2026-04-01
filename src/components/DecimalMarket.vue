@@ -1,6 +1,6 @@
 <script setup>
 /** * ARCHIVO: DecimalMarket.vue
- * NOTA INTERNA: MERCADO DE DECIMALES v5.3 - BLINDAJE TÁCTIL Y RESPONSIVIDAD TABLET
+ * NOTA INTERNA: MERCADO DE DECIMALES v5.5 - BLINDAJE TÁCTIL Y X DENTRO DEL CANVAS
  * LOGICA: 12 niveles, sistema de gaveta mecánica y monitor LED. 
  */
 import { ref, computed, onMounted, onUnmounted } from 'vue';
@@ -197,12 +197,16 @@ onUnmounted(() => window.speechSynthesis.cancel());
 <template>
   <div class="master-container">
     <main class="app-canvas steampunk-bg">
+
+      <button @click="handleClose" class="absolute top-4 right-4 md:top-5 md:right-5 z-[200] p-2.5 bg-white/90 backdrop-blur-sm rounded-full text-amber-900 shadow-md border-2 border-amber-200 active:scale-75 transition-transform touch-manipulation">
+        <X size="24" stroke-width="3" />
+      </button>
       
-      <div v-if="currentStep === 3" class="pointer-events-none absolute inset-0 z-[5]">
+      <div v-if="currentStep === 3" class="pointer-events-none absolute inset-0 z-[150]">
         <CoinRain :type="bestCoinType" :count="40" />
       </div>
 
-      <header class="header-standard shrink-0 !py-2 !bg-white/80 backdrop-blur-sm border-b-2 border-amber-800/30 relative z-[60]">
+      <header class="header-standard shrink-0 !py-2 !bg-white/80 backdrop-blur-sm border-b-2 border-amber-800/30 relative z-[100]">
         <template v-if="currentStep !== 1">
           <div class="trophy-section flex items-center gap-2 animate-fade-in">
             <Trophy size="22" class="text-amber-700 drop-shadow-sm" />
@@ -215,15 +219,11 @@ onUnmounted(() => window.speechSynthesis.cancel());
             <div class="loot-item"><img src="/images/coin-copper.png" alt="Cobre" /><span class="font-bold text-amber-900">{{ sessionCoins.copper }}</span></div>
           </div>
         </template>
-        
         <div v-else class="flex-1"></div>
-
-        <button @click="handleClose" class="btn-close-circle p-2 bg-white rounded-full text-amber-900 hover:text-red-600 hover:bg-amber-100 transition-all shadow-sm border border-amber-200 touch-manipulation relative z-[100]">
-          <X size="20" stroke-width="2.5" />
-        </button>
+        <div class="w-12 h-10"></div>
       </header>
 
-      <div v-if="currentStep === 1" class="game-content flex-1 flex flex-col items-center justify-between py-4 w-full animate-fade-in z-10 relative">
+      <div v-if="currentStep === 1" class="game-content flex-1 flex flex-col items-center justify-between py-4 w-full animate-fade-in z-50 relative">
         
         <div class="text-center mt-2 shrink-0">
           <div class="css-3d-cart-wrapper mb-3">
@@ -235,7 +235,7 @@ onUnmounted(() => window.speechSynthesis.cancel());
           <p class="text-amber-700 font-bold text-[10px] sm:text-xs tracking-widest uppercase mt-2 bg-amber-100/50 inline-block px-3 py-1 rounded-full border border-amber-200">Cambio Steampunk</p>
         </div>
         
-        <div class="rules-panel bg-white/95 backdrop-blur-sm border-amber-800 border-4 mx-auto mt-6">
+        <div class="rules-panel bg-white/95 backdrop-blur-sm border-amber-800 border-4 mx-auto mt-6 z-50">
           <div class="rules-badge bg-amber-800 flex justify-between items-center w-full px-4 box-border left-0 top-[-14px] rounded-full">
             <span>INSTRUCCIONES DE LA BÓVEDA</span>
             <button @click="playIntroVoice" class="text-amber-200 hover:text-white transition-colors active:scale-90 ml-4 touch-manipulation">
@@ -255,12 +255,12 @@ onUnmounted(() => window.speechSynthesis.cancel());
           </div>
         </div>
 
-        <button @click="startGame" class="btn-steampunk w-full max-w-sm mt-auto mb-4 flex justify-center items-center gap-2 text-lg shrink-0 relative z-[100]">
+        <button @click="startGame" class="btn-steampunk w-full max-w-sm mt-auto mb-4 flex justify-center items-center gap-2 text-lg shrink-0 relative z-[100] touch-manipulation">
           ABRIR MERCADO <ChevronRight stroke-width="3" />
         </button>
       </div>
 
-      <div v-if="currentStep === 2" class="game-content flex-1 flex flex-col items-center justify-center py-2 animate-fade-in z-10 relative w-full min-h-0">
+      <div v-if="currentStep === 2" class="game-content flex-1 flex flex-col items-center justify-center py-2 animate-fade-in z-40 relative w-full min-h-0">
         
         <div class="pos-system w-full max-w-[360px] relative flex flex-col items-end px-2 pb-6 pt-6 mx-auto">
            
@@ -342,19 +342,16 @@ onUnmounted(() => window.speechSynthesis.cancel());
                    <button @click="addMoney(200.00)" :disabled="feedback === 'correct'" class="euro-bill bg-yellow-500 text-yellow-900">200€</button>
                    <button @click="addMoney(500.00)" :disabled="feedback === 'correct'" class="euro-bill bg-purple-500 col-span-3">500€</button>
                 </div>
-
              </div>
-             
              <div class="absolute -bottom-3 left-4 right-4 h-3 bg-amber-950 rounded-b-xl opacity-50 z-0"></div>
            </div>
-
         </div>
       </div>
 
-      <div v-if="currentStep === 3" class="game-content result-screen flex-1 flex flex-col items-center justify-center py-6 px-4 animate-fade-in relative z-20 w-full min-h-0">
+      <div v-if="currentStep === 3" class="game-content result-screen flex-1 flex flex-col items-center justify-center py-6 px-4 animate-fade-in relative z-[160] w-full min-h-0">
         <h1 class="text-4xl font-black text-amber-900 mb-8 italic drop-shadow-md text-center uppercase tracking-tighter">¡NEGOCIO REDONDO!</h1>
         
-        <div class="final-loot-display flex gap-4 md:gap-6 mb-12 bg-white/80 p-4 md:p-6 rounded-[2.5rem] shadow-2xl border-4 border-amber-300 backdrop-blur-sm mx-auto relative z-30">
+        <div class="final-loot-display flex gap-4 md:gap-6 mb-12 bg-white/80 p-4 md:p-6 rounded-[2.5rem] shadow-2xl border-4 border-amber-300 backdrop-blur-sm mx-auto relative z-[170]">
             <div v-if="sessionCoins.gold > 0" class="loot-big gold-glow flex flex-col items-center gap-2">
               <img src="/images/coin-gold.png" class="w-12 h-12 md:w-16 md:h-16 animate-bounce-slow" />
               <span class="text-xl md:text-2xl font-black text-amber-500">+{{ sessionCoins.gold }}</span>
@@ -369,11 +366,11 @@ onUnmounted(() => window.speechSynthesis.cancel());
             </div>
         </div>
 
-        <div class="action-buttons flex flex-col w-full max-w-xs mx-auto gap-4 mb-8 shrink-0 relative z-[100]">
+        <div class="action-buttons flex flex-col w-full max-w-xs mx-auto gap-4 mb-8 shrink-0 relative z-[180]">
           <button @click="resetGame" class="w-full py-4 bg-white border-4 border-amber-300 text-amber-800 rounded-2xl font-black text-lg shadow-sm active:scale-95 transition-all flex items-center justify-center gap-3 touch-manipulation">
             <RotateCcw stroke-width="3" /> OTRA RACHA
           </button>
-          <button @click="handleClose" class="btn-steampunk w-full flex items-center justify-center gap-3 text-lg">
+          <button @click="handleClose" class="btn-steampunk w-full flex items-center justify-center gap-3 text-lg touch-manipulation">
             <Home stroke-width="3" /> AL PORTAL
           </button>
         </div>
@@ -384,13 +381,13 @@ onUnmounted(() => window.speechSynthesis.cancel());
 </template>
 
 <style scoped>
+/* 1. ESTRUCTURA DE CONTENCIÓN BLINDADA */
 .master-container { position: fixed; inset: 0; z-index: 9999; display: flex; justify-content: center; align-items: center; background-color: #f1f5f9; overflow: hidden; }
 
 .app-canvas {
   display: flex; flex-direction: column; justify-content: space-between; position: relative;
   background-color: #f8fafc; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); user-select: none; -webkit-tap-highlight-color: transparent;
-  padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom);
-  padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right);
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   width: 100vw; height: 100dvh; overflow-y: auto; overflow-x: hidden;
 }
 
@@ -408,7 +405,6 @@ onUnmounted(() => window.speechSynthesis.cancel());
   .app-canvas { width: 85vw; max-width: 800px; height: 95dvh; border-radius: 35px; box-shadow: 0 20px 50px rgba(0,0,0,0.1); padding: 0; }
 }
 
-/* 🛠️ BLINDAJE TÁCTIL (Evita el zoom y retrasos en móviles/tablets) */
 .touch-manipulation { touch-action: manipulation; cursor: pointer; }
 
 .header-standard { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1rem; }
@@ -421,14 +417,11 @@ onUnmounted(() => window.speechSynthesis.cancel());
 .rules-panel { width: 92%; max-width: 600px; padding: 1.2rem 1rem 1rem 1rem; border-radius: 1.5rem; position: relative; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.15); }
 .rules-badge { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); color: white; font-size: 11px; font-weight: 900; padding: 4px 14px; border-radius: 9999px; letter-spacing: 0.05em; }
 
-.app-canvas::-webkit-scrollbar { display: none; }
-.app-canvas { -ms-overflow-style: none; scrollbar-width: none; }
-
-/* ESTILOS ESPECÍFICOS DEL JUEGO STEAMPUNK */
+/* 2. DISEÑO MECÁNICO E IMAGEN CORPORATIVA */
 .css-3d-cart-wrapper { 
   display: inline-flex; padding: 15px; background: rgba(251, 191, 36, 0.2); border-radius: 50%; 
   border: 4px solid #b45309; box-shadow: 0 10px 20px rgba(0,0,0,0.1), inset 0 4px 10px rgba(255,255,255,0.5);
-  pointer-events: none; /* 🛠️ FIX */
+  pointer-events: none; 
 }
 .css-3d-cart { width: 50px; height: 40px; position: relative; }
 .cart-basket { position: absolute; top: 0; left: 8px; width: 42px; height: 28px; background: repeating-linear-gradient(90deg, transparent, transparent 4px, #b45309 4px, #b45309 6px), repeating-linear-gradient(0deg, transparent, transparent 4px, #b45309 4px, #b45309 6px); border: 3px solid #92400e; border-top-width: 4px; border-radius: 2px 2px 6px 6px; box-shadow: inset 0 -4px 8px rgba(0,0,0,0.3); }
@@ -443,29 +436,26 @@ onUnmounted(() => window.speechSynthesis.cancel());
   background: linear-gradient(to bottom, #d97706, #b45309); color: white; padding: 1rem 1.5rem; 
   border-radius: 16px; font-weight: 900; border: 2px solid #78350f; 
   box-shadow: 0 6px 0 #78350f, 0 15px 20px rgba(120, 53, 15, 0.4); transition: all 0.1s;
-  touch-action: manipulation; cursor: pointer; /* 🛠️ FIX TÁCTIL */
 }
 .btn-steampunk:active { transform: translateY(6px); box-shadow: 0 0 0 #78350f, 0 5px 10px rgba(120, 53, 15, 0.4); }
 
 .pos-system { padding-top: 3.5rem; }
 .mechanical-arm { position: absolute; top: 60px; left: 20px; width: 30px; height: 160px; border-left: 12px solid #78350f; border-top: 12px solid #78350f; border-top-left-radius: 16px; z-index: 5; box-shadow: -4px 4px 6px rgba(0,0,0,0.3); }
 .mechanical-arm::before { content: ''; position: absolute; top: -12px; left: -12px; width: 24px; height: 24px; background: radial-gradient(circle, #b45309, #78350f); border-radius: 50%; border: 3px solid #451a03; }
-.led-monitor::before { content: ''; position: absolute; top: 20px; left: -18px; width: 14px; height: 20px; background: #451a03; border-top: 2px solid #271102; border-bottom: 2px solid #271102; }
 
+.led-monitor { position: relative; }
 .register-machine { background: linear-gradient(135deg, #78350f, #451a03); padding: 15px 15px 20px 15px; border-radius: 20px; border: 8px solid #271102; box-shadow: 0 20px 0 #1a0b01, inset 0 5px 15px rgba(255,255,255,0.1); }
 .thermal-receipt { background: #f8fafc; padding: 6px 12px; border-radius: 4px; box-shadow: inset 0 0 10px rgba(0,0,0,0.05), 0 8px 20px rgba(0,0,0,0.6); border-bottom: 2px dashed #cbd5e1; }
 .drawer-casing { background: #5c3a18; border-radius: 12px; padding-top: 10px; box-shadow: inset 0 10px 20px rgba(0,0,0,0.5); border: 4px solid #271102; }
-.coin-drawer { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 12px; background: #271102; border-radius: 0 0 8px 8px; }
 
+/* 3. CAJONES DE DINERO */
+.coin-drawer { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 12px; background: #271102; border-radius: 0 0 8px 8px; }
 .euro-coin { 
   border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; 
   font-size: 0.8rem; aspect-ratio: 1; box-shadow: 0 4px 6px rgba(0,0,0,0.5), inset 0 -2px 4px rgba(0,0,0,0.3); 
-  cursor: pointer; transition: transform 0.1s; touch-action: manipulation; /* 🛠️ FIX TÁCTIL */
+  cursor: pointer; transition: transform 0.1s;
 }
-@media (min-width: 380px) { .euro-coin { font-size: 0.9rem; } }
 .euro-coin:active { transform: scale(0.9) translateY(2px); }
-.euro-coin:disabled { opacity: 0.5; pointer-events: none; }
-
 .coin-copper { background: linear-gradient(135deg, #b87333, #8a5a29); color: white; border: 2px solid #5c3a18; }
 .coin-gold { background: linear-gradient(135deg, #ffd700, #daa520); color: #5c4000; border: 2px solid #b8860b; }
 .coin-1euro { background: radial-gradient(circle, #f8fafc 35%, #ffd700 40%); color: #1e293b; border: 3px solid #b8860b; }
@@ -475,18 +465,17 @@ onUnmounted(() => window.speechSynthesis.cancel());
 .euro-bill { 
   border-radius: 4px; display: flex; align-items: center; justify-content: center; font-weight: 900; 
   font-size: 0.9rem; padding: 10px 4px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.5), inset 0 0 10px rgba(255,255,255,0.3); 
-  border: 1px dashed rgba(255,255,255,0.4); cursor: pointer; transition: transform 0.1s; touch-action: manipulation; /* 🛠️ FIX TÁCTIL */
+  border: 1px dashed rgba(255,255,255,0.4); cursor: pointer; transition: transform 0.1s;
 }
-@media (min-width: 380px) { .euro-bill { font-size: 1.1rem; padding: 12px 5px; } }
 .euro-bill:active { transform: scale(0.95) translateY(2px); }
 
+/* 4. ANIMACIONES */
 .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 .animate-bounce-slow { animation: bounceSlow 3s infinite ease-in-out; }
 @keyframes bounceSlow { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
-
-.animate-shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
-@keyframes shake { 10%, 90% { transform: translate3d(-2px, 0, 0); } 20%, 80% { transform: translate3d(4px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-8px, 0, 0); } 40%, 60% { transform: translate3d(8px, 0, 0); } }
+.animate-shake { animation: shake 0.5s both; }
+@keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } }
 
 .gold-glow { filter: drop-shadow(0 0 15px rgba(251, 191, 36, 0.6)); }
 .silver-glow { filter: drop-shadow(0 0 15px rgba(148, 163, 184, 0.6)); }

@@ -1,6 +1,6 @@
 <script setup>
 /** * ARCHIVO: AngleNavigation.vue
- * NOTA INTERNA: NAVEGACIÓN DE ÁNGULOS v5.2 - BLINDAJE TÁCTIL Y ANTI-HIJACKING
+ * NOTA INTERNA: NAVEGACIÓN DE ÁNGULOS v6.0 - X EN LA DERECHA + RETORNO LÓGICO
  * LOGICA: Basada en el motor de respuesta instantánea para tablets y PWA empaquetadas.
  */
 import { ref, computed, onMounted, onUnmounted } from 'vue';
@@ -64,10 +64,6 @@ const speak = (text, state = 'intro') => {
     case 'intro': default: utterance.pitch = 1.0; utterance.rate = 1.0; break;
   }
   window.speechSynthesis.speak(utterance);
-};
-
-const playIntroVoice = () => {
-  playIntroVoiceInternal();
 };
 
 const playIntroVoiceInternal = () => {
@@ -215,10 +211,10 @@ const resetGame = () => {
 const handleClose = () => {
   window.speechSynthesis.cancel();
   if (currentStep.value === 2) {
-    currentStep.value = 1; 
+    currentStep.value = 1; // Vuelve a la Bitácora
     playIntroVoiceInternal();
   } else {
-    emit('close'); 
+    emit('close'); // Cierra el juego al portal
   }
 };
 
@@ -230,32 +226,38 @@ onUnmounted(() => window.speechSynthesis.cancel());
   <div class="master-container font-inter">
     <main class="app-canvas ocean-bg">
       
-      <div v-if="currentStep === 3" class="pointer-events-none absolute inset-0 z-[5]">
+      <button 
+        @click="handleClose" 
+        class="absolute w-10 h-10 flex items-center justify-center bg-white/20 hover:bg-white/30 backdrop-blur-md rounded-full text-white shadow-lg border border-white/40 active:scale-75 transition-all cursor-pointer z-[500]" 
+        style="top: 15px; right: 15px;"
+      >
+        <X size="24" stroke-width="3" />
+      </button>
+
+      <div v-if="currentStep === 3" class="pointer-events-none absolute inset-0 z-[150]">
         <CoinRain :type="bestCoinType" :count="40" />
       </div>
 
-      <header class="header-standard shrink-0 !bg-white/90 backdrop-blur-sm border-b-2 border-blue-200 relative z-[60]">
-        <template v-if="currentStep !== 1">
-          <div class="trophy-section flex items-center gap-2 animate-fade-in">
-            <Trophy size="22" class="text-blue-600 drop-shadow-sm" />
-            <span class="text-xl font-black text-blue-900">{{ progress }}/10</span>
+      <header v-if="currentStep !== 1" class="header-standard shrink-0 !bg-white/10 backdrop-blur-md border-b border-white/20 relative z-[100] h-[70px]">
+        <div class="flex-1 flex items-center animate-fade-in">
+          <div class="flex items-center gap-2">
+            <Trophy size="22" class="text-yellow-400 drop-shadow-md" />
+            <span class="text-xl font-black text-white">{{ progress }}/10</span>
           </div>
+        </div>
 
-          <div class="session-loot-capsule animate-fade-in !bg-white">
-            <div class="loot-item"><img src="/images/coin-gold.png" alt="Oro" /><span class="font-bold text-slate-700">{{ sessionCoins.gold }}</span></div>
-            <div class="loot-item border-x border-slate-200"><img src="/images/coin-silver.png" alt="Plata" /><span class="font-bold text-slate-700">{{ sessionCoins.silver }}</span></div>
-            <div class="loot-item"><img src="/images/coin-copper.png" alt="Cobre" /><span class="font-bold text-slate-700">{{ sessionCoins.copper }}</span></div>
+        <div class="flex-1 flex justify-center animate-fade-in">
+          <div class="session-loot-capsule !bg-white/20 !border-white/30">
+            <div class="loot-item"><img src="/images/coin-gold.png" alt="Oro" /><span class="font-bold text-white">{{ sessionCoins.gold }}</span></div>
+            <div class="loot-item border-x border-white/20"><img src="/images/coin-silver.png" alt="Plata" /><span class="font-bold text-white">{{ sessionCoins.silver }}</span></div>
+            <div class="loot-item"><img src="/images/coin-copper.png" alt="Cobre" /><span class="font-bold text-white">{{ sessionCoins.copper }}</span></div>
           </div>
-        </template>
-        
-        <div v-else class="flex-1"></div>
+        </div>
 
-        <button @click="handleClose" class="btn-close-circle p-2 bg-slate-100 hover:bg-slate-200 rounded-full text-slate-500 transition-colors touch-manipulation relative z-[100]">
-          <X size="20" stroke-width="2.5" />
-        </button>
+        <div class="flex-1"></div>
       </header>
 
-      <div v-if="currentStep === 1" class="game-content flex-1 flex flex-col items-center justify-between py-4 w-full animate-fade-in z-10 relative">
+      <div v-if="currentStep === 1" class="game-content flex-1 flex flex-col items-center justify-center gap-6 pt-16 pb-6 w-full animate-fade-in z-50 relative">
         <div class="text-center shrink-0">
           <div class="intro-wheel-wrapper mb-3">
              <div class="css-3d-wheel animate-spin-slow">
@@ -265,45 +267,43 @@ onUnmounted(() => window.speechSynthesis.cancel());
                 <div class="wheel-hub"><div class="wheel-hub-inner"></div></div>
              </div>
           </div>
-          <h1 class="game-title text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] leading-none text-center">Navegación de Ángulos</h1>
+          <h1 class="game-title text-white drop-shadow-[0_4px_8px_rgba(0,0,0,0.6)] leading-none text-center">Navegación de Ángulos</h1>
         </div>
         
-        <div class="rules-panel shadow-2xl bg-white/95 backdrop-blur-sm border-orange-500 border-4 mx-auto mt-4 max-h-[45vh] flex flex-col">
-          <div class="rules-badge bg-orange-500 flex justify-between items-center w-full px-4 box-border left-0 top-[-14px] rounded-full">
-            <span class="drop-shadow-sm">BITÁCORA DEL CAPITÁN</span>
-            <button @click="playIntroVoiceInternal" class="text-orange-100 hover:text-white transition-colors active:scale-90 drop-shadow-sm ml-4 touch-manipulation">
+        <div class="rules-panel shadow-2xl bg-[#0f172a]/80 backdrop-blur-md border-[#fbbf24] border-2 mx-auto w-[90%] max-w-[600px] flex flex-col">
+          <div class="rules-badge bg-[#fbbf24] text-[#020617] flex justify-between items-center w-full px-4 box-border left-0 top-[-14px] rounded-full">
+            <span class="drop-shadow-sm uppercase font-black">BITÁCORA DEL CAPITÁN</span>
+            <button @click="playIntroVoiceInternal" class="text-slate-900 hover:text-slate-700 transition-colors active:scale-90 ml-4 touch-manipulation">
               <Volume2 size="16" />
             </button>
           </div>
-          <div class="rules-grid p-2 text-left space-y-2 mt-2 text-slate-700 font-medium overflow-y-auto custom-scrollbar flex-1">
-             <div class="flex gap-3 items-center border-b border-slate-100 pb-2"><span class="text-lg w-6 text-center">⚓</span><p class="text-xs leading-tight"><strong>0°:</strong> Norte / Frente (Sin giro).</p></div>
-             <div class="flex gap-3 items-center border-b border-slate-100 pb-2"><span class="text-lg w-6 text-center">🍕</span><p class="text-xs leading-tight"><strong>45°:</strong> Agudo (Un giro corto).</p></div>
-             <div class="flex gap-3 items-center border-b border-slate-100 pb-2"><span class="text-lg w-6 text-center">📐</span><p class="text-xs leading-tight"><strong>90°:</strong> Recto (Una "L" perfecta).</p></div>
-             <div class="flex gap-3 items-center border-b border-slate-100 pb-2"><span class="text-lg w-6 text-center">🪃</span><p class="text-xs leading-tight"><strong>135°:</strong> Obtuso (Más de 90°).</p></div>
-             <div class="flex gap-3 items-center border-b border-slate-100 pb-2"><span class="text-lg w-6 text-center">🌏</span><p class="text-xs leading-tight"><strong>180°:</strong> Llano (Media vuelta, Sur).</p></div>
-             <div class="flex gap-3 items-center border-b border-slate-100 pb-2"><span class="text-lg w-6 text-center">🌙</span><p class="text-xs leading-tight"><strong>270°:</strong> Reflejo (Tres cuartos, Oeste).</p></div>
-             <div class="flex gap-3 items-center"><span class="text-lg w-6 text-center">💫</span><p class="text-xs leading-tight"><strong>360°:</strong> Vuelta Completa.</p></div>
+          <div class="rules-grid p-2 text-left space-y-2 mt-2 text-slate-200 font-medium overflow-y-auto custom-scrollbar flex-1 relative z-10 max-h-[40vh]">
+             <div class="flex gap-3 items-center border-b border-slate-700/50 pb-2"><span class="text-lg w-6 text-center text-sky-400">⚓</span><p class="text-xs leading-tight font-bold"><strong>0°:</strong> Norte / Frente (Sin giro).</p></div>
+             <div class="flex gap-3 items-center border-b border-slate-700/50 pb-2"><span class="text-lg w-6 text-center text-amber-400">🍕</span><p class="text-xs leading-tight font-bold"><strong>45°:</strong> Agudo (Un giro corto).</p></div>
+             <div class="flex gap-3 items-center border-b border-slate-700/50 pb-2"><span class="text-lg w-6 text-center text-slate-400">📐</span><p class="text-xs leading-tight font-bold"><strong>90°:</strong> Recto (Una "L" perfecta).</p></div>
+             <div class="flex gap-3 items-center border-b border-slate-700/50 pb-2"><span class="text-lg w-6 text-center text-red-400">🪃</span><p class="text-xs leading-tight font-bold"><strong>135°:</strong> Obtuso (Más de 90°).</p></div>
+             <div class="flex gap-3 items-center border-b border-slate-700/50 pb-2"><span class="text-lg w-6 text-center text-blue-400">🌏</span><p class="text-xs leading-tight font-bold"><strong>180°:</strong> Llano (Media vuelta, Sur).</p></div>
+             <div class="flex gap-3 items-center border-b border-slate-700/50 pb-2"><span class="text-lg w-6 text-center text-yellow-400">🌙</span><p class="text-xs leading-tight font-bold"><strong>270°:</strong> Reflejo (Tres cuartos, Oeste).</p></div>
+             <div class="flex gap-3 items-center"><span class="text-lg w-6 text-center text-amber-500">💫</span><p class="text-xs leading-tight font-bold"><strong>360°:</strong> Vuelta Completa.</p></div>
           </div>
         </div>
 
-        <button @click="startGame" class="btn-ocean w-[90%] max-w-sm mt-4 mb-2 flex justify-center items-center gap-2 text-lg shrink-0 touch-manipulation relative z-[100]">
+        <button @click="startGame" class="btn-ocean w-[90%] max-w-sm flex justify-center items-center gap-2 text-lg shrink-0 touch-manipulation relative z-[100]">
           ¡A TODA VELA! <Compass stroke-width="3" class="animate-spin-slow" />
         </button>
       </div>
 
-      <div v-if="currentStep === 2" class="game-content flex-1 flex flex-col items-center justify-between py-2 animate-fade-in z-10 relative overflow-hidden w-full">
-        
-        <div class="instruction-banner z-20 text-center w-[90%] max-w-sm shrink-0 mt-2">
+      <div v-if="currentStep === 2" class="game-content flex-1 flex flex-col items-center justify-between py-4 animate-fade-in z-40 relative overflow-hidden w-full min-h-0">
+        <div class="instruction-banner z-20 text-center w-[90%] max-w-sm shrink-0 mt-2 bg-white/95 shadow-md">
           <span class="text-slate-500 text-xs font-black uppercase tracking-widest block mb-0.5">El Capitán Pide:</span>
-          <strong class="text-sky-600 text-xl block">{{ currentQuestion.name }}</strong>
-          <p class="text-xs text-slate-400 font-bold mt-0.5">{{ currentQuestion.hint }}</p>
+          <strong class="text-sky-600 text-2xl block">{{ currentQuestion.name }}</strong>
+          <p class="text-xs text-slate-500 font-bold mt-0.5">{{ currentQuestion.hint }}</p>
         </div>
 
         <div class="main-visual-area flex-1 w-full relative min-h-0 flex items-center justify-center">
-          
           <div class="absolute inset-0 pointer-events-none flex items-center justify-center z-10">
             <span v-for="a in [0, 45, 90, 135, 180, 225, 270, 315]" :key="a" 
-                  class="absolute text-white/70 font-black text-sm md:text-base tracking-widest drop-shadow-md"
+                  class="absolute text-white/50 font-black text-sm md:text-base tracking-widest drop-shadow-md"
                   :style="{ transform: `rotate(${a}deg) translateY(-140px) rotate(-${a}deg)` }">
               {{ a }}°
             </span>
@@ -321,59 +321,56 @@ onUnmounted(() => window.speechSynthesis.cancel());
                   }"
                   @mousedown="onPointerDown"
                   @touchstart="onPointerDown">
-              
               <div class="absolute -top-6 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[14px] border-l-transparent border-r-[14px] border-r-transparent border-b-[24px] border-b-sky-300 drop-shadow-md z-30"></div>
-
               <div class="rudder-handle"></div><div class="rudder-handle" style="transform: rotate(45deg);"></div>
               <div class="rudder-handle" style="transform: rotate(90deg);"></div><div class="rudder-handle" style="transform: rotate(135deg);"></div>
-              <div class="w-16 h-16 md:w-20 md:h-20 bg-amber-900 rounded-full border-4 border-amber-950 flex items-center justify-center z-10 shadow-inner">
-                <Anchor class="text-amber-700/80" :size="28" />
+              <div class="w-16 h-16 md:w-20 md:h-20 bg-[#78350f] rounded-full border-4 border-[#451a03] flex items-center justify-center z-10 shadow-inner">
+                <Anchor class="text-[#b45309]" :size="28" />
               </div>
             </div>
           </div>
         </div>
 
-        <div class="controls-area w-[90%] max-w-sm shrink-0 flex flex-col items-center gap-3 pb-4">
+        <div class="controls-area w-[90%] max-w-sm shrink-0 flex flex-col items-center gap-3 pb-2">
             <div class="flex gap-3 w-full z-20">
-               <button @pointerdown="rotate(-45)" :disabled="isAnimating" class="flex-1 bg-white text-red-600 font-black py-2 md:py-3 rounded-xl shadow-md active:scale-95 border-2 border-red-100 disabled:opacity-50 transition-all flex flex-col items-center leading-none gap-1 touch-manipulation">
+               <button @pointerdown="rotate(-45)" :disabled="isAnimating" class="flex-1 bg-white/95 text-red-600 font-black py-2 md:py-3 rounded-xl shadow-lg active:scale-95 border-b-4 border-red-200 disabled:opacity-50 transition-all flex flex-col items-center leading-none gap-1 touch-manipulation cursor-pointer">
                  <span class="text-[10px] text-red-400">BABOR</span>
                  <span class="text-sm md:text-base">↺ -45°</span>
                </button>
-               <button @pointerdown="rotate(45)" :disabled="isAnimating" class="flex-1 bg-white text-green-600 font-black py-2 md:py-3 rounded-xl shadow-md active:scale-95 border-2 border-green-200 disabled:opacity-50 transition-all flex flex-col items-center leading-none gap-1 touch-manipulation">
+               <button @pointerdown="rotate(45)" :disabled="isAnimating" class="flex-1 bg-white/95 text-green-600 font-black py-2 md:py-3 rounded-xl shadow-lg active:scale-95 border-b-4 border-green-200 disabled:opacity-50 transition-all flex flex-col items-center leading-none gap-1 touch-manipulation cursor-pointer">
                  <span class="text-[10px] text-green-500">ESTRIBOR</span>
-                 <span class="text-sm md:text-base">+45° ↻</span>
+                 <span class="text-sm md:text-base">+45°  Burn ↻</span>
                </button>
             </div>
 
-            <button @click="checkAngle" :disabled="isAnimating" class="btn-ocean z-20 w-full disabled:opacity-50 disabled:grayscale transition-all touch-manipulation">
+            <button @click="checkAngle" :disabled="isAnimating" class="btn-ocean z-20 w-full disabled:opacity-50 disabled:grayscale transition-all touch-manipulation cursor-pointer">
               VALIDAR RUMBO
             </button>
         </div>
       </div>
 
-      <div v-if="currentStep === 3" class="game-content result-screen flex-1 flex flex-col items-center justify-center py-6 px-4 animate-fade-in z-10 relative">
+      <div v-if="currentStep === 3" class="game-content result-screen flex-1 flex flex-col items-center justify-center py-6 px-4 animate-fade-in z-[160] relative min-h-0">
         <h1 class="text-4xl sm:text-5xl font-black text-sky-100 mb-8 italic drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] text-center uppercase tracking-tighter z-10 relative">¡TIERRA A LA VISTA!</h1>
-        
-        <div class="final-loot-display flex gap-4 md:gap-6 mb-12 bg-white/90 p-4 md:p-6 rounded-[2.5rem] shadow-2xl border-4 border-sky-200 backdrop-blur-sm mx-auto relative z-10">
+        <div class="final-loot-display flex gap-4 md:gap-6 mb-12 bg-[#0f172a]/80 p-4 md:p-6 rounded-[2.5rem] shadow-2xl border-4 border-[#38bdf8]/50 backdrop-blur-md mx-auto relative z-[170]">
             <div v-if="sessionCoins.gold > 0" class="loot-big gold-glow flex flex-col items-center gap-2">
               <img src="/images/coin-gold.png" class="w-12 h-12 md:w-16 md:h-16 animate-bounce-slow" />
-              <span class="text-xl md:text-2xl font-black text-amber-500">+{{ sessionCoins.gold }}</span>
+              <span class="text-xl md:text-2xl font-black text-amber-400">+{{ sessionCoins.gold }}</span>
             </div>
             <div v-if="sessionCoins.silver > 0" class="loot-big silver-glow flex flex-col items-center gap-2">
               <img src="/images/coin-silver.png" class="w-12 h-12 md:w-16 md:h-16 animate-bounce-slow" style="animation-delay: 0.1s" />
-              <span class="text-xl md:text-2xl font-black text-slate-400">+{{ sessionCoins.silver }}</span>
+              <span class="text-xl md:text-2xl font-black text-slate-200">+{{ sessionCoins.silver }}</span>
             </div>
             <div v-if="sessionCoins.copper > 0" class="loot-big copper-glow flex flex-col items-center gap-2">
               <img src="/images/coin-copper.png" class="w-12 h-12 md:w-16 md:h-16 animate-bounce-slow" style="animation-delay: 0.2s" />
-              <span class="text-xl md:text-2xl font-black text-amber-700">+{{ sessionCoins.copper }}</span>
+              <span class="text-xl md:text-2xl font-black text-orange-400">+{{ sessionCoins.copper }}</span>
             </div>
         </div>
 
-        <div class="action-buttons flex flex-col w-full max-w-xs mx-auto gap-4 mb-8 shrink-0 relative z-[100]">
-          <button @click="resetGame" class="w-full py-4 bg-white border-4 border-sky-200 text-sky-700 rounded-2xl font-black text-lg shadow-sm active:scale-95 transition-all flex items-center justify-center gap-3 touch-manipulation">
+        <div class="action-buttons flex flex-col w-full max-w-xs mx-auto gap-4 mb-8 shrink-0 relative z-[180]">
+          <button @click="resetGame" class="w-full py-4 bg-white/10 border-2 border-white/20 text-white hover:bg-white/20 rounded-2xl font-black text-lg shadow-sm active:scale-95 transition-all flex items-center justify-center gap-3 touch-manipulation cursor-pointer">
             <RotateCcw stroke-width="3" /> NUEVO VIAJE
           </button>
-          <button @click="handleClose" class="btn-ocean w-full flex items-center justify-center gap-3 text-lg touch-manipulation">
+          <button @click="handleClose" class="btn-ocean w-full flex items-center justify-center gap-3 text-lg touch-manipulation cursor-pointer">
             <Home stroke-width="3" /> AL PORTAL
           </button>
         </div>
@@ -385,7 +382,7 @@ onUnmounted(() => window.speechSynthesis.cancel());
 
 <style scoped>
 /* 🛠️ CSS BLINDADO Y OPTIMIZADO */
-.master-container { position: fixed; inset: 0; z-index: 9999; display: flex; justify-content: center; align-items: center; background-color: #f1f5f9; overflow: hidden; }
+.master-container { position: fixed; inset: 0; z-index: 9999; display: flex; justify-content: center; align-items: center; background-color: #080c14; overflow: hidden; }
 
 .app-canvas {
   display: flex; flex-direction: column; justify-content: space-between; position: relative; 
@@ -395,35 +392,34 @@ onUnmounted(() => window.speechSynthesis.cancel());
   width: 100vw; height: 100dvh; overflow-y: auto; overflow-x: hidden;
 }
 
-/* 🛠️ MEJORA: Resuelve retrasos de doble toque en Safari iOS/iPadOS */
 .touch-manipulation { touch-action: manipulation; cursor: pointer; position: relative; }
 
-.ocean-bg { background: linear-gradient(to bottom, #0ea5e9, #0369a1); }
+.ocean-bg { background: linear-gradient(180deg, #1e3a8a 0%, #080c14 100%); }
 
 @media (min-width: 1025px) {
-  .app-canvas { width: 1024px; height: 90dvh; border-radius: 45px; box-shadow: 0 40px 100px rgba(0,0,0,0.4); border: 8px solid white; padding: 0; overflow: hidden; }
+  .master-container { background-color: #f1f5f9; }
+  .app-canvas { width: 1024px; height: 90dvh; border-radius: 45px; box-shadow: 0 40px 100px rgba(0,0,0,0.5); border: 8px solid white; padding: 0; overflow: hidden; }
 }
 @media (min-width: 600px) and (max-width: 1024px) {
-  .app-canvas { width: 85vw; max-width: 800px; height: 95dvh; border-radius: 35px; padding: 0; }
+  .app-canvas { width: 85vw; max-width: 800px; height: 95dvh; border-radius: 35px; box-shadow: 0 20px 50px rgba(0,0,0,0.3); padding: 0; }
 }
 
-.header-standard { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1rem; }
-.session-loot-capsule { display: flex; align-items: center; padding: 6px 12px; border-radius: 9999px; border: 2px solid #e2e8f0; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02); }
-.loot-item { display: flex; align-items: center; gap: 4px; padding: 0 8px; }
+.header-standard { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1.5rem; }
+.session-loot-capsule { display: flex; align-items: center; padding: 6px 16px; border-radius: 9999px; border: 1px solid rgba(255,255,255,0.2); box-shadow: inset 0 2px 4px rgba(0,0,0,0.1); }
+.loot-item { display: flex; align-items: center; gap: 6px; padding: 0 10px; }
 .loot-item img { width: 1.1rem; height: 1.1rem; object-fit: contain; }
 
 .game-title { font-size: clamp(1.2rem, 5vw, 2.5rem); font-weight: 900; text-transform: uppercase; font-style: italic; letter-spacing: -0.05em; }
 
-.rules-panel { width: 92%; max-width: 600px; padding: 1.2rem 1rem 1rem 1rem; border-radius: 1.5rem; position: relative; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.15); }
-.rules-badge { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); color: white; font-size: 11px; font-weight: 900; padding: 4px 14px; border-radius: 9999px; letter-spacing: 0.05em; }
+.rules-panel { width: 92%; max-width: 600px; padding: 1.2rem 1rem 1rem 1rem; border-radius: 1.5rem; position: relative; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3); }
+.rules-badge { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); font-size: 11px; padding: 4px 14px; border-radius: 9999px; letter-spacing: 0.05em; }
 
 .app-canvas::-webkit-scrollbar { display: none; }
 .app-canvas { -ms-overflow-style: none; scrollbar-width: none; }
 
-/* 🛠️ Mantenemos el blindaje anti clics en la decoración */
 .intro-wheel-wrapper {
-  display: inline-flex; padding: 15px; background: rgba(255, 255, 255, 0.15); border-radius: 50%;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.2), inset 0 0 10px rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3);
+  display: inline-flex; padding: 15px; background: rgba(255, 255, 255, 0.05); border-radius: 50%;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.4), inset 0 0 10px rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.1);
   pointer-events: none;
 }
 
@@ -441,12 +437,12 @@ onUnmounted(() => window.speechSynthesis.cancel());
 .wheel-hub-inner { width: 8px; height: 8px; background: #d97706; border-radius: 50%; box-shadow: inset 0 1px 2px rgba(255,255,255,0.5); }
 
 .btn-ocean {
-  background: linear-gradient(to bottom, #f59e0b, #d97706); color: white; padding: 1rem 1.5rem; border-radius: 16px; font-weight: 900;
-  border: 2px solid #b45309; box-shadow: 0 6px 0 #92400e, 0 15px 20px rgba(3, 105, 161, 0.4); transition: all 0.1s;
+  background: linear-gradient(to bottom, #0ea5e9, #0284c7); color: white; padding: 1.2rem; border-radius: 2rem; font-weight: 900;
+  border-bottom: 6px solid #0369a1; box-shadow: 0 10px 20px rgba(0,0,0,0.3); transition: all 0.1s;
 }
-.btn-ocean:active { transform: translateY(6px); box-shadow: 0 0 0 #92400e; }
+.btn-ocean:active { transform: translateY(4px); border-bottom-width: 2px; }
 
-.instruction-banner { background: white; padding: 8px 15px; border-radius: 1rem; box-shadow: 0 10px 25px rgba(0,0,0,0.2); border: 4px solid #e0f2fe; }
+.instruction-banner { padding: 15px; border-radius: 1rem; border-bottom-width: 4px; }
 
 .rudder-wheel { width: 200px; height: 200px; background: transparent; border: 15px solid #78350f; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 15px 35px rgba(0,0,0,0.5), inset 0 0 20px rgba(0,0,0,0.8); }
 @media (min-width: 768px) { .rudder-wheel { width: 250px; height: 250px; border-width: 20px; } }
@@ -472,5 +468,5 @@ onUnmounted(() => window.speechSynthesis.cancel());
 .silver-glow { filter: drop-shadow(0 0 15px rgba(148, 163, 184, 0.6)); }
 .copper-glow { filter: drop-shadow(0 0 15px rgba(180, 83, 9, 0.6)); }
 .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-.custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
 </style>

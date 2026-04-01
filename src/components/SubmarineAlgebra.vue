@@ -1,7 +1,6 @@
 <script setup>
 /** * ARCHIVO: SubmarineAlgebra.vue
- * NOTA INTERNA: BURBUJAS DE ALGEBRA v5.2 - BLINDAJE TÁCTIL PARA TABLETS Y ANTI-HIJACKING
- * LOGICA: Basada en el motor de SoccerAlgebra para máxima compatibilidad.
+ * NOTA INTERNA: BURBUJAS DE ALGEBRA v5.3 - AJUSTE UI SEGÚN REFERENCIA
  */
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { Trophy, X, RotateCcw, Target, Coins, Zap, ChevronRight, Volume2, Home } from 'lucide-vue-next';
@@ -73,14 +72,10 @@ const formattedEquation = computed(() => {
 const startGame = () => {
   gameState.value = 'playing';
   gameActive.value = true;
-  
-  // Limpieza selectiva
   window.speechSynthesis.cancel();
   if (bubbleInterval) clearInterval(bubbleInterval);
-  
   generateEquation();
   bubbleInterval = setInterval(spawnBubble, 1400);
-  
   soundAmbient.loop = true;
   soundAmbient.volume = 0.2;
   soundAmbient.play().catch(() => {});
@@ -203,6 +198,10 @@ onUnmounted(() => { stopAllEffects(); });
   <div class="master-container font-inter select-none">
     <main class="app-canvas submarino-bg">
       
+      <button v-if="gameState === 'rules'" @click="emit('close')" class="absolute top-4 right-6 bg-white/10 w-10 h-10 rounded-full flex items-center justify-center text-white border border-white/20 backdrop-blur-sm z-[110] active:scale-75 touch-manipulation">
+          <X size="20" stroke-width="2.5" />
+      </button>
+
       <header v-if="gameState !== 'rules'" class="header-standard shrink-0 !bg-[#0f172a]/60 backdrop-blur-md !border-sky-500/30 z-50">
         <div class="trophy-section flex items-center gap-2">
           <Trophy size="22" class="text-yellow-400 drop-shadow-md" />
@@ -229,13 +228,10 @@ onUnmounted(() => { stopAllEffects(); });
         </button>
       </header>
 
-      <div v-if="gameState === 'rules'" class="game-content flex-1 flex flex-col items-center justify-between py-4 w-full animate-fade-in z-50 relative">
-        <button @click="emit('close')" class="absolute top-2 right-4 bg-white/10 w-10 h-10 rounded-full flex items-center justify-center text-white border border-white/20 backdrop-blur-sm z-[100] active:scale-75 touch-manipulation">
-          <X size="20" stroke-width="2.5" />
-        </button>
-
-        <div class="flex flex-col items-center mt-2 text-center shrink-0">
-          <div class="submarine-3d-epic animate-sub-float scale-75 md:scale-100 origin-top">
+      <div v-if="gameState === 'rules'" class="game-content flex-1 flex flex-col items-center justify-center py-4 w-full animate-fade-in z-50 relative gap-8">
+        
+        <div class="flex flex-col items-center text-center shrink-0">
+          <div class="submarine-3d-epic animate-sub-float scale-110 md:scale-125 origin-center mb-6">
               <div class="sub-periscope"></div><div class="sub-cabin"></div>
               <div class="sub-body">
                   <div class="sub-window"><div class="glass-reflection"></div></div>
@@ -244,47 +240,46 @@ onUnmounted(() => { stopAllEffects(); });
               <div class="sub-propeller-box"><div class="propeller animate-spin-fast"></div></div>
               <div class="sub-bubbles"><div class="s-bub b1"></div><div class="s-bub b2"></div><div class="s-bub b3"></div></div>
           </div>
-          <h1 class="game-title text-sky-100 drop-shadow-[0_4px_8px_rgba(0,0,0,0.6)] leading-none mt-1">Burbujas de Álgebra</h1>
+          <h1 class="game-title text-sky-100 drop-shadow-[0_4px_8px_rgba(0,0,0,0.6)] leading-none">BURBUJAS DE ÁLGEBRA</h1>
         </div>
 
-        <div class="rules-panel shadow-2xl w-[90%] max-w-[420px] bg-[#0f172a]/80 border-2 border-[#38bdf8]/50 backdrop-blur-md mx-auto mt-4 max-h-[45vh] flex flex-col">
-          <button @click="vocalizeRules" class="absolute -top-4 -right-4 bg-yellow-400 text-slate-900 p-2.5 rounded-full shadow-lg active:scale-90 border-2 border-white z-20 touch-manipulation">
+        <div class="rules-panel shadow-2xl w-[90%] max-w-[480px] bg-[#0f172a]/60 border border-sky-400/40 backdrop-blur-md mx-auto relative rounded-3xl">
+          <button @click="vocalizeRules" class="absolute -top-4 -right-4 bg-yellow-400 text-slate-900 p-2.5 rounded-full shadow-lg active:scale-90 border-2 border-white z-[60] touch-manipulation">
               <Volume2 size="20" />
           </button>
           
           <div class="rules-badge bg-[#fbbf24] text-[#020617] uppercase tracking-tighter font-black">Manual de Inmersión</div>
-          <div class="p-2 md:p-4 text-left space-y-4 mt-2 overflow-y-auto custom-scrollbar flex-1">
-            <div class="flex gap-3 md:gap-4 items-center text-white">
-                <div class="bg-sky-500/20 p-2 rounded-lg shrink-0"><Target class="text-sky-300" size="20" /></div>
+          <div class="p-6 text-left space-y-4">
+            <div class="flex gap-4 items-center text-white">
+                <div class="bg-sky-500/20 p-2 rounded-lg shrink-0"><Target class="text-sky-300" size="24" /></div>
                 <div>
-                  <p class="font-black text-sm md:text-base text-sky-100 leading-tight">Calcula la incógnita X</p>
-                  <p class="text-[10px] md:text-xs text-slate-300 leading-snug">Busca el número que falta en la pizarra.</p>
+                  <p class="font-black text-base text-sky-100">Calcula la incógnita X</p>
+                  <p class="text-xs text-slate-300">Busca el número que falta en la pizarra.</p>
                 </div>
             </div>
-            <div class="flex gap-3 md:gap-4 items-center text-white">
-                <div class="bg-amber-500/20 p-2 rounded-lg shrink-0"><Zap class="text-amber-300" size="20" /></div>
+            <div class="flex gap-4 items-center text-white">
+                <div class="bg-amber-500/20 p-2 rounded-lg shrink-0"><Zap class="text-amber-300" size="24" /></div>
                 <div>
-                  <p class="font-black text-sm md:text-base text-amber-100 leading-tight">Explota las burbujas</p>
-                  <p class="text-[10px] md:text-xs text-slate-300 leading-snug">Toca el resultado correcto antes de que escapen.</p>
+                  <p class="font-black text-base text-amber-100">Explota las burbujas</p>
+                  <p class="text-xs text-slate-300">Toca el resultado correcto antes de que escapen.</p>
                 </div>
             </div>
-            <div class="flex gap-3 md:gap-4 items-center text-white">
-                <div class="bg-green-500/20 p-2 rounded-lg shrink-0"><Coins class="text-green-300" size="20" /></div>
+            <div class="flex gap-4 items-center text-white">
+                <div class="bg-green-500/20 p-2 rounded-lg shrink-0"><Coins class="text-green-300" size="24" /></div>
                 <div>
-                  <p class="font-black text-sm md:text-base text-green-100 leading-tight">Gana tu Botín</p>
-                  <p class="text-[10px] md:text-xs text-slate-300 leading-snug">Junta 10 aciertos. Suma: 🥉 | Resta: 🥈 | Multi/Div: 🥇</p>
+                  <p class="font-black text-base text-green-100">Gana tu Botín</p>
+                  <p class="text-xs text-slate-300">Suma: 🥉 | Resta: 🥈 | Multi/Div: 🥇</p>
                 </div>
             </div>
           </div>
         </div>
 
-        <button @click="startGame" class="w-[90%] max-w-[420px] shrink-0 bg-gradient-to-b from-[#3B82F6] to-[#1D4ED8] text-white font-black italic text-lg md:text-xl uppercase rounded-[2rem] border-b-[6px] border-[#1E3A8A] active:translate-y-[4px] active:border-b-[2px] transition-all flex items-center justify-center py-3 md:py-4 group mb-2 mt-4 relative z-[100] touch-manipulation">
-            ¡EMPEZAR MISIÓN! <div class="ml-3 bg-white p-1 rounded-full"><ChevronRight class="text-[#1D4ED8]" size="18" stroke-width="4" /></div>
+        <button @click="startGame" class="w-[85%] max-w-[340px] shrink-0 bg-blue-600 hover:bg-blue-500 text-white font-black italic text-xl uppercase rounded-full shadow-[0_10px_20px_rgba(37,99,235,0.4)] transition-all flex items-center justify-center py-4 px-8 mt-4 relative z-[100] touch-manipulation border-b-4 border-blue-800 active:translate-y-1 active:border-b-0">
+            ¡EMPEZAR MISIÓN! <ChevronRight class="ml-2 bg-white text-blue-600 rounded-full" size="22" stroke-width="4" />
         </button>
       </div>
 
       <div v-else-if="gameState === 'playing'" class="game-content flex-1 flex flex-col items-center justify-center py-4 relative w-full min-h-0">
-        
         <div class="equation-board z-20 shrink-0 mt-4 md:mt-10">
           <div class="equation-badge-surgical">Nivel: {{ levelName }}</div>
           <h2 v-if="currentEquation" class="equation-text shadow-[0_10px_20px_rgba(0,0,0,0.5)]"><span v-html="formattedEquation"></span></h2>
@@ -297,15 +292,9 @@ onUnmounted(() => { stopAllEffects(); });
             {{ bubble.value }}
           </div>
         </div>
-
       </div>
 
       <div v-else class="game-content result-screen flex-1 flex flex-col items-center justify-center py-6 px-4 animate-fade-in z-10 w-full min-h-0 relative">
-        
-        <div class="ocean-area absolute inset-0 z-0 overflow-hidden" style="pointer-events: none !important;">
-           <div v-for="bubble in bubbles" :key="bubble.id" class="bubble !pointer-events-none" :style="{ left: bubble.x + 'px', bottom: bubble.y + 'px', width: bubble.size + 'px', height: bubble.size + 'px' }">{{ bubble.value }}</div>
-        </div>
-        
         <Trophy size="80" class="text-[#fbbf24] mb-4 drop-shadow-2xl animate-bounce shrink-0 z-10 relative" />
         <h1 class="text-3xl md:text-4xl font-black text-white italic tracking-tighter uppercase z-10 relative drop-shadow-md text-center">¡Misión Lograda!</h1>
         
@@ -337,11 +326,8 @@ onUnmounted(() => { stopAllEffects(); });
 .app-canvas {
   display: flex; flex-direction: column; justify-content: space-between; position: relative;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); user-select: none; -webkit-tap-highlight-color: transparent;
-  
-  padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom);
-  padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right);
-
   width: 100vw; height: 100dvh; overflow-y: auto; overflow-x: hidden;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 
 .submarino-bg { background: linear-gradient(180deg, #1e3a8a 0%, #080c14 100%); }
@@ -362,9 +348,9 @@ onUnmounted(() => { stopAllEffects(); });
 .loot-item { display: flex; align-items: center; gap: 4px; padding: 0 8px; }
 .loot-item img { width: 1.1rem; height: 1.1rem; object-fit: contain; }
 
-.game-title { font-size: clamp(1.5rem, 5vw, 2.25rem); font-weight: 900; color: white; text-transform: uppercase; font-style: italic; letter-spacing: -0.05em; text-shadow: 0 4px 8px rgba(0,0,0,0.6); }
+.game-title { font-size: clamp(1.2rem, 5vw, 2.2rem); font-weight: 900; color: white; text-transform: uppercase; letter-spacing: -0.02em; text-shadow: 0 4px 8px rgba(0,0,0,0.6); }
 
-.rules-panel { width: 92%; max-width: 600px; padding: 1.2rem 1rem 1rem 1rem; border-radius: 1.5rem; position: relative; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3); }
+.rules-panel { padding: 1.5rem; border-radius: 2rem; border: 1px solid rgba(56, 189, 248, 0.3); }
 .rules-badge { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); color: white; font-size: 11px; font-weight: 900; padding: 4px 14px; border-radius: 9999px; letter-spacing: 0.05em; }
 
 .app-canvas::-webkit-scrollbar { display: none; }
@@ -373,7 +359,7 @@ onUnmounted(() => { stopAllEffects(); });
 .btn-main-ocean { background: linear-gradient(to bottom, #0ea5e9, #0284c7); color: white; padding: 1.2rem; border-radius: 2rem; border-bottom: 6px solid #0369a1; font-size: 1.2rem; font-weight: 900; text-transform: uppercase; transition: all 0.1s; }
 .btn-main-ocean:active { transform: translateY(4px); border-bottom-width: 2px; }
 
-.submarine-3d-epic { position: relative; width: 140px; height: 100px; margin-bottom: 1rem; pointer-events: none; }
+.submarine-3d-epic { position: relative; width: 160px; height: 120px; pointer-events: none; }
 .sub-body { position: absolute; bottom: 10px; left: 20px; width: 120px; height: 60px; background: linear-gradient(180deg, #fde047 0%, #eab308 40%, #b45309 100%); border-radius: 40px 60px 60px 40px; border: 4px solid #451a03; box-shadow: inset -5px -5px 15px rgba(0,0,0,0.3), 0 15px 20px rgba(0,0,0,0.4); z-index: 3; overflow: hidden; }
 .sub-stripe { position: absolute; top: 50%; left: 0; width: 100%; height: 8px; background: #451a03; transform: translateY(-50%); opacity: 0.8; }
 .sub-cabin { position: absolute; top: 10px; left: 60px; width: 45px; height: 25px; background: linear-gradient(180deg, #facc15, #ca8a04); border: 4px solid #451a03; border-bottom: none; border-radius: 15px 15px 0 0; z-index: 2; }
@@ -404,6 +390,4 @@ onUnmounted(() => { stopAllEffects(); });
 
 .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-.custom-scrollbar::-webkit-scrollbar { width: 6px; }
-.custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
 </style>
