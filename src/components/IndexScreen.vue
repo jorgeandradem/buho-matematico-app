@@ -267,8 +267,9 @@ const currentSubjectLabel = computed(() => options.find(o => o.id === selectedSu
             </button>
         </header>
 
-        <div class="content-hero-area flex-1">
-          <div class="w-full grid grid-cols-2 px-6 items-end mb-2 mt-2">
+        <div class="content-hero-area flex-1 flex flex-col justify-evenly">
+          
+          <div class="w-full grid grid-cols-2 px-6 items-end">
              <div class="flex items-center justify-center h-full">
                  <div v-if="showOwl" class="bg-white rounded-2xl p-2 shadow-xl border-2 border-indigo-200 relative animate-fade-in w-full text-center">
                     <p class="text-indigo-900 font-black text-xs leading-tight">{{ greeting }}</p>
@@ -286,7 +287,7 @@ const currentSubjectLabel = computed(() => options.find(o => o.id === selectedSu
              </div>
           </div>
 
-          <div class="grid grid-cols-2 gap-3 w-full px-4 mb-2">
+          <div class="grid grid-cols-2 gap-3 w-full px-4 max-w-md mx-auto">
             <button v-for="opt in options" :key="opt.id" @click="openConfig(opt.id)"
               class="group bg-white p-2 rounded-[2rem] border-4 border-transparent hover:border-indigo-100 shadow-xl active:scale-95 flex flex-col items-center justify-center gap-1 transition-all h-24 sm:h-28">
               <div :class="`w-10 h-10 rounded-xl ${opt.color} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform shrink-0`">
@@ -299,7 +300,7 @@ const currentSubjectLabel = computed(() => options.find(o => o.id === selectedSu
             </button>
           </div>
 
-          <div class="px-4 w-full mb-0 flex flex-col gap-2 shrink-0">
+          <div class="px-4 w-full flex flex-col gap-2 shrink-0 max-w-md mx-auto">
               
               <button @click="emit('open-portal-welcome')" class="w-full bg-gradient-to-r from-yellow-400 to-orange-500 rounded-[2.5rem] p-1 shadow-[0_4px_0_rgb(194,65,12)] active:translate-y-1 transition-all group">
                 <div class="bg-white/10 rounded-[2.2rem] py-2 px-4 flex items-center gap-4">
@@ -328,8 +329,8 @@ const currentSubjectLabel = computed(() => options.find(o => o.id === selectedSu
               </button>
           </div>
 
-          <div class="w-full px-4 my-auto flex items-center justify-center min-h-[44px]">
-              <div class="bg-indigo-900/20 w-full rounded-2xl py-2 px-4 flex items-center justify-center gap-3 shadow-inner">
+          <div class="w-full px-4 flex items-center justify-center min-h-[44px]">
+              <div class="bg-indigo-900/20 w-full rounded-2xl py-2 px-4 flex items-center justify-center gap-3 shadow-inner max-w-md">
                   <button @click="speak(randomIncentive)" class="text-indigo-200 hover:text-white transition-colors shrink-0">
                       <Volume2 :size="16" />
                   </button>
@@ -411,10 +412,65 @@ const currentSubjectLabel = computed(() => options.find(o => o.id === selectedSu
 </template>
 
 <style scoped>
-.master-container { height: 100dvh; width: 100vw; display: flex; justify-content: center; align-items: center; overflow: hidden; background-color: #f1f5f9; position: fixed; top: 0; left: 0; touch-action: none; }
-.app-canvas { display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; background: linear-gradient(to bottom right, #6366f1, #a855f7); width: 100vw; height: 100dvh; }
-@media (min-width: 600px) and (max-width: 1024px) { .app-canvas { width: 85vw; height: 95dvh; border-radius: 35px; } }
-@media (min-width: 1025px) { .app-canvas { width: 1024px; height: 90dvh; border-radius: 45px; border: 6px solid rgba(255, 255, 255, 0.1); } }
+/* 🛡️ BLINDAJE ESTRUCTURAL GLOBAL */
+.master-container { 
+  height: 100dvh; 
+  width: 100vw; 
+  display: flex; 
+  justify-content: center; 
+  align-items: center; 
+  overflow: hidden; 
+  background-color: #f1f5f9; 
+  position: fixed; 
+  top: 0; 
+  left: 0; 
+  touch-action: none; 
+}
+
+/* 📱 CONFIGURACIÓN PARA SMARTPHONE (POR DEFECTO) */
+.app-canvas { 
+  display: flex; 
+  flex-direction: column; 
+  justify-content: space-between; 
+  position: relative; 
+  overflow: hidden; 
+  background: linear-gradient(to bottom right, #6366f1, #a855f7); 
+  width: 100vw; 
+  height: 100dvh; 
+  box-sizing: border-box; /* ⬅️ Evita desbordamientos laterales */
+}
+
+/* 📑 CONFIGURACIÓN PARA TABLET (iPad, Android Tabs) */
+@media (min-width: 600px) and (max-width: 1024px) { 
+  .app-canvas { 
+    width: 85vw; 
+    height: 95dvh; 
+    border-radius: 35px; 
+    max-width: 700px; /* ⬅️ Mantiene el encuadre profesional */
+  } 
+}
+
+/* 💻 CONFIGURACIÓN PARA PC (INVARIABLE SEGÚN SOLICITUD) */
+@media (min-width: 1025px) { 
+  .app-canvas { 
+    width: 1024px; 
+    height: 90dvh; 
+    border-radius: 45px; 
+    border: 6px solid rgba(255, 255, 255, 0.1); 
+  } 
+}
+
+/* 📐 ÁREA DE CONTENIDO DINÁMICA (ELASTICA VERTICALMENTE) */
+.content-hero-area {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly; /* ⬅️ Reparte el espacio vacío de forma profesional */
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  padding: 0.5rem 0;
+}
 
 .header-main { display: flex; justify-content: space-between; align-items: center; padding: 1.5rem 1.2rem 1rem; z-index: 50; }
 .btn-circular-action { width: 2.8rem; height: 2.8rem; border-radius: 9999px; display: flex; align-items: center; justify-content: center; border-width: 2px; position: relative; transition: transform 0.2s; }

@@ -50,7 +50,7 @@ const tocarVertice = (index) => {
           rondaActual.value = 1;
           aciertos.value = 0;
           generarRonda();
-        }, 1500); // 1.5s es suficiente para que la cara ya no se vea mientras gira
+        }, 1500); 
       }
     }, 1500);
   }
@@ -58,10 +58,10 @@ const tocarVertice = (index) => {
 </script>
 
 <template>
-  <div class="reto-contenedor w-full h-full flex flex-col items-center justify-start pt-4 md:pt-12 relative">
+  <div class="reto-contenedor w-full h-full flex flex-col items-center justify-start pt-20 md:pt-28 relative">
     
-    <div class="absolute top-2 left-2 md:top-4 md:left-4 bg-slate-900/80 backdrop-blur-md border border-slate-500/50 rounded-lg px-2 py-1 flex items-center gap-1.5 shadow-lg z-50">
-      <span class="text-[10px] md:text-xs text-slate-300 font-bold uppercase tracking-widest">Premio:</span>
+    <div class="absolute top-[28px] md:top-[65px] left-1/2 -translate-x-1/2 bg-slate-900/90 backdrop-blur-md border border-slate-500/50 rounded-lg px-3 py-1 flex items-center gap-2 shadow-[0_0_15px_rgba(34,211,238,0.3)] z-50 whitespace-nowrap">
+      <span class="text-[10px] md:text-xs text-cyan-200 font-bold uppercase tracking-widest">Premio:</span>
       <img src="/images/coin-silver.png" class="w-4 h-4 object-contain" />
       <span class="text-emerald-400 font-black text-sm">2</span>
     </div>
@@ -93,7 +93,7 @@ const tocarVertice = (index) => {
       </div>
     </div>
 
-    <div class="espacio-3d mt-10 md:mt-24">
+    <div class="espacio-3d mt-16 md:mt-32">
       <div class="figura-holografica" :class="{ 'brillo-victoria': retoCompletadoRonda }">
         
         <template v-if="figuraActual.nombre === 'CUBO'">
@@ -153,18 +153,15 @@ const tocarVertice = (index) => {
 /* Caras Pirámide & Prisma */
 .base-piramide { transform: rotateX(90deg) translateZ(var(--r)); }
 .tri { clip-path: polygon(50% 0%, 0% 100%, 100% 100%); height: calc(var(--tamano-cubo) * 1.25); top: calc(var(--tamano-cubo) * -0.25); }
-/* Inclinamos las caras para que se junten arriba */
 .tri-frente { transform: rotateY(0deg) translateZ(var(--r)) rotateX(25deg); transform-origin: bottom; }
 .tri-atras { transform: rotateY(180deg) translateZ(var(--r)) rotateX(25deg); transform-origin: bottom; }
 .tri-izq { transform: rotateY(-90deg) translateZ(var(--r)) rotateX(25deg); transform-origin: bottom; }
 .tri-der { transform: rotateY(90deg) translateZ(var(--r)) rotateX(25deg); transform-origin: bottom; }
 
-/* Prisma: Triángulos rectos, caras inclinadas */
 .tri-prisma-frente { transform: rotateY(0deg) translateZ(var(--r)); }
 .tri-prisma-atras { transform: rotateY(180deg) translateZ(var(--r)); }
 .rect-prisma-izq { height: calc(var(--tamano-cubo) * 1.25); top: calc(var(--tamano-cubo) * -0.25); transform: rotateY(-90deg) translateZ(var(--r)) rotateX(25deg); transform-origin: bottom; }
 .rect-prisma-der { height: calc(var(--tamano-cubo) * 1.25); top: calc(var(--tamano-cubo) * -0.25); transform: rotateY(90deg) translateZ(var(--r)) rotateX(25deg); transform-origin: bottom; }
-
 
 /* VÉRTICES */
 .vertice { position: absolute; top: 50%; left: 50%; width: 28px; height: 28px; margin: -14px 0 0 -14px; background: rgba(255, 255, 255, 0.4); border: 2px solid #fff; border-radius: 50%; transform-style: preserve-3d; cursor: pointer; transition: all 0.3s ease; z-index: 20; }

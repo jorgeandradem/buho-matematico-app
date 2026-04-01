@@ -1,4 +1,8 @@
 <script setup>
+/** * ARCHIVO: DecimalMarket.vue
+ * NOTA INTERNA: MERCADO DE DECIMALES v5.2 - RESTAURACIÓN TOTAL + FIX TÁCTIL
+ * LOGICA: 12 niveles, sistema de gaveta mecánica y monitor LED. 
+ */
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { Trophy, X, ChevronRight, ShoppingCart, Banknote, RotateCcw, Home, Volume2, Undo2, Coins } from 'lucide-vue-next';
 import { useGamificationStore } from '../stores/useGamificationStore';
@@ -80,17 +84,14 @@ const playSound = (type) => {
 const generateNewSale = () => {
   let maxPaid;
   
-  // Lote 1 (0 a 3): Monedas pequeñas
   if (progress.value < 4) {
     const options = [1, 2, 5];
     maxPaid = options[Math.floor(Math.random() * options.length)];
   } 
-  // Lote 2 (4 a 7): Billetes medios
   else if (progress.value < 8) {
     const options = [10, 20, 50];
     maxPaid = options[Math.floor(Math.random() * options.length)];
   } 
-  // Lote 3 (8 a 11): Billetes grandes
   else {
     const options = [100, 200, 500];
     maxPaid = options[Math.floor(Math.random() * options.length)];
@@ -217,7 +218,7 @@ onUnmounted(() => window.speechSynthesis.cancel());
         
         <div v-else class="flex-1"></div>
 
-        <button @click="handleClose" class="btn-close-circle p-2 bg-white rounded-full text-amber-900 hover:text-red-600 hover:bg-amber-100 transition-all shadow-sm border border-amber-200">
+        <button @pointerdown.stop="handleClose" class="btn-close-circle p-2 bg-white rounded-full text-amber-900 hover:text-red-600 hover:bg-amber-100 transition-all shadow-sm border border-amber-200">
           <X size="20" stroke-width="2.5" />
         </button>
       </header>
@@ -237,7 +238,7 @@ onUnmounted(() => window.speechSynthesis.cancel());
         <div class="rules-panel bg-white/95 backdrop-blur-sm border-amber-800 border-4 mx-auto mt-6">
           <div class="rules-badge bg-amber-800 flex justify-between items-center w-full px-4 box-border left-0 top-[-14px] rounded-full">
             <span>INSTRUCCIONES DE LA BÓVEDA</span>
-            <button @click="playIntroVoice" class="text-amber-200 hover:text-white transition-colors active:scale-90 ml-4">
+            <button @pointerdown.stop="playIntroVoice" class="text-amber-200 hover:text-white transition-colors active:scale-90 ml-4">
               <Volume2 size="16" />
             </button>
           </div>
@@ -254,7 +255,7 @@ onUnmounted(() => window.speechSynthesis.cancel());
           </div>
         </div>
 
-        <button @click="startGame" class="btn-steampunk w-full max-w-sm mt-auto mb-4 flex justify-center items-center gap-2 text-lg shrink-0">
+        <button @pointerdown.stop="startGame" class="btn-steampunk w-full max-w-sm mt-auto mb-4 flex justify-center items-center gap-2 text-lg shrink-0 z-50">
           ABRIR MERCADO <ChevronRight stroke-width="3" />
         </button>
       </div>
@@ -294,7 +295,7 @@ onUnmounted(() => window.speechSynthesis.cancel());
                  <span class="text-sm">CAMBIO:</span> 
                  <div class="flex items-center gap-1">
                    <span :class="{'text-red-600': feedback === 'error'}">{{ currentChangeAccumulated.toFixed(2) }}€</span>
-                   <button v-if="currentChangeAccumulated > 0" @click.stop="undoMoney" class="text-slate-400 hover:text-red-600 active:scale-90 ml-1 transition-colors">
+                   <button v-if="currentChangeAccumulated > 0" @pointerdown.stop="undoMoney" class="text-slate-400 hover:text-red-600 active:scale-90 ml-1 transition-colors">
                      <Undo2 size="18" />
                    </button>
                  </div>
@@ -311,36 +312,35 @@ onUnmounted(() => window.speechSynthesis.cancel());
                 </div>
 
                 <div class="flex gap-2 mb-2 px-2">
-                  <button @click="activeTab = 'monedas'" class="flex-1 py-1.5 font-black text-xs rounded-t-lg transition-colors border-t-2 border-x-2"
+                  <button @pointerdown.stop="activeTab = 'monedas'" class="flex-1 py-1.5 font-black text-xs rounded-t-lg transition-colors border-t-2 border-x-2"
                     :class="activeTab === 'monedas' ? 'bg-[#5c3a18] text-amber-300 border-amber-700' : 'bg-[#451a03] text-amber-900 border-[#451a03]'">
                     <Coins size="14" class="inline mr-1" /> MONEDAS
                   </button>
-                  <button @click="activeTab = 'billetes'" class="flex-1 py-1.5 font-black text-xs rounded-t-lg transition-colors border-t-2 border-x-2"
+                  <button @pointerdown.stop="activeTab = 'billetes'" class="flex-1 py-1.5 font-black text-xs rounded-t-lg transition-colors border-t-2 border-x-2"
                     :class="activeTab === 'billetes' ? 'bg-[#5c3a18] text-amber-300 border-amber-700' : 'bg-[#451a03] text-amber-900 border-[#451a03]'">
                     <Banknote size="14" class="inline mr-1" /> BILLETES
                   </button>
                 </div>
 
                 <div v-if="activeTab === 'monedas'" class="coin-drawer">
-                   <button @click="addMoney(0.01)" :disabled="feedback === 'correct'" class="euro-coin coin-copper">1c</button>
-                   <button @click="addMoney(0.02)" :disabled="feedback === 'correct'" class="euro-coin coin-copper">2c</button>
-                   <button @click="addMoney(0.05)" :disabled="feedback === 'correct'" class="euro-coin coin-copper">5c</button>
-                   <button @click="addMoney(0.10)" :disabled="feedback === 'correct'" class="euro-coin coin-gold">10c</button>
-                   
-                   <button @click="addMoney(0.20)" :disabled="feedback === 'correct'" class="euro-coin coin-gold">20c</button>
-                   <button @click="addMoney(0.50)" :disabled="feedback === 'correct'" class="euro-coin coin-gold">50c</button>
-                   <button @click="addMoney(1.00)" :disabled="feedback === 'correct'" class="euro-coin coin-1euro">1€</button>
-                   <button @click="addMoney(2.00)" :disabled="feedback === 'correct'" class="euro-coin coin-2euro">2€</button>
+                   <button @pointerdown.stop="addMoney(0.01)" :disabled="feedback === 'correct'" class="euro-coin coin-copper">1c</button>
+                   <button @pointerdown.stop="addMoney(0.02)" :disabled="feedback === 'correct'" class="euro-coin coin-copper">2c</button>
+                   <button @pointerdown.stop="addMoney(0.05)" :disabled="feedback === 'correct'" class="euro-coin coin-copper">5c</button>
+                   <button @pointerdown.stop="addMoney(0.10)" :disabled="feedback === 'correct'" class="euro-coin coin-gold">10c</button>
+                   <button @pointerdown.stop="addMoney(0.20)" :disabled="feedback === 'correct'" class="euro-coin coin-gold">20c</button>
+                   <button @pointerdown.stop="addMoney(0.50)" :disabled="feedback === 'correct'" class="euro-coin coin-gold">50c</button>
+                   <button @pointerdown.stop="addMoney(1.00)" :disabled="feedback === 'correct'" class="euro-coin coin-1euro">1€</button>
+                   <button @pointerdown.stop="addMoney(2.00)" :disabled="feedback === 'correct'" class="euro-coin coin-2euro">2€</button>
                 </div>
 
                 <div v-if="activeTab === 'billetes'" class="bill-drawer">
-                   <button @click="addMoney(5.00)" :disabled="feedback === 'correct'" class="euro-bill bg-slate-400">5€</button>
-                   <button @click="addMoney(10.00)" :disabled="feedback === 'correct'" class="euro-bill bg-red-400">10€</button>
-                   <button @click="addMoney(20.00)" :disabled="feedback === 'correct'" class="euro-bill bg-blue-400">20€</button>
-                   <button @click="addMoney(50.00)" :disabled="feedback === 'correct'" class="euro-bill bg-orange-400">50€</button>
-                   <button @click="addMoney(100.00)" :disabled="feedback === 'correct'" class="euro-bill bg-green-500">100€</button>
-                   <button @click="addMoney(200.00)" :disabled="feedback === 'correct'" class="euro-bill bg-yellow-500 text-yellow-900">200€</button>
-                   <button @click="addMoney(500.00)" :disabled="feedback === 'correct'" class="euro-bill bg-purple-500 col-span-3">500€</button>
+                   <button @pointerdown.stop="addMoney(5.00)" :disabled="feedback === 'correct'" class="euro-bill bg-slate-400">5€</button>
+                   <button @pointerdown.stop="addMoney(10.00)" :disabled="feedback === 'correct'" class="euro-bill bg-red-400">10€</button>
+                   <button @pointerdown.stop="addMoney(20.00)" :disabled="feedback === 'correct'" class="euro-bill bg-blue-400">20€</button>
+                   <button @pointerdown.stop="addMoney(50.00)" :disabled="feedback === 'correct'" class="euro-bill bg-orange-400">50€</button>
+                   <button @pointerdown.stop="addMoney(100.00)" :disabled="feedback === 'correct'" class="euro-bill bg-green-500">100€</button>
+                   <button @pointerdown.stop="addMoney(200.00)" :disabled="feedback === 'correct'" class="euro-bill bg-yellow-500 text-yellow-900">200€</button>
+                   <button @pointerdown.stop="addMoney(500.00)" :disabled="feedback === 'correct'" class="euro-bill bg-purple-500 col-span-3">500€</button>
                 </div>
 
              </div>
@@ -370,10 +370,10 @@ onUnmounted(() => window.speechSynthesis.cancel());
         </div>
 
         <div class="action-buttons flex flex-col w-full max-w-xs mx-auto gap-4 mb-8 shrink-0">
-          <button @click="resetGame" class="w-full py-4 bg-white border-4 border-amber-300 text-amber-800 rounded-2xl font-black text-lg shadow-sm active:scale-95 transition-all flex items-center justify-center gap-3">
+          <button @pointerdown.stop="resetGame" class="w-full py-4 bg-white border-4 border-amber-300 text-amber-800 rounded-2xl font-black text-lg shadow-sm active:scale-95 transition-all flex items-center justify-center gap-3">
             <RotateCcw stroke-width="3" /> OTRA RACHA
           </button>
-          <button @click="handleClose" class="btn-steampunk w-full flex items-center justify-center gap-3 text-lg">
+          <button @pointerdown.stop="handleClose" class="btn-steampunk w-full flex items-center justify-center gap-3 text-lg">
             <Home stroke-width="3" /> AL PORTAL
           </button>
         </div>
@@ -386,39 +386,16 @@ onUnmounted(() => window.speechSynthesis.cancel());
 <style scoped>
 /* 🛠️ CSS BLINDADO DE LA PLANTILLA MAESTRA */
 
-.master-container {
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background-color: #f1f5f9; 
-  overflow: hidden;
-}
+.master-container { position: fixed; inset: 0; z-index: 9999; display: flex; justify-content: center; align-items: center; background-color: #f1f5f9; overflow: hidden; }
 
 .app-canvas {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  position: relative;
-  background-color: #f8fafc;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  user-select: none;
-  -webkit-tap-highlight-color: transparent;
-  
-  padding-top: env(safe-area-inset-top);
-  padding-bottom: env(safe-area-inset-bottom);
-  padding-left: env(safe-area-inset-left);
-  padding-right: env(safe-area-inset-right);
-
-  width: 100vw;
-  height: 100dvh;
-  overflow-y: auto; 
-  overflow-x: hidden;
+  display: flex; flex-direction: column; justify-content: space-between; position: relative;
+  background-color: #f8fafc; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); user-select: none; -webkit-tap-highlight-color: transparent;
+  padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right);
+  width: 100vw; height: 100dvh; overflow-y: auto; overflow-x: hidden;
 }
 
-/* FONDO STEAMPUNK */
 .steampunk-bg {
   background: #fdf5e6;
   background-image: radial-gradient(#d2b48c 1.5px, transparent 1.5px);
@@ -426,170 +403,63 @@ onUnmounted(() => window.speechSynthesis.cancel());
 }
 
 @media (min-width: 1025px) {
-  .app-canvas {
-    width: 1024px; 
-    height: 90dvh;
-    border-radius: 45px;
-    box-shadow: 0 40px 100px rgba(0,0,0,0.15);
-    border: 8px solid white;
-    padding: 0; 
-    overflow: hidden; 
-  }
+  .app-canvas { width: 1024px; height: 90dvh; border-radius: 45px; box-shadow: 0 40px 100px rgba(0,0,0,0.15); border: 8px solid white; padding: 0; overflow: hidden; }
 }
 
 @media (min-width: 600px) and (max-width: 1024px) {
-  .app-canvas { 
-    width: 85vw; 
-    max-width: 800px; 
-    height: 95dvh; 
-    border-radius: 35px; 
-    box-shadow: 0 20px 50px rgba(0,0,0,0.1);
-    padding: 0;
-  }
+  .app-canvas { width: 85vw; max-width: 800px; height: 95dvh; border-radius: 35px; box-shadow: 0 20px 50px rgba(0,0,0,0.1); padding: 0; }
 }
 
-.header-standard {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.75rem 1rem;
-}
+.header-standard { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1rem; }
+.session-loot-capsule { display: flex; align-items: center; padding: 6px 12px; border-radius: 9999px; border: 2px solid #e2e8f0; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02); }
+.loot-item { display: flex; align-items: center; gap: 4px; padding: 0 8px; }
+.loot-item img { width: 1.1rem; height: 1.1rem; object-fit: contain; }
 
-.session-loot-capsule {
-  display: flex;
-  align-items: center;
-  padding: 6px 12px;
-  border-radius: 9999px;
-  border: 2px solid #e2e8f0;
-  box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
-}
+.game-title { font-size: clamp(1.2rem, 4vw, 2rem); font-weight: 900; text-transform: uppercase; font-style: italic; letter-spacing: -0.05em; }
 
-.loot-item {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 0 8px;
-}
+.rules-panel { width: 92%; max-width: 600px; padding: 1.2rem 1rem 1rem 1rem; border-radius: 1.5rem; position: relative; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.15); }
+.rules-badge { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); color: white; font-size: 11px; font-weight: 900; padding: 4px 14px; border-radius: 9999px; letter-spacing: 0.05em; }
 
-.loot-item img {
-  width: 1.1rem;
-  height: 1.1rem;
-  object-fit: contain; 
-}
-
-.game-title {
-  font-size: clamp(1.2rem, 5vw, 2rem);
-  font-weight: 900;
-  text-transform: uppercase;
-  font-style: italic; 
-  letter-spacing: -0.05em;
-}
-
-.rules-panel {
-  width: 92%;
-  max-width: 600px; 
-  padding: 1.2rem 1rem 1rem 1rem;
-  border-radius: 1.5rem;
-  position: relative;
-  box-shadow: 0 10px 25px -5px rgba(0,0,0,0.15);
-}
-
-.rules-badge {
-  position: absolute;
-  top: -12px;
-  left: 50%;
-  transform: translateX(-50%); 
-  color: white;
-  font-size: 11px;
-  font-weight: 900;
-  padding: 4px 14px;
-  border-radius: 9999px;
-  letter-spacing: 0.05em;
-}
-
-/* Ocultar barra de scroll global */
 .app-canvas::-webkit-scrollbar { display: none; }
 .app-canvas { -ms-overflow-style: none; scrollbar-width: none; }
 
 /* ESTILOS ESPECÍFICOS DEL JUEGO STEAMPUNK */
-
-.css-3d-cart-wrapper {
-  display: inline-flex; padding: 15px;
-  background: rgba(251, 191, 36, 0.2); border-radius: 50%;
+.css-3d-cart-wrapper { 
+  display: inline-flex; padding: 15px; background: rgba(251, 191, 36, 0.2); border-radius: 50%; 
   border: 4px solid #b45309; box-shadow: 0 10px 20px rgba(0,0,0,0.1), inset 0 4px 10px rgba(255,255,255,0.5);
+  pointer-events: none; /* 🛠️ FIX: Evita que tape los clics */
 }
-
 .css-3d-cart { width: 50px; height: 40px; position: relative; }
-.cart-basket {
-  position: absolute; top: 0; left: 8px; width: 42px; height: 28px;
-  background: repeating-linear-gradient(90deg, transparent, transparent 4px, #b45309 4px, #b45309 6px),
-              repeating-linear-gradient(0deg, transparent, transparent 4px, #b45309 4px, #b45309 6px);
-  border: 3px solid #92400e; border-top-width: 4px; border-radius: 2px 2px 6px 6px;
-  box-shadow: inset 0 -4px 8px rgba(0,0,0,0.3);
-}
-.cart-handle {
-  position: absolute; top: -4px; left: -4px; width: 20px; height: 16px;
-  border-left: 4px solid #92400e; border-bottom: 4px solid #92400e;
-  border-radius: 0 0 0 5px;
-}
-.cart-wheel {
-  position: absolute; bottom: -4px; width: 12px; height: 12px;
-  background: #451a03; border-radius: 50%;
-  border: 2px solid #78350f; box-shadow: 0 2px 4px rgba(0,0,0,0.4);
-}
+.cart-basket { position: absolute; top: 0; left: 8px; width: 42px; height: 28px; background: repeating-linear-gradient(90deg, transparent, transparent 4px, #b45309 4px, #b45309 6px), repeating-linear-gradient(0deg, transparent, transparent 4px, #b45309 4px, #b45309 6px); border: 3px solid #92400e; border-top-width: 4px; border-radius: 2px 2px 6px 6px; box-shadow: inset 0 -4px 8px rgba(0,0,0,0.3); }
+.cart-handle { position: absolute; top: -4px; left: -4px; width: 20px; height: 16px; border-left: 4px solid #92400e; border-bottom: 4px solid #92400e; border-radius: 0 0 0 5px; }
+.cart-wheel { position: absolute; bottom: -4px; width: 12px; height: 12px; background: #451a03; border-radius: 50%; border: 2px solid #78350f; box-shadow: 0 2px 4px rgba(0,0,0,0.4); }
 .wheel-left { left: 12px; }
 .wheel-right { right: 4px; }
 
 .icon-gear { background: #fef3c7; border: 3px solid #b45309; padding: 8px; border-radius: 50%; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1); }
 
-.btn-steampunk {
-  background: linear-gradient(to bottom, #d97706, #b45309); color: white; 
-  padding: 1rem 1.5rem; border-radius: 16px; font-weight: 900; border: 2px solid #78350f;
+.btn-steampunk { 
+  background: linear-gradient(to bottom, #d97706, #b45309); color: white; padding: 1rem 1.5rem; 
+  border-radius: 16px; font-weight: 900; border: 2px solid #78350f; 
   box-shadow: 0 6px 0 #78350f, 0 15px 20px rgba(120, 53, 15, 0.4); transition: all 0.1s;
+  touch-action: manipulation; cursor: pointer; /* 🛠️ FIX */
 }
 .btn-steampunk:active { transform: translateY(6px); box-shadow: 0 0 0 #78350f, 0 5px 10px rgba(120, 53, 15, 0.4); }
 
 .pos-system { padding-top: 3.5rem; }
+.mechanical-arm { position: absolute; top: 60px; left: 20px; width: 30px; height: 160px; border-left: 12px solid #78350f; border-top: 12px solid #78350f; border-top-left-radius: 16px; z-index: 5; box-shadow: -4px 4px 6px rgba(0,0,0,0.3); }
+.mechanical-arm::before { content: ''; position: absolute; top: -12px; left: -12px; width: 24px; height: 24px; background: radial-gradient(circle, #b45309, #78350f); border-radius: 50%; border: 3px solid #451a03; }
+.led-monitor::before { content: ''; position: absolute; top: 20px; left: -18px; width: 14px; height: 20px; background: #451a03; border-top: 2px solid #271102; border-bottom: 2px solid #271102; }
 
-.mechanical-arm {
-  position: absolute; top: 60px; left: 20px; width: 30px; height: 160px; 
-  border-left: 12px solid #78350f; border-top: 12px solid #78350f;
-  border-top-left-radius: 16px; z-index: 5; box-shadow: -4px 4px 6px rgba(0,0,0,0.3);
-}
-.mechanical-arm::before {
-  content: ''; position: absolute; top: -12px; left: -12px; width: 24px; height: 24px;
-  background: radial-gradient(circle, #b45309, #78350f); border-radius: 50%; border: 3px solid #451a03;
-}
-.led-monitor::before {
-  content: ''; position: absolute; top: 20px; left: -18px; width: 14px; height: 20px;
-  background: #451a03; border-top: 2px solid #271102; border-bottom: 2px solid #271102;
-}
-
-.register-machine {
-  background: linear-gradient(135deg, #78350f, #451a03); 
-  padding: 15px 15px 20px 15px; border-radius: 20px; border: 8px solid #271102; 
-  box-shadow: 0 20px 0 #1a0b01, inset 0 5px 15px rgba(255,255,255,0.1);
-}
-
-.thermal-receipt {
-  background: #f8fafc; padding: 6px 12px; border-radius: 4px;
-  box-shadow: inset 0 0 10px rgba(0,0,0,0.05), 0 8px 20px rgba(0,0,0,0.6);
-  border-bottom: 2px dashed #cbd5e1;
-}
-
-.drawer-casing {
-  background: #5c3a18; border-radius: 12px; padding-top: 10px;
-  box-shadow: inset 0 10px 20px rgba(0,0,0,0.5); border: 4px solid #271102;
-}
-
+.register-machine { background: linear-gradient(135deg, #78350f, #451a03); padding: 15px 15px 20px 15px; border-radius: 20px; border: 8px solid #271102; box-shadow: 0 20px 0 #1a0b01, inset 0 5px 15px rgba(255,255,255,0.1); }
+.thermal-receipt { background: #f8fafc; padding: 6px 12px; border-radius: 4px; box-shadow: inset 0 0 10px rgba(0,0,0,0.05), 0 8px 20px rgba(0,0,0,0.6); border-bottom: 2px dashed #cbd5e1; }
+.drawer-casing { background: #5c3a18; border-radius: 12px; padding-top: 10px; box-shadow: inset 0 10px 20px rgba(0,0,0,0.5); border: 4px solid #271102; }
 .coin-drawer { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 12px; background: #271102; border-radius: 0 0 8px 8px; }
 
-.euro-coin {
-  border-radius: 50%; display: flex; align-items: center; justify-content: center;
-  font-weight: 900; font-size: 0.8rem; aspect-ratio: 1;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.5), inset 0 -2px 4px rgba(0,0,0,0.3);
-  cursor: pointer; transition: transform 0.1s;
+.euro-coin { 
+  border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; 
+  font-size: 0.8rem; aspect-ratio: 1; box-shadow: 0 4px 6px rgba(0,0,0,0.5), inset 0 -2px 4px rgba(0,0,0,0.3); 
+  cursor: pointer; transition: transform 0.1s; touch-action: manipulation; /* 🛠️ FIX */
 }
 @media (min-width: 380px) { .euro-coin { font-size: 0.9rem; } }
 .euro-coin:active { transform: scale(0.9) translateY(2px); }
@@ -601,16 +471,13 @@ onUnmounted(() => window.speechSynthesis.cancel());
 .coin-2euro { background: radial-gradient(circle, #ffd700 35%, #f8fafc 40%); color: #5c4000; border: 3px solid #94a3b8; }
 
 .bill-drawer { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 12px; background: #271102; border-radius: 0 0 8px 8px; }
-
-.euro-bill {
-  border-radius: 4px; display: flex; align-items: center; justify-content: center;
-  font-weight: 900; font-size: 0.9rem; padding: 10px 4px; color: white;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.5), inset 0 0 10px rgba(255,255,255,0.3);
-  border: 1px dashed rgba(255,255,255,0.4); cursor: pointer; transition: transform 0.1s;
+.euro-bill { 
+  border-radius: 4px; display: flex; align-items: center; justify-content: center; font-weight: 900; 
+  font-size: 0.9rem; padding: 10px 4px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.5), inset 0 0 10px rgba(255,255,255,0.3); 
+  border: 1px dashed rgba(255,255,255,0.4); cursor: pointer; transition: transform 0.1s; touch-action: manipulation; /* 🛠️ FIX */
 }
 @media (min-width: 380px) { .euro-bill { font-size: 1.1rem; padding: 12px 5px; } }
 .euro-bill:active { transform: scale(0.95) translateY(2px); }
-.euro-bill:disabled { opacity: 0.5; pointer-events: none; }
 
 .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -618,12 +485,7 @@ onUnmounted(() => window.speechSynthesis.cancel());
 @keyframes bounceSlow { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
 
 .animate-shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
-@keyframes shake {
-  10%, 90% { transform: translate3d(-2px, 0, 0); }
-  20%, 80% { transform: translate3d(4px, 0, 0); }
-  30%, 50%, 70% { transform: translate3d(-8px, 0, 0); }
-  40%, 60% { transform: translate3d(8px, 0, 0); }
-}
+@keyframes shake { 10%, 90% { transform: translate3d(-2px, 0, 0); } 20%, 80% { transform: translate3d(4px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-8px, 0, 0); } 40%, 60% { transform: translate3d(8px, 0, 0); } }
 
 .gold-glow { filter: drop-shadow(0 0 15px rgba(251, 191, 36, 0.6)); }
 .silver-glow { filter: drop-shadow(0 0 15px rgba(148, 163, 184, 0.6)); }

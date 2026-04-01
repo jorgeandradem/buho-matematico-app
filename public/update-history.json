@@ -1,5 +1,12 @@
 [
-{
+  {
+    "updateId": "upd_1775140200000",
+    "version": "2.11.2",
+    "date": "01/04/2026",
+    "title": "EQUILIBRIO MAESTRO",
+    "description": "Capitán, hemos alcanzado la simetría total. La IndexScreen ahora cuenta con un sistema de 'acordeón dinámico' que alinea el contenido verticalmente de forma perfecta en smartphones y tablets, eliminando desbordes laterales. Se estandarizó la posición del HUD de premios en todos los retos, se ajustó la altura de los poliedros 3D para mejorar la visibilidad y aplicamos blindaje de compatibilidad CSS estándar (propiedad appearance) en el laboratorio de fracciones. Además, restauramos los protocolos de reglas en el sistema de vistas."
+  },
+  {
     "updateId": "upd_1775010600000",
     "version": "2.11.1",
     "date": "31/03/2026",

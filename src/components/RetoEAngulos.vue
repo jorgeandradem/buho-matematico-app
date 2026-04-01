@@ -86,10 +86,10 @@ const dispararLaser = () => {
 </script>
 
 <template>
-  <div class="reto-contenedor w-full h-full flex flex-col items-center justify-start pt-4 relative">
+  <div class="reto-contenedor w-full h-full flex flex-col items-center justify-start pt-14 md:pt-20 relative">
     
-    <div class="absolute top-2 left-2 md:top-4 md:left-4 bg-slate-900/80 backdrop-blur-md border border-slate-500/50 rounded-lg px-2 py-1 flex items-center gap-1.5 shadow-lg z-50">
-      <span class="text-[10px] md:text-xs text-slate-300 font-bold uppercase tracking-widest">Premio:</span>
+    <div class="absolute top-[18px] md:top-[45px] left-1/2 -translate-x-1/2 bg-slate-900/90 backdrop-blur-md border border-cyan-500/50 rounded-lg px-3 py-1 flex items-center gap-2 shadow-[0_0_15px_rgba(34,211,238,0.3)] z-50 whitespace-nowrap">
+      <span class="text-[10px] md:text-xs text-cyan-200 font-bold uppercase tracking-widest">Premio:</span>
       <img src="/images/coin-silver.png" class="w-4 h-4 object-contain" />
       <span class="text-emerald-400 font-black text-sm">2</span>
     </div>
@@ -116,7 +116,7 @@ const dispararLaser = () => {
       </p>
     </div>
 
-    <div class="radar-arena mt-6 md:mt-4" :class="estadoRespuesta">
+    <div class="radar-arena mt-2 md:mt-3" :class="estadoRespuesta">
       
       <div v-for="a in angulosDisponibles" :key="'label'+a" class="etiqueta-grado"
            :style="{ '--rot': `${a}deg` }">

@@ -15,7 +15,9 @@ const partesSeleccionadas = ref([false]);
 
 const generarRonda = () => {
   estadoRespuesta.value = '';
+  // Generamos un denominador entre 2 y 8
   const d = Math.floor(Math.random() * 7) + 2; 
+  // Numerador siempre menor al denominador
   const n = Math.floor(Math.random() * (d - 1)) + 1; 
   objetivo.value = { numerador: n, denominador: d };
   
@@ -25,6 +27,7 @@ const generarRonda = () => {
 
 generarRonda();
 
+// Resetear las partes cuando cambia el slider de divisiones
 watch(divisionesActuales, (newVal) => {
   const num = parseInt(newVal);
   partesSeleccionadas.value = new Array(num).fill(false);
@@ -41,6 +44,8 @@ const validarCorte = () => {
 
   const partesEncendidas = partesSeleccionadas.value.filter(p => p).length;
 
+  // Validación: El número de cortes debe ser igual al denominador 
+  // Y el número de partes tocadas debe ser igual al numerador
   if (divisionesActuales.value == objetivo.value.denominador && partesEncendidas == objetivo.value.numerador) {
     estadoRespuesta.value = 'correcto';
     aciertos.value++;
@@ -122,7 +127,7 @@ const validarCorte = () => {
           <span class="text-cyan-200 font-bold text-[10px] uppercase tracking-widest">Cortes del Cristal:</span>
           <span class="text-emerald-400 font-black text-lg bg-emerald-950/50 px-3 py-0.5 rounded border border-emerald-500/50">{{ divisionesActuales }}</span>
         </div>
-        <input type="range" min="1" max="8" v-model="divisionesActuales" class="slider-cristal w-full">
+        <input type="range" min="1" max="8" v-model="divisionesActuales" class="slider-cristal w-full" :disabled="estadoRespuesta === 'correcto'">
       </div>
 
       <button @click="validarCorte" 
@@ -190,8 +195,39 @@ const validarCorte = () => {
 
 @keyframes reflejo { 0% { left: -100%; } 100% { left: 200%; } }
 
-.slider-cristal { -webkit-appearance: none; width: 100%; height: 8px; background: #0f172a; border-radius: 4px; border: 1px solid rgba(34, 211, 238, 0.3); }
-.slider-cristal::-webkit-slider-thumb { -webkit-appearance: none; width: 24px; height: 24px; border-radius: 50%; background: #22d3ee; cursor: pointer; border: 3px solid #fff; box-shadow: 0 0 10px #22d3ee; }
+/* 🛠️ FIX COMPATIBILIDAD SLIDER */
+.slider-cristal { 
+  -webkit-appearance: none; 
+  appearance: none; 
+  width: 100%; 
+  height: 8px; 
+  background: #0f172a; 
+  border-radius: 4px; 
+  border: 1px solid rgba(34, 211, 238, 0.3);
+  outline: none;
+}
+
+.slider-cristal::-webkit-slider-thumb { 
+  -webkit-appearance: none; 
+  appearance: none; 
+  width: 24px; 
+  height: 24px; 
+  border-radius: 50%; 
+  background: #22d3ee; 
+  cursor: pointer; 
+  border: 3px solid #fff; 
+  box-shadow: 0 0 10px #22d3ee; 
+}
+
+.slider-cristal::-moz-range-thumb {
+  width: 24px; 
+  height: 24px; 
+  border-radius: 50%; 
+  background: #22d3ee; 
+  cursor: pointer; 
+  border: 3px solid #fff; 
+  box-shadow: 0 0 10px #22d3ee;
+}
 
 @keyframes shakeError { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-5px); } 40%, 80% { transform: translateX(5px); } }
 </style>

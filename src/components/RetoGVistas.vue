@@ -74,13 +74,23 @@ const verificarProyeccion = (figura, index) => {
 <template>
   <div class="reto-contenedor w-full h-full flex flex-col items-center justify-start pt-20 md:pt-28 relative">
     
-    <div class="absolute top-[48px] md:top-[75px] left-1/2 -translate-x-1/2 bg-slate-900/90 backdrop-blur-md border border-cyan-500/50 rounded-lg px-3 py-1 flex items-center gap-2 shadow-[0_0_15px_rgba(34,211,238,0.3)] z-50 whitespace-nowrap">
+    <div class="absolute top-[28px] md:top-[55px] left-1/2 -translate-x-1/2 bg-slate-900/90 backdrop-blur-md border border-cyan-500/50 rounded-lg px-3 py-1 flex items-center gap-2 shadow-[0_0_15px_rgba(34,211,238,0.3)] z-50 whitespace-nowrap">
       <span class="text-[10px] md:text-xs text-cyan-200 font-bold uppercase tracking-widest">Premio:</span>
       <img src="/images/coin-silver.png" class="w-4 h-4 object-contain" />
       <span class="text-emerald-400 font-black text-sm">2</span>
     </div>
 
     <button id="btn-abrir-reglas-6" @click="mostrarPopup = true" class="hidden"></button>
+
+    <transition name="fade-popup">
+        <div v-if="mostrarPopup" class="absolute inset-0 z-[60] flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
+            <div class="bg-cyan-950/90 border border-cyan-400 p-6 md:p-8 rounded-2xl shadow-[0_0_30px_rgba(34,211,238,0.4)] max-w-sm text-center">
+                <h2 class="text-xl md:text-2xl font-bold text-white mb-4 uppercase tracking-widest">El Origen 3D</h2>
+                <p class="text-cyan-100 mb-6 text-sm md:text-base text-left">Observa la silueta proyectada en el sensor 2D. Debes identificar cuál de los tres cristales holográficos genera exactamente esa sombra.</p>
+                <button @click="mostrarPopup = false" class="px-6 py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-bold rounded-full transition-all w-full">¡Comenzar!</button>
+            </div>
+        </div>
+    </transition>
 
     <div class="instruccion bg-cyan-950/60 border border-cyan-400/50 backdrop-blur-md px-6 py-2 md:py-4 rounded-xl shadow-[0_0_20px_rgba(34,211,238,0.2)] text-center z-40 mx-4 w-[85%] md:w-auto">
       <div class="flex justify-between items-center mb-1 border-b border-cyan-500/30 pb-1 gap-4">
@@ -121,6 +131,9 @@ const verificarProyeccion = (figura, index) => {
 </template>
 
 <style scoped>
+.fade-popup-enter-active, .fade-popup-leave-active { transition: opacity 0.3s, transform 0.3s; }
+.fade-popup-enter-from, .fade-popup-leave-to { opacity: 0; transform: scale(0.95); }
+
 /* --- ESCENARIO --- */
 .pared-proyeccion {
   width: 160px; height: 110px; background: rgba(2, 6, 23, 0.4); border: 2px solid rgba(34, 211, 238, 0.3);
@@ -167,7 +180,7 @@ const verificarProyeccion = (figura, index) => {
 /* 5. Diamante */
 .cristal-diamante { width: 45px; height: 45px; background: #22d3ee; transform: rotate(45deg); position: relative; box-shadow: inset 5px 5px 15px #fff, inset -5px -5px 15px rgba(0,0,0,0.3); border: 1px solid #fff; }
 
-/* 6. Octaedro (Doble Pirámide) */
+/* 6. Octaedro */
 .cristal-octaedro { width: 0; height: 0; border-left: 20px solid transparent; border-right: 20px solid transparent; border-bottom: 35px solid #22d3ee; position: relative; }
 .cristal-octaedro::after { content: ''; position: absolute; top: 35px; left: -20px; border-left: 20px solid transparent; border-right: 20px solid transparent; border-top: 35px solid #0e7490; }
 
@@ -182,7 +195,7 @@ const verificarProyeccion = (figura, index) => {
 .cristal-penta { width: 45px; height: 45px; background: #22d3ee; clip-path: polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%); position: relative; }
 .cristal-penta::after { content:''; position:absolute; inset: 4px; background: rgba(255,255,255,0.3); clip-path: inherit; }
 
-/* 10. Estrella (Efecto Facetado) */
+/* 10. Estrella */
 .cristal-estrella { width: 55px; height: 55px; background: #22d3ee; clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); position: relative; }
 .cristal-estrella::after { content:''; position:absolute; inset: 0; background: linear-gradient(135deg, transparent 50%, rgba(0,0,0,0.1) 50%); clip-path: inherit; }
 

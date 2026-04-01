@@ -1,7 +1,7 @@
 <script setup>
 /** * ARCHIVO: SubmarineAlgebra.vue
- * NOTA INTERNA: BURBUJAS DE ALGEBRA v5.0 - INTEGRADO CON PLANTILLA MAESTRA
- * LOGICA: Silencio en juego. Locución en reglas/premios. Frenado automático.
+ * NOTA INTERNA: BURBUJAS DE ALGEBRA v5.1 - OPTIMIZACIÓN DE ARRANQUE TOTAL
+ * LOGICA: Basada en el motor de SoccerAlgebra para máxima compatibilidad.
  */
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { Trophy, X, RotateCcw, Target, Coins, Zap, ChevronRight, Volume2, Home } from 'lucide-vue-next';
@@ -71,11 +71,17 @@ const formattedEquation = computed(() => {
 
 // --- 2. LÓGICA DE NAVEGACIÓN ---
 const startGame = () => {
-  stopAllEffects();
+  // 🛠️ MEJORA: Cambio de estado inmediato antes de limpiar audios para evitar bloqueos
   gameState.value = 'playing';
   gameActive.value = true;
+  
+  // Limpieza selectiva
+  window.speechSynthesis.cancel();
+  if (bubbleInterval) clearInterval(bubbleInterval);
+  
   generateEquation();
   bubbleInterval = setInterval(spawnBubble, 1400);
+  
   soundAmbient.loop = true;
   soundAmbient.volume = 0.2;
   soundAmbient.play().catch(() => {});
@@ -225,7 +231,7 @@ onUnmounted(() => { stopAllEffects(); });
       </header>
 
       <div v-if="gameState === 'rules'" class="game-content flex-1 flex flex-col items-center justify-between py-4 w-full animate-fade-in z-50 relative">
-        <button @click.prevent.stop="emit('close')" class="absolute top-2 right-4 bg-white/10 w-10 h-10 rounded-full flex items-center justify-center text-white border border-white/20 backdrop-blur-sm z-[60]">
+        <button @click.prevent.stop="emit('close')" class="absolute top-2 right-4 bg-white/10 w-10 h-10 rounded-full flex items-center justify-center text-white border border-white/20 backdrop-blur-sm z-[70] active:scale-75">
           <X size="20" stroke-width="2.5" />
         </button>
 
@@ -243,7 +249,7 @@ onUnmounted(() => { stopAllEffects(); });
         </div>
 
         <div class="rules-panel shadow-2xl w-[90%] max-w-[420px] bg-[#0f172a]/80 border-2 border-[#38bdf8]/50 backdrop-blur-md mx-auto mt-4 max-h-[45vh] flex flex-col">
-          <button @click="vocalizeRules" class="absolute -top-4 -right-4 bg-yellow-400 text-slate-900 p-2.5 rounded-full shadow-lg active:scale-90 border-2 border-white z-10">
+          <button @click="vocalizeRules" class="absolute -top-4 -right-4 bg-yellow-400 text-slate-900 p-2.5 rounded-full shadow-lg active:scale-90 border-2 border-white z-20">
               <Volume2 size="20" />
           </button>
           
@@ -273,7 +279,7 @@ onUnmounted(() => { stopAllEffects(); });
           </div>
         </div>
 
-        <button @click.prevent.stop="startGame" class="w-[90%] max-w-[420px] shrink-0 bg-gradient-to-b from-[#3B82F6] to-[#1D4ED8] text-white font-black italic text-lg md:text-xl uppercase rounded-[2rem] border-b-[6px] border-[#1E3A8A] active:translate-y-[4px] active:border-b-[2px] transition-all flex items-center justify-center py-3 md:py-4 group mb-2 mt-4">
+        <button @pointerdown="startGame" class="w-[90%] max-w-[420px] shrink-0 bg-gradient-to-b from-[#3B82F6] to-[#1D4ED8] text-white font-black italic text-lg md:text-xl uppercase rounded-[2rem] border-b-[6px] border-[#1E3A8A] active:translate-y-[4px] active:border-b-[2px] transition-all flex items-center justify-center py-3 md:py-4 group mb-2 mt-4 z-[100] touch-manipulation">
             ¡EMPEZAR MISIÓN! <div class="ml-3 bg-white p-1 rounded-full"><ChevronRight class="text-[#1D4ED8]" size="18" stroke-width="4" /></div>
         </button>
       </div>
@@ -312,10 +318,10 @@ onUnmounted(() => { stopAllEffects(); });
         </div>
         
         <div class="action-buttons flex flex-col w-full max-w-xs mx-auto gap-3 mt-8 shrink-0 z-20">
-          <button @click.prevent.stop="resetGame" class="w-full btn-main-ocean flex items-center justify-center gap-2">
+          <button @pointerdown="resetGame" class="w-full btn-main-ocean flex items-center justify-center gap-2 touch-manipulation">
             <RotateCcw size="20" stroke-width="3" /> NUEVA RONDA
           </button>
-          <button @click.prevent.stop="emit('close')" class="w-full py-3 bg-white/10 hover:bg-white/20 border-2 border-white/20 text-white rounded-[1.5rem] font-black text-sm uppercase transition-all flex items-center justify-center gap-2">
+          <button @pointerdown="emit('close')" class="w-full py-3 bg-white/10 hover:bg-white/20 border-2 border-white/20 text-white rounded-[1.5rem] font-black text-sm uppercase transition-all flex items-center justify-center gap-2 touch-manipulation">
             <Home size="18" /> Regresar a la Base
           </button>
         </div>
@@ -326,7 +332,7 @@ onUnmounted(() => { stopAllEffects(); });
 </template>
 
 <style scoped>
-/* 🛠️ CSS BLINDADO DE LA PLANTILLA MAESTRA */
+/* 🛠️ CSS BLINDADO Y OPTIMIZADO */
 .master-container { position: fixed; inset: 0; z-index: 9999; display: flex; justify-content: center; align-items: center; background-color: #0f172a; overflow: hidden; }
 
 .app-canvas {
@@ -350,6 +356,8 @@ onUnmounted(() => { stopAllEffects(); });
   .app-canvas { width: 85vw; max-width: 800px; height: 95dvh; border-radius: 35px; box-shadow: 0 20px 50px rgba(0,0,0,0.3); padding: 0; }
 }
 
+.touch-manipulation { touch-action: manipulation; cursor: pointer; }
+
 .header-standard { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1rem; }
 .session-loot-capsule { display: flex; align-items: center; padding: 6px 12px; border-radius: 9999px; }
 .loot-item { display: flex; align-items: center; gap: 4px; padding: 0 8px; }
@@ -363,11 +371,11 @@ onUnmounted(() => { stopAllEffects(); });
 .app-canvas::-webkit-scrollbar { display: none; }
 .app-canvas { -ms-overflow-style: none; scrollbar-width: none; }
 
-/* ESTILOS ESPECÍFICOS DEL SUBMARINO */
 .btn-main-ocean { background: linear-gradient(to bottom, #0ea5e9, #0284c7); color: white; padding: 1.2rem; border-radius: 2rem; border-bottom: 6px solid #0369a1; font-size: 1.2rem; font-weight: 900; text-transform: uppercase; transition: all 0.1s; }
 .btn-main-ocean:active { transform: translateY(4px); border-bottom-width: 2px; }
 
-.submarine-3d-epic { position: relative; width: 140px; height: 100px; margin-bottom: 1rem; }
+/* 🛠️ MEJORA: pointer-events none para que la animación no tape los botones */
+.submarine-3d-epic { position: relative; width: 140px; height: 100px; margin-bottom: 1rem; pointer-events: none; }
 .sub-body { position: absolute; bottom: 10px; left: 20px; width: 120px; height: 60px; background: linear-gradient(180deg, #fde047 0%, #eab308 40%, #b45309 100%); border-radius: 40px 60px 60px 40px; border: 4px solid #451a03; box-shadow: inset -5px -5px 15px rgba(0,0,0,0.3), 0 15px 20px rgba(0,0,0,0.4); z-index: 3; overflow: hidden; }
 .sub-stripe { position: absolute; top: 50%; left: 0; width: 100%; height: 8px; background: #451a03; transform: translateY(-50%); opacity: 0.8; }
 .sub-cabin { position: absolute; top: 10px; left: 60px; width: 45px; height: 25px; background: linear-gradient(180deg, #facc15, #ca8a04); border: 4px solid #451a03; border-bottom: none; border-radius: 15px 15px 0 0; z-index: 2; }
@@ -384,18 +392,13 @@ onUnmounted(() => { stopAllEffects(); });
 @keyframes subFloat { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-10px) rotate(-2deg); } }
 
 .sub-bubbles .s-bub { position: absolute; background: rgba(255,255,255,0.6); border-radius: 50%; bottom: 30px; left: -10px; animation: sBubbles 1.5s linear infinite; }
-.sub-bubbles .b1 { width: 8px; height: 8px; animation-delay: 0s; }
-.sub-bubbles .b2 { width: 12px; height: 12px; animation-delay: 0.5s; left: -15px; }
-.sub-bubbles .b3 { width: 6px; height: 6px; animation-delay: 1s; left: -5px; }
 @keyframes sBubbles { 0% { transform: translate(0, 0) scale(1); opacity: 1; } 100% { transform: translate(-30px, -40px) scale(1.5); opacity: 0; } }
 
 .equation-board { text-align: center; width: 100%; padding: 0 10px; }
 .equation-badge-surgical { color: #ffffff; font-weight: 900; text-transform: uppercase; margin-bottom: 0.5rem; text-shadow: 0 2px 4px black; font-size: 12px; }
 .equation-text { background: rgba(15, 23, 42, 0.9); display: inline-flex; align-items: center; justify-content: center; min-height: 80px; padding: 10px 30px; border-radius: 2rem; color: white; font-size: clamp(2rem, 8vw, 3.5rem); font-weight: 900; border: 3px solid #38bdf8; }
-@media (min-width: 768px) { .equation-text { min-height: 100px; padding: 15px 45px; } }
 
 .ocean-area { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 5; overflow: hidden; pointer-events: none; }
-/* 🛠️ EL SECRETO TÁCTIL: touch-action manipulation solo en las burbujas */
 .bubble { pointer-events: auto; touch-action: manipulation; cursor: pointer; position: absolute; border-radius: 50%; background: radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.5), rgba(56, 189, 248, 0.15)); border: 2px solid white; display: flex; align-items: center; justify-content: center; color: white; font-weight: 900; font-size: clamp(1.2rem, 5vw, 2rem); }
 .bubble:active { transform: scale(0.9); }
 

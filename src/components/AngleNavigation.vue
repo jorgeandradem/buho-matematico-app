@@ -1,4 +1,8 @@
 <script setup>
+/** * ARCHIVO: AngleNavigation.vue
+ * NOTA INTERNA: NAVEGACIÓN DE ÁNGULOS v5.1 - OPTIMIZACIÓN DE ARRANQUE TOTAL
+ * LOGICA: Basada en el motor de respuesta instantánea para tablets y PWA empaquetadas.
+ */
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { Trophy, X, Compass, Anchor, RotateCcw, Home, Volume2 } from 'lucide-vue-next';
 import { useGamificationStore } from '../stores/useGamificationStore';
@@ -14,15 +18,13 @@ const sessionCoins = ref({ gold: 0, silver: 0, copper: 0 });
 
 const currentRotation = ref(0); 
 const isAnimating = ref(false);
-const feedback = ref('idle'); // 'idle', 'correct', 'error'
+const feedback = ref('idle'); 
 
-// Ref para la lógica híbrida (arrastre manual)
 const rudderRef = ref(null);
 const isDragging = ref(false);
 let startAngle = 0;
 let startRot = 0;
 
-// 🛠️ FIX VOZ: Catálogo con 'spokenName' (Lenguaje Natural)
 const anglesList = [
   { value: 0, name: 'NORTE (0°)', spokenName: 'NORTE, cero grados', hint: 'Frente, sin giro' },
   { value: 45, name: 'AGUDO (45°)', spokenName: 'AGUDO, cuarenta y cinco grados', hint: 'Un giro corto' },
@@ -36,7 +38,6 @@ const anglesList = [
 
 const currentQuestion = ref(anglesList[2]); 
 
-// Dificultad
 const difficulty = computed(() => {
   if (progress.value < 5) return 'copper';
   if (progress.value < 8) return 'silver';
@@ -49,7 +50,6 @@ const bestCoinType = computed(() => {
   return 'copper';
 });
 
-// --- MOTOR DE VOZ UNIFICADO (OFFLINE/ONLINE) ---
 const speak = (text, state = 'intro') => {
   if (!window.speechSynthesis) return;
   window.speechSynthesis.cancel(); 
@@ -67,10 +67,13 @@ const speak = (text, state = 'intro') => {
 };
 
 const playIntroVoice = () => {
-  speak("Navegación de Ángulos. Revisa la bitácora para conocer los grados. En el mar, Babor es izquierda y color rojo, Estribor es derecha y color verde. Usa los botones o gira el timón manualmente hasta el rumbo que pide el capitán. ¡A toda vela!", 'intro');
+  playIntroVoiceInternal();
 };
 
-// --- EFECTOS DE SONIDO ---
+const playIntroVoiceInternal = () => {
+  speak("Navegación de Ángulos. Revisa la bitácora para conocer los grados. En el mar, Babor es izquierda y color rojo, Estribor es derecha y color verde. Usa los botones o gira el timón manualmente hasta el rumbo que pide el capitán. ¡A toda vela!", 'intro');
+}
+
 const playSound = (type) => {
   try {
     const audio = new Audio(type === 'success' ? '/audios/success.mp3' : '/audios/lightning.mp3');
@@ -78,9 +81,7 @@ const playSound = (type) => {
   } catch (e) {}
 };
 
-// --- LÓGICA DE PARTIDA ---
 const announceChallenge = () => {
-  // 🛠️ FIX VOZ: Usa el spokenName para leerlo en lenguaje natural
   speak(`Capitán pide rumbo a ${currentQuestion.value.spokenName}. ${currentQuestion.value.hint}. Gira a babor o estribor.`, 'intro');
 };
 
@@ -102,7 +103,6 @@ const rotate = (deg) => {
   currentRotation.value += deg;
 };
 
-// LÓGICA HÍBRIDA (TOUCH / MOUSE DRAG)
 const onPointerDown = (e) => {
   if (isAnimating.value) return;
   isDragging.value = true;
@@ -200,8 +200,9 @@ const finishGame = () => {
 };
 
 const startGame = () => {
-  window.speechSynthesis.cancel(); 
+  // 🛠️ MEJORA: Cambio de estado prioritario para respuesta visual inmediata
   currentStep.value = 2;
+  window.speechSynthesis.cancel(); 
   generateQuestion(); 
 };
 
@@ -209,25 +210,25 @@ const resetGame = () => {
   progress.value = 0;
   sessionCoins.value = { gold: 0, silver: 0, copper: 0 };
   currentStep.value = 1;
-  playIntroVoice();
+  playIntroVoiceInternal();
 };
 
 const handleClose = () => {
   window.speechSynthesis.cancel();
   if (currentStep.value === 2) {
     currentStep.value = 1; 
-    playIntroVoice();
+    playIntroVoiceInternal();
   } else {
     emit('close'); 
   }
 };
 
-onMounted(() => playIntroVoice());
+onMounted(() => playIntroVoiceInternal());
 onUnmounted(() => window.speechSynthesis.cancel());
 </script>
 
 <template>
-  <div class="master-container">
+  <div class="master-container font-inter">
     <main class="app-canvas ocean-bg">
       
       <div v-if="currentStep === 3">
@@ -250,7 +251,7 @@ onUnmounted(() => window.speechSynthesis.cancel());
         
         <div v-else class="flex-1"></div>
 
-        <button @click="handleClose" class="btn-close-circle p-2 bg-slate-100 hover:bg-slate-200 rounded-full text-slate-500 transition-colors">
+        <button @pointerdown="handleClose" class="btn-close-circle p-2 bg-slate-100 hover:bg-slate-200 rounded-full text-slate-500 transition-colors touch-manipulation">
           <X size="20" stroke-width="2.5" />
         </button>
       </header>
@@ -271,7 +272,7 @@ onUnmounted(() => window.speechSynthesis.cancel());
         <div class="rules-panel shadow-2xl bg-white/95 backdrop-blur-sm border-orange-500 border-4 mx-auto mt-4 max-h-[45vh] flex flex-col">
           <div class="rules-badge bg-orange-500 flex justify-between items-center w-full px-4 box-border left-0 top-[-14px] rounded-full">
             <span class="drop-shadow-sm">BITÁCORA DEL CAPITÁN</span>
-            <button @click="playIntroVoice" class="text-orange-100 hover:text-white transition-colors active:scale-90 drop-shadow-sm ml-4">
+            <button @pointerdown="playIntroVoiceInternal" class="text-orange-100 hover:text-white transition-colors active:scale-90 drop-shadow-sm ml-4 touch-manipulation">
               <Volume2 size="16" />
             </button>
           </div>
@@ -286,7 +287,7 @@ onUnmounted(() => window.speechSynthesis.cancel());
           </div>
         </div>
 
-        <button @click="startGame" class="btn-ocean w-[90%] max-w-sm mt-4 mb-2 flex justify-center items-center gap-2 text-lg shrink-0">
+        <button @pointerdown="startGame" class="btn-ocean w-[90%] max-w-sm mt-4 mb-2 flex justify-center items-center gap-2 text-lg shrink-0 touch-manipulation z-50">
           ¡A TODA VELA! <Compass stroke-width="3" class="animate-spin-slow" />
         </button>
       </div>
@@ -311,16 +312,16 @@ onUnmounted(() => window.speechSynthesis.cancel());
           
           <div class="rudder-container z-20 w-full h-full flex items-center justify-center" :class="{'animate-shake': feedback === 'error'}">
             <div ref="rudderRef"
-                 class="rudder-wheel transition-transform duration-[400ms] ease-out relative cursor-grab active:cursor-grabbing touch-none" 
-                 :style="{ transform: `rotate(${currentRotation}deg)` }"
-                 :class="{
-                   'glow-success': feedback === 'correct',
-                   'glow-error': feedback === 'error',
-                   'border-[#78350f] shadow-2xl': feedback === 'idle',
-                   'duration-0': isDragging
-                 }"
-                 @mousedown="onPointerDown"
-                 @touchstart="onPointerDown">
+                  class="rudder-wheel transition-transform duration-[400ms] ease-out relative cursor-grab active:cursor-grabbing touch-none" 
+                  :style="{ transform: `rotate(${currentRotation}deg)` }"
+                  :class="{
+                    'glow-success': feedback === 'correct',
+                    'glow-error': feedback === 'error',
+                    'border-[#78350f] shadow-2xl': feedback === 'idle',
+                    'duration-0': isDragging
+                  }"
+                  @mousedown="onPointerDown"
+                  @touchstart="onPointerDown">
               
               <div class="absolute -top-6 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[14px] border-l-transparent border-r-[14px] border-r-transparent border-b-[24px] border-b-sky-300 drop-shadow-md z-30"></div>
 
@@ -335,17 +336,17 @@ onUnmounted(() => window.speechSynthesis.cancel());
 
         <div class="controls-area w-[90%] max-w-sm shrink-0 flex flex-col items-center gap-3 pb-4">
             <div class="flex gap-3 w-full z-20">
-               <button @click="rotate(-45)" :disabled="isAnimating" class="flex-1 bg-white text-red-600 font-black py-2 md:py-3 rounded-xl shadow-md active:scale-95 border-2 border-red-100 disabled:opacity-50 transition-all flex flex-col items-center leading-none gap-1">
+               <button @pointerdown="rotate(-45)" :disabled="isAnimating" class="flex-1 bg-white text-red-600 font-black py-2 md:py-3 rounded-xl shadow-md active:scale-95 border-2 border-red-100 disabled:opacity-50 transition-all flex flex-col items-center leading-none gap-1 touch-manipulation">
                  <span class="text-[10px] text-red-400">BABOR</span>
                  <span class="text-sm md:text-base">↺ -45°</span>
                </button>
-               <button @click="rotate(45)" :disabled="isAnimating" class="flex-1 bg-white text-green-600 font-black py-2 md:py-3 rounded-xl shadow-md active:scale-95 border-2 border-green-200 disabled:opacity-50 transition-all flex flex-col items-center leading-none gap-1">
+               <button @pointerdown="rotate(45)" :disabled="isAnimating" class="flex-1 bg-white text-green-600 font-black py-2 md:py-3 rounded-xl shadow-md active:scale-95 border-2 border-green-200 disabled:opacity-50 transition-all flex flex-col items-center leading-none gap-1 touch-manipulation">
                  <span class="text-[10px] text-green-500">ESTRIBOR</span>
                  <span class="text-sm md:text-base">+45° ↻</span>
                </button>
             </div>
 
-            <button @click="checkAngle" :disabled="isAnimating" class="btn-ocean z-20 w-full disabled:opacity-50 disabled:grayscale transition-all">
+            <button @pointerdown="checkAngle" :disabled="isAnimating" class="btn-ocean z-20 w-full disabled:opacity-50 disabled:grayscale transition-all touch-manipulation">
               VALIDAR RUMBO
             </button>
         </div>
@@ -370,10 +371,10 @@ onUnmounted(() => window.speechSynthesis.cancel());
         </div>
 
         <div class="action-buttons flex flex-col w-full max-w-xs mx-auto gap-4 mb-8 shrink-0">
-          <button @click="resetGame" class="w-full py-4 bg-white border-4 border-sky-200 text-sky-700 rounded-2xl font-black text-lg shadow-sm active:scale-95 transition-all flex items-center justify-center gap-3">
+          <button @pointerdown="resetGame" class="w-full py-4 bg-white border-4 border-sky-200 text-sky-700 rounded-2xl font-black text-lg shadow-sm active:scale-95 transition-all flex items-center justify-center gap-3 touch-manipulation">
             <RotateCcw stroke-width="3" /> NUEVO VIAJE
           </button>
-          <button @click="handleClose" class="btn-ocean w-full flex items-center justify-center gap-3 text-lg">
+          <button @pointerdown="handleClose" class="btn-ocean w-full flex items-center justify-center gap-3 text-lg touch-manipulation">
             <Home stroke-width="3" /> AL PORTAL
           </button>
         </div>
@@ -384,23 +385,19 @@ onUnmounted(() => window.speechSynthesis.cancel());
 </template>
 
 <style scoped>
-/* 🛠️ CSS BLINDADO DE LA PLANTILLA MAESTRA */
-.master-container {
-  position: fixed; inset: 0; z-index: 9999; display: flex; justify-content: center; align-items: center;
-  background-color: #f1f5f9; overflow: hidden; 
-}
+/* 🛠️ CSS BLINDADO */
+.master-container { position: fixed; inset: 0; z-index: 9999; display: flex; justify-content: center; align-items: center; background-color: #f1f5f9; overflow: hidden; }
 
 .app-canvas {
   display: flex; flex-direction: column; justify-content: space-between; position: relative; 
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); user-select: none; -webkit-tap-highlight-color: transparent;
-  
   padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom);
   padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right);
-
   width: 100vw; height: 100dvh; overflow-y: auto; overflow-x: hidden;
 }
 
-/* FONDO OCÉANO */
+.touch-manipulation { touch-action: manipulation; cursor: pointer; position: relative; }
+
 .ocean-bg { background: linear-gradient(to bottom, #0ea5e9, #0369a1); }
 
 @media (min-width: 1025px) {
@@ -423,32 +420,23 @@ onUnmounted(() => window.speechSynthesis.cancel());
 .app-canvas::-webkit-scrollbar { display: none; }
 .app-canvas { -ms-overflow-style: none; scrollbar-width: none; }
 
-/* ESTILOS ESPECÍFICOS DEL JUEGO TIMÓN */
-
+/* 🛠️ MEJORA: pointer-events none para que la animación no bloquee clics */
 .intro-wheel-wrapper {
   display: inline-flex; padding: 15px; background: rgba(255, 255, 255, 0.15); border-radius: 50%;
   box-shadow: 0 10px 25px rgba(0,0,0,0.2), inset 0 0 10px rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3);
+  pointer-events: none;
 }
 
 .css-3d-wheel { width: 60px; height: 60px; position: relative; display: flex; align-items: center; justify-content: center; }
 @media (min-width: 768px) { .css-3d-wheel { width: 80px; height: 80px; } }
 
-.wheel-rim {
-  width: 100%; height: 100%; border-radius: 50%; border: 8px solid #78350f;
-  box-shadow: inset 0 4px 8px rgba(0,0,0,0.6), 0 4px 8px rgba(0,0,0,0.5); position: absolute; z-index: 5;
-}
+.wheel-rim { width: 100%; height: 100%; border-radius: 50%; border: 8px solid #78350f; box-shadow: inset 0 4px 8px rgba(0,0,0,0.6), 0 4px 8px rgba(0,0,0,0.5); position: absolute; z-index: 5; }
 @media (min-width: 768px) { .wheel-rim { border-width: 12px; } }
 
-.wheel-spoke {
-  position: absolute; width: 6px; height: 80px;
-  background: linear-gradient(to right, #451a03, #92400e, #451a03); border-radius: 4px; z-index: 1; box-shadow: 0 2px 4px rgba(0,0,0,0.5);
-}
+.wheel-spoke { position: absolute; width: 6px; height: 80px; background: linear-gradient(to right, #451a03, #92400e, #451a03); border-radius: 4px; z-index: 1; box-shadow: 0 2px 4px rgba(0,0,0,0.5); }
 @media (min-width: 768px) { .wheel-spoke { width: 8px; height: 110px; } }
 
-.wheel-hub {
-  width: 20px; height: 20px; background: #451a03; border-radius: 50%; position: absolute; z-index: 10;
-  display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.6);
-}
+.wheel-hub { width: 20px; height: 20px; background: #451a03; border-radius: 50%; position: absolute; z-index: 10; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.6); }
 
 .wheel-hub-inner { width: 8px; height: 8px; background: #d97706; border-radius: 50%; box-shadow: inset 0 1px 2px rgba(255,255,255,0.5); }
 
@@ -456,21 +444,14 @@ onUnmounted(() => window.speechSynthesis.cancel());
   background: linear-gradient(to bottom, #f59e0b, #d97706); color: white; padding: 1rem 1.5rem; border-radius: 16px; font-weight: 900;
   border: 2px solid #b45309; box-shadow: 0 6px 0 #92400e, 0 15px 20px rgba(3, 105, 161, 0.4); transition: all 0.1s;
 }
-.btn-ocean:active { transform: translateY(6px); box-shadow: 0 0 0 #92400e, 0 5px 10px rgba(3, 105, 161, 0.4); }
+.btn-ocean:active { transform: translateY(6px); box-shadow: 0 0 0 #92400e; }
 
 .instruction-banner { background: white; padding: 8px 15px; border-radius: 1rem; box-shadow: 0 10px 25px rgba(0,0,0,0.2); border: 4px solid #e0f2fe; }
 
-/* 🛠️ EL TIMÓN INTERACTIVO */
-.rudder-wheel {
-  width: 200px; height: 200px; background: transparent; border: 15px solid #78350f; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 15px 35px rgba(0,0,0,0.5), inset 0 0 20px rgba(0,0,0,0.8);
-}
+.rudder-wheel { width: 200px; height: 200px; background: transparent; border: 15px solid #78350f; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 15px 35px rgba(0,0,0,0.5), inset 0 0 20px rgba(0,0,0,0.8); }
 @media (min-width: 768px) { .rudder-wheel { width: 250px; height: 250px; border-width: 20px; } }
 
-.rudder-handle {
-  position: absolute; width: 18px; height: 240px; background: linear-gradient(to right, #451a03, #78350f, #451a03);
-  z-index: -1; border-radius: 12px; box-shadow: 0 5px 10px rgba(0,0,0,0.5);
-}
+.rudder-handle { position: absolute; width: 18px; height: 240px; background: linear-gradient(to right, #451a03, #78350f, #451a03); z-index: -1; border-radius: 12px; box-shadow: 0 5px 10px rgba(0,0,0,0.5); }
 @media (min-width: 768px) { .rudder-handle { width: 24px; height: 310px; } }
 
 .glow-success { border-color: #22c55e !important; box-shadow: 0 0 40px rgba(34, 197, 94, 0.9), inset 0 0 30px rgba(34, 197, 94, 0.8) !important; animation: pulse-glow 0.3s infinite alternate; }
@@ -485,12 +466,7 @@ onUnmounted(() => window.speechSynthesis.cancel());
 @keyframes bounceSlow { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
 
 .animate-shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
-@keyframes shake {
-  10%, 90% { transform: translate3d(-4px, 0, 0); }
-  20%, 80% { transform: translate3d(6px, 0, 0); }
-  30%, 50%, 70% { transform: translate3d(-10px, 0, 0); }
-  40%, 60% { transform: translate3d(10px, 0, 0); }
-}
+@keyframes shake { 10%, 90% { transform: translate3d(-4px, 0, 0); } 20%, 80% { transform: translate3d(6px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-10px, 0, 0); } 40%, 60% { transform: translate3d(10px, 0, 0); } }
 
 .gold-glow { filter: drop-shadow(0 0 15px rgba(251, 191, 36, 0.6)); }
 .silver-glow { filter: drop-shadow(0 0 15px rgba(148, 163, 184, 0.6)); }
