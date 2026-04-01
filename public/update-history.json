@@ -1,5 +1,12 @@
 [
   {
+    "updateId": "upd_1775160000000",
+    "version": "2.11.3",
+    "date": "01/04/2026",
+    "title": "BLINDAJE TÁCTIL",
+    "description": "Capitán, hemos erradicado el secuestro de clics en tablets. Se aplicó un blindaje táctil de alta precisión en Burbujas de Álgebra, Mercado Decimal y Navegación de Ángulos, garantizando una respuesta inmediata en pantallas grandes. Además, optimizamos el CoverScreen ocultando inteligentemente el selector del Marco Legal para los alumnos que ya están registrados, agilizando su acceso al Nido."
+  },
+  {
     "updateId": "upd_1775140200000",
     "version": "2.11.2",
     "date": "01/04/2026",

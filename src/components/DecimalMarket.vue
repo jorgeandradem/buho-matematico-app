@@ -1,6 +1,6 @@
 <script setup>
 /** * ARCHIVO: DecimalMarket.vue
- * NOTA INTERNA: MERCADO DE DECIMALES v5.2 - RESTAURACIÓN TOTAL + FIX TÁCTIL
+ * NOTA INTERNA: MERCADO DE DECIMALES v5.3 - BLINDAJE TÁCTIL Y RESPONSIVIDAD TABLET
  * LOGICA: 12 niveles, sistema de gaveta mecánica y monitor LED. 
  */
 import { ref, computed, onMounted, onUnmounted } from 'vue';
@@ -198,11 +198,11 @@ onUnmounted(() => window.speechSynthesis.cancel());
   <div class="master-container">
     <main class="app-canvas steampunk-bg">
       
-      <div v-if="currentStep === 3">
+      <div v-if="currentStep === 3" class="pointer-events-none absolute inset-0 z-[5]">
         <CoinRain :type="bestCoinType" :count="40" />
       </div>
 
-      <header class="header-standard shrink-0 !py-2 !bg-white/80 backdrop-blur-sm border-b-2 border-amber-800/30">
+      <header class="header-standard shrink-0 !py-2 !bg-white/80 backdrop-blur-sm border-b-2 border-amber-800/30 relative z-[60]">
         <template v-if="currentStep !== 1">
           <div class="trophy-section flex items-center gap-2 animate-fade-in">
             <Trophy size="22" class="text-amber-700 drop-shadow-sm" />
@@ -218,7 +218,7 @@ onUnmounted(() => window.speechSynthesis.cancel());
         
         <div v-else class="flex-1"></div>
 
-        <button @pointerdown.stop="handleClose" class="btn-close-circle p-2 bg-white rounded-full text-amber-900 hover:text-red-600 hover:bg-amber-100 transition-all shadow-sm border border-amber-200">
+        <button @click="handleClose" class="btn-close-circle p-2 bg-white rounded-full text-amber-900 hover:text-red-600 hover:bg-amber-100 transition-all shadow-sm border border-amber-200 touch-manipulation relative z-[100]">
           <X size="20" stroke-width="2.5" />
         </button>
       </header>
@@ -238,7 +238,7 @@ onUnmounted(() => window.speechSynthesis.cancel());
         <div class="rules-panel bg-white/95 backdrop-blur-sm border-amber-800 border-4 mx-auto mt-6">
           <div class="rules-badge bg-amber-800 flex justify-between items-center w-full px-4 box-border left-0 top-[-14px] rounded-full">
             <span>INSTRUCCIONES DE LA BÓVEDA</span>
-            <button @pointerdown.stop="playIntroVoice" class="text-amber-200 hover:text-white transition-colors active:scale-90 ml-4">
+            <button @click="playIntroVoice" class="text-amber-200 hover:text-white transition-colors active:scale-90 ml-4 touch-manipulation">
               <Volume2 size="16" />
             </button>
           </div>
@@ -255,7 +255,7 @@ onUnmounted(() => window.speechSynthesis.cancel());
           </div>
         </div>
 
-        <button @pointerdown.stop="startGame" class="btn-steampunk w-full max-w-sm mt-auto mb-4 flex justify-center items-center gap-2 text-lg shrink-0 z-50">
+        <button @click="startGame" class="btn-steampunk w-full max-w-sm mt-auto mb-4 flex justify-center items-center gap-2 text-lg shrink-0 relative z-[100]">
           ABRIR MERCADO <ChevronRight stroke-width="3" />
         </button>
       </div>
@@ -295,7 +295,7 @@ onUnmounted(() => window.speechSynthesis.cancel());
                  <span class="text-sm">CAMBIO:</span> 
                  <div class="flex items-center gap-1">
                    <span :class="{'text-red-600': feedback === 'error'}">{{ currentChangeAccumulated.toFixed(2) }}€</span>
-                   <button v-if="currentChangeAccumulated > 0" @pointerdown.stop="undoMoney" class="text-slate-400 hover:text-red-600 active:scale-90 ml-1 transition-colors">
+                   <button v-if="currentChangeAccumulated > 0" @click="undoMoney" class="text-slate-400 hover:text-red-600 active:scale-90 ml-1 transition-colors touch-manipulation">
                      <Undo2 size="18" />
                    </button>
                  </div>
@@ -312,35 +312,35 @@ onUnmounted(() => window.speechSynthesis.cancel());
                 </div>
 
                 <div class="flex gap-2 mb-2 px-2">
-                  <button @pointerdown.stop="activeTab = 'monedas'" class="flex-1 py-1.5 font-black text-xs rounded-t-lg transition-colors border-t-2 border-x-2"
+                  <button @click="activeTab = 'monedas'" class="flex-1 py-1.5 font-black text-xs rounded-t-lg transition-colors border-t-2 border-x-2 touch-manipulation"
                     :class="activeTab === 'monedas' ? 'bg-[#5c3a18] text-amber-300 border-amber-700' : 'bg-[#451a03] text-amber-900 border-[#451a03]'">
                     <Coins size="14" class="inline mr-1" /> MONEDAS
                   </button>
-                  <button @pointerdown.stop="activeTab = 'billetes'" class="flex-1 py-1.5 font-black text-xs rounded-t-lg transition-colors border-t-2 border-x-2"
+                  <button @click="activeTab = 'billetes'" class="flex-1 py-1.5 font-black text-xs rounded-t-lg transition-colors border-t-2 border-x-2 touch-manipulation"
                     :class="activeTab === 'billetes' ? 'bg-[#5c3a18] text-amber-300 border-amber-700' : 'bg-[#451a03] text-amber-900 border-[#451a03]'">
                     <Banknote size="14" class="inline mr-1" /> BILLETES
                   </button>
                 </div>
 
                 <div v-if="activeTab === 'monedas'" class="coin-drawer">
-                   <button @pointerdown.stop="addMoney(0.01)" :disabled="feedback === 'correct'" class="euro-coin coin-copper">1c</button>
-                   <button @pointerdown.stop="addMoney(0.02)" :disabled="feedback === 'correct'" class="euro-coin coin-copper">2c</button>
-                   <button @pointerdown.stop="addMoney(0.05)" :disabled="feedback === 'correct'" class="euro-coin coin-copper">5c</button>
-                   <button @pointerdown.stop="addMoney(0.10)" :disabled="feedback === 'correct'" class="euro-coin coin-gold">10c</button>
-                   <button @pointerdown.stop="addMoney(0.20)" :disabled="feedback === 'correct'" class="euro-coin coin-gold">20c</button>
-                   <button @pointerdown.stop="addMoney(0.50)" :disabled="feedback === 'correct'" class="euro-coin coin-gold">50c</button>
-                   <button @pointerdown.stop="addMoney(1.00)" :disabled="feedback === 'correct'" class="euro-coin coin-1euro">1€</button>
-                   <button @pointerdown.stop="addMoney(2.00)" :disabled="feedback === 'correct'" class="euro-coin coin-2euro">2€</button>
+                   <button @click="addMoney(0.01)" :disabled="feedback === 'correct'" class="euro-coin coin-copper">1c</button>
+                   <button @click="addMoney(0.02)" :disabled="feedback === 'correct'" class="euro-coin coin-copper">2c</button>
+                   <button @click="addMoney(0.05)" :disabled="feedback === 'correct'" class="euro-coin coin-copper">5c</button>
+                   <button @click="addMoney(0.10)" :disabled="feedback === 'correct'" class="euro-coin coin-gold">10c</button>
+                   <button @click="addMoney(0.20)" :disabled="feedback === 'correct'" class="euro-coin coin-gold">20c</button>
+                   <button @click="addMoney(0.50)" :disabled="feedback === 'correct'" class="euro-coin coin-gold">50c</button>
+                   <button @click="addMoney(1.00)" :disabled="feedback === 'correct'" class="euro-coin coin-1euro">1€</button>
+                   <button @click="addMoney(2.00)" :disabled="feedback === 'correct'" class="euro-coin coin-2euro">2€</button>
                 </div>
 
                 <div v-if="activeTab === 'billetes'" class="bill-drawer">
-                   <button @pointerdown.stop="addMoney(5.00)" :disabled="feedback === 'correct'" class="euro-bill bg-slate-400">5€</button>
-                   <button @pointerdown.stop="addMoney(10.00)" :disabled="feedback === 'correct'" class="euro-bill bg-red-400">10€</button>
-                   <button @pointerdown.stop="addMoney(20.00)" :disabled="feedback === 'correct'" class="euro-bill bg-blue-400">20€</button>
-                   <button @pointerdown.stop="addMoney(50.00)" :disabled="feedback === 'correct'" class="euro-bill bg-orange-400">50€</button>
-                   <button @pointerdown.stop="addMoney(100.00)" :disabled="feedback === 'correct'" class="euro-bill bg-green-500">100€</button>
-                   <button @pointerdown.stop="addMoney(200.00)" :disabled="feedback === 'correct'" class="euro-bill bg-yellow-500 text-yellow-900">200€</button>
-                   <button @pointerdown.stop="addMoney(500.00)" :disabled="feedback === 'correct'" class="euro-bill bg-purple-500 col-span-3">500€</button>
+                   <button @click="addMoney(5.00)" :disabled="feedback === 'correct'" class="euro-bill bg-slate-400">5€</button>
+                   <button @click="addMoney(10.00)" :disabled="feedback === 'correct'" class="euro-bill bg-red-400">10€</button>
+                   <button @click="addMoney(20.00)" :disabled="feedback === 'correct'" class="euro-bill bg-blue-400">20€</button>
+                   <button @click="addMoney(50.00)" :disabled="feedback === 'correct'" class="euro-bill bg-orange-400">50€</button>
+                   <button @click="addMoney(100.00)" :disabled="feedback === 'correct'" class="euro-bill bg-green-500">100€</button>
+                   <button @click="addMoney(200.00)" :disabled="feedback === 'correct'" class="euro-bill bg-yellow-500 text-yellow-900">200€</button>
+                   <button @click="addMoney(500.00)" :disabled="feedback === 'correct'" class="euro-bill bg-purple-500 col-span-3">500€</button>
                 </div>
 
              </div>
@@ -351,10 +351,10 @@ onUnmounted(() => window.speechSynthesis.cancel());
         </div>
       </div>
 
-      <div v-if="currentStep === 3" class="game-content result-screen flex-1 flex flex-col items-center justify-center py-6 px-4 animate-fade-in z-10 relative">
+      <div v-if="currentStep === 3" class="game-content result-screen flex-1 flex flex-col items-center justify-center py-6 px-4 animate-fade-in relative z-20 w-full min-h-0">
         <h1 class="text-4xl font-black text-amber-900 mb-8 italic drop-shadow-md text-center uppercase tracking-tighter">¡NEGOCIO REDONDO!</h1>
         
-        <div class="final-loot-display flex gap-4 md:gap-6 mb-12 bg-white/80 p-4 md:p-6 rounded-[2.5rem] shadow-2xl border-4 border-amber-300 backdrop-blur-sm mx-auto">
+        <div class="final-loot-display flex gap-4 md:gap-6 mb-12 bg-white/80 p-4 md:p-6 rounded-[2.5rem] shadow-2xl border-4 border-amber-300 backdrop-blur-sm mx-auto relative z-30">
             <div v-if="sessionCoins.gold > 0" class="loot-big gold-glow flex flex-col items-center gap-2">
               <img src="/images/coin-gold.png" class="w-12 h-12 md:w-16 md:h-16 animate-bounce-slow" />
               <span class="text-xl md:text-2xl font-black text-amber-500">+{{ sessionCoins.gold }}</span>
@@ -369,11 +369,11 @@ onUnmounted(() => window.speechSynthesis.cancel());
             </div>
         </div>
 
-        <div class="action-buttons flex flex-col w-full max-w-xs mx-auto gap-4 mb-8 shrink-0">
-          <button @pointerdown.stop="resetGame" class="w-full py-4 bg-white border-4 border-amber-300 text-amber-800 rounded-2xl font-black text-lg shadow-sm active:scale-95 transition-all flex items-center justify-center gap-3">
+        <div class="action-buttons flex flex-col w-full max-w-xs mx-auto gap-4 mb-8 shrink-0 relative z-[100]">
+          <button @click="resetGame" class="w-full py-4 bg-white border-4 border-amber-300 text-amber-800 rounded-2xl font-black text-lg shadow-sm active:scale-95 transition-all flex items-center justify-center gap-3 touch-manipulation">
             <RotateCcw stroke-width="3" /> OTRA RACHA
           </button>
-          <button @pointerdown.stop="handleClose" class="btn-steampunk w-full flex items-center justify-center gap-3 text-lg">
+          <button @click="handleClose" class="btn-steampunk w-full flex items-center justify-center gap-3 text-lg">
             <Home stroke-width="3" /> AL PORTAL
           </button>
         </div>
@@ -384,8 +384,6 @@ onUnmounted(() => window.speechSynthesis.cancel());
 </template>
 
 <style scoped>
-/* 🛠️ CSS BLINDADO DE LA PLANTILLA MAESTRA */
-
 .master-container { position: fixed; inset: 0; z-index: 9999; display: flex; justify-content: center; align-items: center; background-color: #f1f5f9; overflow: hidden; }
 
 .app-canvas {
@@ -410,6 +408,9 @@ onUnmounted(() => window.speechSynthesis.cancel());
   .app-canvas { width: 85vw; max-width: 800px; height: 95dvh; border-radius: 35px; box-shadow: 0 20px 50px rgba(0,0,0,0.1); padding: 0; }
 }
 
+/* 🛠️ BLINDAJE TÁCTIL (Evita el zoom y retrasos en móviles/tablets) */
+.touch-manipulation { touch-action: manipulation; cursor: pointer; }
+
 .header-standard { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1rem; }
 .session-loot-capsule { display: flex; align-items: center; padding: 6px 12px; border-radius: 9999px; border: 2px solid #e2e8f0; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02); }
 .loot-item { display: flex; align-items: center; gap: 4px; padding: 0 8px; }
@@ -427,7 +428,7 @@ onUnmounted(() => window.speechSynthesis.cancel());
 .css-3d-cart-wrapper { 
   display: inline-flex; padding: 15px; background: rgba(251, 191, 36, 0.2); border-radius: 50%; 
   border: 4px solid #b45309; box-shadow: 0 10px 20px rgba(0,0,0,0.1), inset 0 4px 10px rgba(255,255,255,0.5);
-  pointer-events: none; /* 🛠️ FIX: Evita que tape los clics */
+  pointer-events: none; /* 🛠️ FIX */
 }
 .css-3d-cart { width: 50px; height: 40px; position: relative; }
 .cart-basket { position: absolute; top: 0; left: 8px; width: 42px; height: 28px; background: repeating-linear-gradient(90deg, transparent, transparent 4px, #b45309 4px, #b45309 6px), repeating-linear-gradient(0deg, transparent, transparent 4px, #b45309 4px, #b45309 6px); border: 3px solid #92400e; border-top-width: 4px; border-radius: 2px 2px 6px 6px; box-shadow: inset 0 -4px 8px rgba(0,0,0,0.3); }
@@ -442,7 +443,7 @@ onUnmounted(() => window.speechSynthesis.cancel());
   background: linear-gradient(to bottom, #d97706, #b45309); color: white; padding: 1rem 1.5rem; 
   border-radius: 16px; font-weight: 900; border: 2px solid #78350f; 
   box-shadow: 0 6px 0 #78350f, 0 15px 20px rgba(120, 53, 15, 0.4); transition: all 0.1s;
-  touch-action: manipulation; cursor: pointer; /* 🛠️ FIX */
+  touch-action: manipulation; cursor: pointer; /* 🛠️ FIX TÁCTIL */
 }
 .btn-steampunk:active { transform: translateY(6px); box-shadow: 0 0 0 #78350f, 0 5px 10px rgba(120, 53, 15, 0.4); }
 
@@ -459,7 +460,7 @@ onUnmounted(() => window.speechSynthesis.cancel());
 .euro-coin { 
   border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; 
   font-size: 0.8rem; aspect-ratio: 1; box-shadow: 0 4px 6px rgba(0,0,0,0.5), inset 0 -2px 4px rgba(0,0,0,0.3); 
-  cursor: pointer; transition: transform 0.1s; touch-action: manipulation; /* 🛠️ FIX */
+  cursor: pointer; transition: transform 0.1s; touch-action: manipulation; /* 🛠️ FIX TÁCTIL */
 }
 @media (min-width: 380px) { .euro-coin { font-size: 0.9rem; } }
 .euro-coin:active { transform: scale(0.9) translateY(2px); }
@@ -474,7 +475,7 @@ onUnmounted(() => window.speechSynthesis.cancel());
 .euro-bill { 
   border-radius: 4px; display: flex; align-items: center; justify-content: center; font-weight: 900; 
   font-size: 0.9rem; padding: 10px 4px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.5), inset 0 0 10px rgba(255,255,255,0.3); 
-  border: 1px dashed rgba(255,255,255,0.4); cursor: pointer; transition: transform 0.1s; touch-action: manipulation; /* 🛠️ FIX */
+  border: 1px dashed rgba(255,255,255,0.4); cursor: pointer; transition: transform 0.1s; touch-action: manipulation; /* 🛠️ FIX TÁCTIL */
 }
 @media (min-width: 380px) { .euro-bill { font-size: 1.1rem; padding: 12px 5px; } }
 .euro-bill:active { transform: scale(0.95) translateY(2px); }

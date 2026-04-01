@@ -1,6 +1,6 @@
 <script setup>
 /** * ARCHIVO: SubmarineAlgebra.vue
- * NOTA INTERNA: BURBUJAS DE ALGEBRA v5.1 - OPTIMIZACIÓN DE ARRANQUE TOTAL
+ * NOTA INTERNA: BURBUJAS DE ALGEBRA v5.2 - BLINDAJE TÁCTIL PARA TABLETS Y ANTI-HIJACKING
  * LOGICA: Basada en el motor de SoccerAlgebra para máxima compatibilidad.
  */
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
@@ -71,7 +71,6 @@ const formattedEquation = computed(() => {
 
 // --- 2. LÓGICA DE NAVEGACIÓN ---
 const startGame = () => {
-  // 🛠️ MEJORA: Cambio de estado inmediato antes de limpiar audios para evitar bloqueos
   gameState.value = 'playing';
   gameActive.value = true;
   
@@ -225,13 +224,13 @@ onUnmounted(() => { stopAllEffects(); });
           </div>
         </div>
 
-        <button @click="gameState === 'playing' ? returnToRules() : emit('close')" class="btn-close-circle p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors border border-white/20">
+        <button @click="gameState === 'playing' ? returnToRules() : emit('close')" class="btn-close-circle p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors border border-white/20 touch-manipulation relative z-[100]">
           <X size="20" stroke-width="2.5" />
         </button>
       </header>
 
       <div v-if="gameState === 'rules'" class="game-content flex-1 flex flex-col items-center justify-between py-4 w-full animate-fade-in z-50 relative">
-        <button @click.prevent.stop="emit('close')" class="absolute top-2 right-4 bg-white/10 w-10 h-10 rounded-full flex items-center justify-center text-white border border-white/20 backdrop-blur-sm z-[70] active:scale-75">
+        <button @click="emit('close')" class="absolute top-2 right-4 bg-white/10 w-10 h-10 rounded-full flex items-center justify-center text-white border border-white/20 backdrop-blur-sm z-[100] active:scale-75 touch-manipulation">
           <X size="20" stroke-width="2.5" />
         </button>
 
@@ -249,7 +248,7 @@ onUnmounted(() => { stopAllEffects(); });
         </div>
 
         <div class="rules-panel shadow-2xl w-[90%] max-w-[420px] bg-[#0f172a]/80 border-2 border-[#38bdf8]/50 backdrop-blur-md mx-auto mt-4 max-h-[45vh] flex flex-col">
-          <button @click="vocalizeRules" class="absolute -top-4 -right-4 bg-yellow-400 text-slate-900 p-2.5 rounded-full shadow-lg active:scale-90 border-2 border-white z-20">
+          <button @click="vocalizeRules" class="absolute -top-4 -right-4 bg-yellow-400 text-slate-900 p-2.5 rounded-full shadow-lg active:scale-90 border-2 border-white z-20 touch-manipulation">
               <Volume2 size="20" />
           </button>
           
@@ -279,7 +278,7 @@ onUnmounted(() => { stopAllEffects(); });
           </div>
         </div>
 
-        <button @pointerdown="startGame" class="w-[90%] max-w-[420px] shrink-0 bg-gradient-to-b from-[#3B82F6] to-[#1D4ED8] text-white font-black italic text-lg md:text-xl uppercase rounded-[2rem] border-b-[6px] border-[#1E3A8A] active:translate-y-[4px] active:border-b-[2px] transition-all flex items-center justify-center py-3 md:py-4 group mb-2 mt-4 z-[100] touch-manipulation">
+        <button @click="startGame" class="w-[90%] max-w-[420px] shrink-0 bg-gradient-to-b from-[#3B82F6] to-[#1D4ED8] text-white font-black italic text-lg md:text-xl uppercase rounded-[2rem] border-b-[6px] border-[#1E3A8A] active:translate-y-[4px] active:border-b-[2px] transition-all flex items-center justify-center py-3 md:py-4 group mb-2 mt-4 relative z-[100] touch-manipulation">
             ¡EMPEZAR MISIÓN! <div class="ml-3 bg-white p-1 rounded-full"><ChevronRight class="text-[#1D4ED8]" size="18" stroke-width="4" /></div>
         </button>
       </div>
@@ -302,14 +301,15 @@ onUnmounted(() => { stopAllEffects(); });
       </div>
 
       <div v-else class="game-content result-screen flex-1 flex flex-col items-center justify-center py-6 px-4 animate-fade-in z-10 w-full min-h-0 relative">
-        <div class="ocean-area pointer-events-none opacity-40 absolute inset-0 z-0">
-           <div v-for="bubble in bubbles" :key="bubble.id" class="bubble" :style="{ left: bubble.x + 'px', bottom: bubble.y + 'px', width: bubble.size + 'px', height: bubble.size + 'px' }">{{ bubble.value }}</div>
+        
+        <div class="ocean-area absolute inset-0 z-0 overflow-hidden" style="pointer-events: none !important;">
+           <div v-for="bubble in bubbles" :key="bubble.id" class="bubble !pointer-events-none" :style="{ left: bubble.x + 'px', bottom: bubble.y + 'px', width: bubble.size + 'px', height: bubble.size + 'px' }">{{ bubble.value }}</div>
         </div>
         
-        <Trophy size="80" class="text-[#fbbf24] mb-4 drop-shadow-2xl animate-bounce shrink-0 z-10" />
-        <h1 class="text-3xl md:text-4xl font-black text-white italic tracking-tighter uppercase z-10 drop-shadow-md text-center">¡Misión Lograda!</h1>
+        <Trophy size="80" class="text-[#fbbf24] mb-4 drop-shadow-2xl animate-bounce shrink-0 z-10 relative" />
+        <h1 class="text-3xl md:text-4xl font-black text-white italic tracking-tighter uppercase z-10 relative drop-shadow-md text-center">¡Misión Lograda!</h1>
         
-        <div class="bg-[#0f172a]/80 backdrop-blur-md w-full max-w-[340px] p-6 rounded-[2.5rem] mt-6 border-4 border-[#38bdf8]/50 z-10 shadow-2xl mx-auto shrink-0">
+        <div class="bg-[#0f172a]/80 backdrop-blur-md w-full max-w-[340px] p-6 rounded-[2.5rem] mt-6 border-4 border-[#38bdf8]/50 shadow-2xl mx-auto shrink-0 relative z-10">
             <div class="flex justify-around items-center w-full">
                 <div class="flex flex-col items-center"><img src="/images/coin-gold.png" class="w-10 h-10 mb-1" /><span class="text-xl md:text-2xl font-black text-amber-400">+{{ sessionCoins.gold }}</span></div>
                 <div class="flex flex-col items-center border-x border-slate-600/50 px-4 md:px-6"><img src="/images/coin-silver.png" class="w-12 h-12 mb-1" /><span class="text-3xl md:text-4xl font-black text-slate-200">+{{ sessionCoins.silver }}</span></div>
@@ -317,11 +317,11 @@ onUnmounted(() => { stopAllEffects(); });
             </div>
         </div>
         
-        <div class="action-buttons flex flex-col w-full max-w-xs mx-auto gap-3 mt-8 shrink-0 z-20">
-          <button @pointerdown="resetGame" class="w-full btn-main-ocean flex items-center justify-center gap-2 touch-manipulation">
+        <div class="action-buttons flex flex-col w-full max-w-xs mx-auto gap-3 mt-8 shrink-0 relative z-[100]">
+          <button @click="resetGame" class="w-full btn-main-ocean flex items-center justify-center gap-2 touch-manipulation">
             <RotateCcw size="20" stroke-width="3" /> NUEVA RONDA
           </button>
-          <button @pointerdown="emit('close')" class="w-full py-3 bg-white/10 hover:bg-white/20 border-2 border-white/20 text-white rounded-[1.5rem] font-black text-sm uppercase transition-all flex items-center justify-center gap-2 touch-manipulation">
+          <button @click="emit('close')" class="w-full py-3 bg-white/10 hover:bg-white/20 border-2 border-white/20 text-white rounded-[1.5rem] font-black text-sm uppercase transition-all flex items-center justify-center gap-2 touch-manipulation">
             <Home size="18" /> Regresar a la Base
           </button>
         </div>
@@ -332,7 +332,6 @@ onUnmounted(() => { stopAllEffects(); });
 </template>
 
 <style scoped>
-/* 🛠️ CSS BLINDADO Y OPTIMIZADO */
 .master-container { position: fixed; inset: 0; z-index: 9999; display: flex; justify-content: center; align-items: center; background-color: #0f172a; overflow: hidden; }
 
 .app-canvas {
@@ -374,7 +373,6 @@ onUnmounted(() => { stopAllEffects(); });
 .btn-main-ocean { background: linear-gradient(to bottom, #0ea5e9, #0284c7); color: white; padding: 1.2rem; border-radius: 2rem; border-bottom: 6px solid #0369a1; font-size: 1.2rem; font-weight: 900; text-transform: uppercase; transition: all 0.1s; }
 .btn-main-ocean:active { transform: translateY(4px); border-bottom-width: 2px; }
 
-/* 🛠️ MEJORA: pointer-events none para que la animación no tape los botones */
 .submarine-3d-epic { position: relative; width: 140px; height: 100px; margin-bottom: 1rem; pointer-events: none; }
 .sub-body { position: absolute; bottom: 10px; left: 20px; width: 120px; height: 60px; background: linear-gradient(180deg, #fde047 0%, #eab308 40%, #b45309 100%); border-radius: 40px 60px 60px 40px; border: 4px solid #451a03; box-shadow: inset -5px -5px 15px rgba(0,0,0,0.3), 0 15px 20px rgba(0,0,0,0.4); z-index: 3; overflow: hidden; }
 .sub-stripe { position: absolute; top: 50%; left: 0; width: 100%; height: 8px; background: #451a03; transform: translateY(-50%); opacity: 0.8; }

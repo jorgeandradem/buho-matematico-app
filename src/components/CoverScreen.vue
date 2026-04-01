@@ -1,6 +1,6 @@
 <script setup>
 /** * ARCHIVO: CoverScreen.vue
- * NOTA INTERNA: SISTEMA INTEGRAL v15.0.2 - LAYOUT COMPACTO & TOASTS FLOTANTES
+ * NOTA INTERNA: SISTEMA INTEGRAL v15.0.3 - LAYOUT COMPACTO & TOASTS FLOTANTES (FIX LEGAL)
  * LOGICA: Motor RGPD Estricto (3 Selects) + Radar Múltiple. 
  * ESTADO: Cero rueda libre en móviles. Rodillo táctil controlado 100%.
  */
@@ -461,7 +461,7 @@ onMounted(async () => {
                           <button @click="showPassword = !showPassword" type="button" class="absolute right-3 bottom-2.5 text-slate-400"><component :is="showPassword ? EyeOff : Eye" :size="18"/></button>
                         </div>
 
-                        <div @click="activeSubView = 'legal'" class="relative flex items-center gap-3 p-2 rounded-2xl border bg-indigo-50/50 border-indigo-100 cursor-pointer hover:bg-indigo-100/50 transition-all">
+                        <div v-if="authMode === 'register'" @click="activeSubView = 'legal'" class="relative flex items-center gap-3 p-2 rounded-2xl border bg-indigo-50/50 border-indigo-100 cursor-pointer hover:bg-indigo-100/50 transition-all">
                             <div v-if="hasReadLegal" class="absolute -top-2 -right-2 bg-emerald-500 text-white rounded-full p-1 shadow-lg z-30 animate-latent"><CheckCircle :size="16" stroke-width="3" /></div>
                             <input type="checkbox" v-model="acceptedTerms" class="w-4 h-4 accent-indigo-600 pointer-events-none" tabindex="-1" />
                             <p class="text-[10px] font-medium text-slate-600">Acepto el <span class="text-indigo-600 font-bold underline">Marco Legal</span>.</p>

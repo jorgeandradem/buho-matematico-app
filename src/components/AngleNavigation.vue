@@ -1,6 +1,6 @@
 <script setup>
 /** * ARCHIVO: AngleNavigation.vue
- * NOTA INTERNA: NAVEGACIÓN DE ÁNGULOS v5.1 - OPTIMIZACIÓN DE ARRANQUE TOTAL
+ * NOTA INTERNA: NAVEGACIÓN DE ÁNGULOS v5.2 - BLINDAJE TÁCTIL Y ANTI-HIJACKING
  * LOGICA: Basada en el motor de respuesta instantánea para tablets y PWA empaquetadas.
  */
 import { ref, computed, onMounted, onUnmounted } from 'vue';
@@ -200,7 +200,6 @@ const finishGame = () => {
 };
 
 const startGame = () => {
-  // 🛠️ MEJORA: Cambio de estado prioritario para respuesta visual inmediata
   currentStep.value = 2;
   window.speechSynthesis.cancel(); 
   generateQuestion(); 
@@ -231,11 +230,11 @@ onUnmounted(() => window.speechSynthesis.cancel());
   <div class="master-container font-inter">
     <main class="app-canvas ocean-bg">
       
-      <div v-if="currentStep === 3">
+      <div v-if="currentStep === 3" class="pointer-events-none absolute inset-0 z-[5]">
         <CoinRain :type="bestCoinType" :count="40" />
       </div>
 
-      <header class="header-standard shrink-0 !bg-white/90 backdrop-blur-sm border-b-2 border-blue-200">
+      <header class="header-standard shrink-0 !bg-white/90 backdrop-blur-sm border-b-2 border-blue-200 relative z-[60]">
         <template v-if="currentStep !== 1">
           <div class="trophy-section flex items-center gap-2 animate-fade-in">
             <Trophy size="22" class="text-blue-600 drop-shadow-sm" />
@@ -251,7 +250,7 @@ onUnmounted(() => window.speechSynthesis.cancel());
         
         <div v-else class="flex-1"></div>
 
-        <button @pointerdown="handleClose" class="btn-close-circle p-2 bg-slate-100 hover:bg-slate-200 rounded-full text-slate-500 transition-colors touch-manipulation">
+        <button @click="handleClose" class="btn-close-circle p-2 bg-slate-100 hover:bg-slate-200 rounded-full text-slate-500 transition-colors touch-manipulation relative z-[100]">
           <X size="20" stroke-width="2.5" />
         </button>
       </header>
@@ -272,7 +271,7 @@ onUnmounted(() => window.speechSynthesis.cancel());
         <div class="rules-panel shadow-2xl bg-white/95 backdrop-blur-sm border-orange-500 border-4 mx-auto mt-4 max-h-[45vh] flex flex-col">
           <div class="rules-badge bg-orange-500 flex justify-between items-center w-full px-4 box-border left-0 top-[-14px] rounded-full">
             <span class="drop-shadow-sm">BITÁCORA DEL CAPITÁN</span>
-            <button @pointerdown="playIntroVoiceInternal" class="text-orange-100 hover:text-white transition-colors active:scale-90 drop-shadow-sm ml-4 touch-manipulation">
+            <button @click="playIntroVoiceInternal" class="text-orange-100 hover:text-white transition-colors active:scale-90 drop-shadow-sm ml-4 touch-manipulation">
               <Volume2 size="16" />
             </button>
           </div>
@@ -287,7 +286,7 @@ onUnmounted(() => window.speechSynthesis.cancel());
           </div>
         </div>
 
-        <button @pointerdown="startGame" class="btn-ocean w-[90%] max-w-sm mt-4 mb-2 flex justify-center items-center gap-2 text-lg shrink-0 touch-manipulation z-50">
+        <button @click="startGame" class="btn-ocean w-[90%] max-w-sm mt-4 mb-2 flex justify-center items-center gap-2 text-lg shrink-0 touch-manipulation relative z-[100]">
           ¡A TODA VELA! <Compass stroke-width="3" class="animate-spin-slow" />
         </button>
       </div>
@@ -346,16 +345,16 @@ onUnmounted(() => window.speechSynthesis.cancel());
                </button>
             </div>
 
-            <button @pointerdown="checkAngle" :disabled="isAnimating" class="btn-ocean z-20 w-full disabled:opacity-50 disabled:grayscale transition-all touch-manipulation">
+            <button @click="checkAngle" :disabled="isAnimating" class="btn-ocean z-20 w-full disabled:opacity-50 disabled:grayscale transition-all touch-manipulation">
               VALIDAR RUMBO
             </button>
         </div>
       </div>
 
       <div v-if="currentStep === 3" class="game-content result-screen flex-1 flex flex-col items-center justify-center py-6 px-4 animate-fade-in z-10 relative">
-        <h1 class="text-4xl sm:text-5xl font-black text-sky-100 mb-8 italic drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] text-center uppercase tracking-tighter">¡TIERRA A LA VISTA!</h1>
+        <h1 class="text-4xl sm:text-5xl font-black text-sky-100 mb-8 italic drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] text-center uppercase tracking-tighter z-10 relative">¡TIERRA A LA VISTA!</h1>
         
-        <div class="final-loot-display flex gap-4 md:gap-6 mb-12 bg-white/90 p-4 md:p-6 rounded-[2.5rem] shadow-2xl border-4 border-sky-200 backdrop-blur-sm mx-auto">
+        <div class="final-loot-display flex gap-4 md:gap-6 mb-12 bg-white/90 p-4 md:p-6 rounded-[2.5rem] shadow-2xl border-4 border-sky-200 backdrop-blur-sm mx-auto relative z-10">
             <div v-if="sessionCoins.gold > 0" class="loot-big gold-glow flex flex-col items-center gap-2">
               <img src="/images/coin-gold.png" class="w-12 h-12 md:w-16 md:h-16 animate-bounce-slow" />
               <span class="text-xl md:text-2xl font-black text-amber-500">+{{ sessionCoins.gold }}</span>
@@ -370,11 +369,11 @@ onUnmounted(() => window.speechSynthesis.cancel());
             </div>
         </div>
 
-        <div class="action-buttons flex flex-col w-full max-w-xs mx-auto gap-4 mb-8 shrink-0">
-          <button @pointerdown="resetGame" class="w-full py-4 bg-white border-4 border-sky-200 text-sky-700 rounded-2xl font-black text-lg shadow-sm active:scale-95 transition-all flex items-center justify-center gap-3 touch-manipulation">
+        <div class="action-buttons flex flex-col w-full max-w-xs mx-auto gap-4 mb-8 shrink-0 relative z-[100]">
+          <button @click="resetGame" class="w-full py-4 bg-white border-4 border-sky-200 text-sky-700 rounded-2xl font-black text-lg shadow-sm active:scale-95 transition-all flex items-center justify-center gap-3 touch-manipulation">
             <RotateCcw stroke-width="3" /> NUEVO VIAJE
           </button>
-          <button @pointerdown="handleClose" class="btn-ocean w-full flex items-center justify-center gap-3 text-lg touch-manipulation">
+          <button @click="handleClose" class="btn-ocean w-full flex items-center justify-center gap-3 text-lg touch-manipulation">
             <Home stroke-width="3" /> AL PORTAL
           </button>
         </div>
@@ -385,7 +384,7 @@ onUnmounted(() => window.speechSynthesis.cancel());
 </template>
 
 <style scoped>
-/* 🛠️ CSS BLINDADO */
+/* 🛠️ CSS BLINDADO Y OPTIMIZADO */
 .master-container { position: fixed; inset: 0; z-index: 9999; display: flex; justify-content: center; align-items: center; background-color: #f1f5f9; overflow: hidden; }
 
 .app-canvas {
@@ -396,6 +395,7 @@ onUnmounted(() => window.speechSynthesis.cancel());
   width: 100vw; height: 100dvh; overflow-y: auto; overflow-x: hidden;
 }
 
+/* 🛠️ MEJORA: Resuelve retrasos de doble toque en Safari iOS/iPadOS */
 .touch-manipulation { touch-action: manipulation; cursor: pointer; position: relative; }
 
 .ocean-bg { background: linear-gradient(to bottom, #0ea5e9, #0369a1); }
@@ -420,7 +420,7 @@ onUnmounted(() => window.speechSynthesis.cancel());
 .app-canvas::-webkit-scrollbar { display: none; }
 .app-canvas { -ms-overflow-style: none; scrollbar-width: none; }
 
-/* 🛠️ MEJORA: pointer-events none para que la animación no bloquee clics */
+/* 🛠️ Mantenemos el blindaje anti clics en la decoración */
 .intro-wheel-wrapper {
   display: inline-flex; padding: 15px; background: rgba(255, 255, 255, 0.15); border-radius: 50%;
   box-shadow: 0 10px 25px rgba(0,0,0,0.2), inset 0 0 10px rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3);
