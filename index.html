@@ -12,7 +12,8 @@
     
     <meta name="theme-color" content="#4f46e5">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, viewport-fit=cover" />
-    <title>Búho Matemático - Dimensión Cuántica</title> <link rel="preload" href="/src/assets/fonts/Inter-VariableFont_opsz,wght.woff2" as="font" type="font/woff2" crossorigin>
+    <title>Búho Matemático - Dimensión Cuántica</title> 
+    <link rel="preload" href="/src/assets/fonts/Inter-VariableFont_opsz,wght.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="preload" href="/videos/buhonav.mp4" as="video" type="video/mp4">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -22,7 +23,7 @@
     <link rel="stylesheet" href="/src/css/CrystalDimension.css">
 
     <style>
-      /* 🛡️ BLINDAJE TOTAL DISPOSITIVOS TÁCTILES (Intacto) */
+      /* 🛡️ BLINDAJE TOTAL DISPOSITIVOS TÁCTILES v2.11.5 */
       html, body {
         overscroll-behavior-y: contain;
         overscroll-behavior-x: none;
@@ -38,10 +39,10 @@
         -webkit-touch-callout: none;
         user-select: none;
         
+        /* Bloqueo estricto de gestos nativos del navegador en la raíz */
         touch-action: none !important;
         -ms-touch-action: none !important;
         
-        /* 🌌 Cambié el fondo a un tono oscuro base para evitar destellos blancos antes de que cargue el CSS cuántico */
         background-color: #050b14; 
         margin: 0;
         padding: 0;
@@ -50,8 +51,12 @@
       #app {
         width: 100%;
         height: 100dvh;
-        touch-action: none !important;
-        position: relative; /* 🌌 Necesario para posicionar el portal absoluto dentro */
+        /* 🚀 CAMBIO QUIRÚRGICO: Cambiamos 'none' por 'manipulation' o 'auto'.
+           Esto permite que los botones dentro de los juegos reciban eventos táctiles 
+           sin delay, pero el 'html' de arriba sigue impidiendo el scroll de la página. */
+        touch-action: auto !important; 
+        position: relative;
+        overflow: hidden;
       }
     </style>
   </head>

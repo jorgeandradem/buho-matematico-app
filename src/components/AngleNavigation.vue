@@ -1,7 +1,7 @@
 <script setup>
 /** * ARCHIVO: AngleNavigation.vue
- * NOTA INTERNA: NAVEGACIÓN DE ÁNGULOS v6.1 - OPTIMIZACIÓN QUIRÚRGICA TABLET
- * FIX: Se elimina overflow-y auto en tablets para evitar secuestro de touch.
+ * NOTA INTERNA: NAVEGACIÓN DE ÁNGULOS v6.2 - MANDO DE RESPUESTA INMEDIATA
+ * FIX: Implementación de @pointerdown para ignorar delay táctil y conflictos de scroll.
  * FIX: Z-Index reforzado (500) en el botón de cierre y eventos de arrastre blindados.
  */
 import { ref, computed, onMounted, onUnmounted } from 'vue';
@@ -228,7 +228,7 @@ onUnmounted(() => window.speechSynthesis.cancel());
     <main class="app-canvas ocean-bg">
       
       <button 
-        @click.stop="handleClose" 
+        @pointerdown.stop.prevent="handleClose" 
         class="absolute w-10 h-10 flex items-center justify-center bg-white/20 hover:bg-white/30 backdrop-blur-md rounded-full text-white shadow-lg border border-white/40 active:scale-75 transition-all cursor-pointer z-[500]" 
         style="top: 15px; right: 15px;"
       >
@@ -274,7 +274,7 @@ onUnmounted(() => window.speechSynthesis.cancel());
         <div class="rules-panel shadow-2xl bg-[#0f172a]/80 backdrop-blur-md border-[#fbbf24] border-2 mx-auto w-[90%] max-w-[600px] flex flex-col">
           <div class="rules-badge bg-[#fbbf24] text-[#020617] flex justify-between items-center w-full px-4 box-border left-0 top-[-14px] rounded-full">
             <span class="drop-shadow-sm uppercase font-black text-[10px] sm:text-xs">BITÁCORA DEL CAPITÁN</span>
-            <button @click.stop="playIntroVoiceInternal" class="text-slate-900 hover:text-slate-700 transition-colors active:scale-90 ml-4 touch-manipulation">
+            <button @pointerdown.stop.prevent="playIntroVoiceInternal" class="text-slate-900 hover:text-slate-700 transition-colors active:scale-90 ml-4 touch-manipulation">
               <Volume2 size="18" />
             </button>
           </div>
@@ -289,7 +289,7 @@ onUnmounted(() => window.speechSynthesis.cancel());
           </div>
         </div>
 
-        <button @click.stop="startGame" class="btn-ocean w-[90%] max-w-sm flex justify-center items-center gap-2 text-lg shrink-0 touch-manipulation relative z-[100]">
+        <button @pointerdown.stop.prevent="startGame" class="btn-ocean w-[90%] max-w-sm flex justify-center items-center gap-2 text-lg shrink-0 touch-manipulation relative z-[100]">
           ¡A TODA VELA! <Compass stroke-width="3" class="animate-spin-slow" />
         </button>
       </div>
@@ -334,17 +334,17 @@ onUnmounted(() => window.speechSynthesis.cancel());
 
         <div class="controls-area w-[90%] max-w-sm shrink-0 flex flex-col items-center gap-3 pb-2">
             <div class="flex gap-3 w-full z-20">
-               <button @pointerdown.stop="rotate(-45)" :disabled="isAnimating" class="flex-1 bg-white/95 text-red-600 font-black py-2 md:py-3 rounded-xl shadow-lg active:scale-95 border-b-4 border-red-200 disabled:opacity-50 transition-all flex flex-col items-center leading-none gap-1 touch-manipulation cursor-pointer">
+               <button @pointerdown.stop.prevent="rotate(-45)" :disabled="isAnimating" class="flex-1 bg-white/95 text-red-600 font-black py-2 md:py-3 rounded-xl shadow-lg active:scale-95 border-b-4 border-red-200 disabled:opacity-50 transition-all flex flex-col items-center leading-none gap-1 touch-manipulation cursor-pointer">
                  <span class="text-[10px] text-red-400">BABOR</span>
                  <span class="text-sm md:text-base">↺ -45°</span>
                </button>
-               <button @pointerdown.stop="rotate(45)" :disabled="isAnimating" class="flex-1 bg-white/95 text-green-600 font-black py-2 md:py-3 rounded-xl shadow-lg active:scale-95 border-b-4 border-green-200 disabled:opacity-50 transition-all flex flex-col items-center leading-none gap-1 touch-manipulation cursor-pointer">
+               <button @pointerdown.stop.prevent="rotate(45)" :disabled="isAnimating" class="flex-1 bg-white/95 text-green-600 font-black py-2 md:py-3 rounded-xl shadow-lg active:scale-95 border-b-4 border-green-200 disabled:opacity-50 transition-all flex flex-col items-center leading-none gap-1 touch-manipulation cursor-pointer">
                  <span class="text-[10px] text-green-500">ESTRIBOR</span>
                  <span class="text-sm md:text-base">+45° ↻</span>
                </button>
             </div>
 
-            <button @click.stop="checkAngle" :disabled="isAnimating" class="btn-ocean z-20 w-full disabled:opacity-50 disabled:grayscale transition-all touch-manipulation cursor-pointer">
+            <button @pointerdown.stop.prevent="checkAngle" :disabled="isAnimating" class="btn-ocean z-20 w-full disabled:opacity-50 disabled:grayscale transition-all touch-manipulation cursor-pointer">
               VALIDAR RUMBO
             </button>
         </div>
@@ -359,7 +359,7 @@ onUnmounted(() => window.speechSynthesis.cancel());
             </div>
             <div v-if="sessionCoins.silver > 0" class="loot-big silver-glow flex flex-col items-center gap-2">
               <img src="/images/coin-silver.png" class="w-12 h-12 md:w-16 md:h-16 animate-bounce-slow" style="animation-delay: 0.1s" />
-              <span class="text-xl md:text-2xl font-black text-slate-200">+{{ sessionCoins.silver }}</span>
+              <span class="text-xl md:text-2xl font-black text-slate-400">+{{ sessionCoins.silver }}</span>
             </div>
             <div v-if="sessionCoins.copper > 0" class="loot-big copper-glow flex flex-col items-center gap-2">
               <img src="/images/coin-copper.png" class="w-12 h-12 md:w-16 md:h-16 animate-bounce-slow" style="animation-delay: 0.2s" />
@@ -368,10 +368,10 @@ onUnmounted(() => window.speechSynthesis.cancel());
         </div>
 
         <div class="action-buttons flex flex-col w-full max-w-xs mx-auto gap-4 mb-8 shrink-0 relative z-[180]">
-          <button @click.stop="resetGame" class="w-full py-4 bg-white/10 border-2 border-white/20 text-white hover:bg-white/20 rounded-2xl font-black text-lg shadow-sm active:scale-95 transition-all flex items-center justify-center gap-3 touch-manipulation cursor-pointer">
+          <button @pointerdown.stop.prevent="resetGame" class="w-full py-4 bg-white/10 border-2 border-white/20 text-white hover:bg-white/20 rounded-2xl font-black text-lg shadow-sm active:scale-95 transition-all flex items-center justify-center gap-3 touch-manipulation cursor-pointer">
             <RotateCcw stroke-width="3" /> NUEVO VIAJE
           </button>
-          <button @click.stop="handleClose" class="btn-ocean w-full flex items-center justify-center gap-3 text-lg touch-manipulation cursor-pointer">
+          <button @pointerdown.stop.prevent="handleClose" class="btn-ocean w-full flex items-center justify-center gap-3 text-lg touch-manipulation cursor-pointer">
             <Home stroke-width="3" /> AL PORTAL
           </button>
         </div>
@@ -391,7 +391,6 @@ onUnmounted(() => window.speechSynthesis.cancel());
   padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom);
   padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right);
   width: 100vw; height: 100dvh; 
-  /* CAMBIO CRÍTICO: overflow hidden evita que tablets activen scroll fantasma */
   overflow: hidden !important;
   touch-action: none;
 }
@@ -405,7 +404,6 @@ onUnmounted(() => window.speechSynthesis.cancel());
   .app-canvas { width: 1024px; height: 90dvh; border-radius: 45px; box-shadow: 0 40px 100px rgba(0,0,0,0.5); border: 8px solid white; padding: 0; overflow: hidden !important; }
 }
 @media (min-width: 600px) and (max-width: 1024px) {
-  /* OPTIMIZACIÓN TABLET: 100vw/vh para blindar interactividad */
   .app-canvas { width: 100vw; height: 100vh; border-radius: 0; box-shadow: none; padding: 0; overflow: hidden !important; }
   .game-content { position: relative; z-index: 50; }
 }
@@ -439,6 +437,7 @@ onUnmounted(() => window.speechSynthesis.cancel());
 @media (min-width: 768px) { .wheel-spoke { width: 8px; height: 110px; } }
 
 .wheel-hub { width: 20px; height: 20px; background: #451a03; border-radius: 50%; position: absolute; z-index: 10; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.6); }
+
 .wheel-hub-inner { width: 8px; height: 8px; background: #d97706; border-radius: 50%; box-shadow: inset 0 1px 2px rgba(255,255,255,0.5); }
 
 .btn-ocean {

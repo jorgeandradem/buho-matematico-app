@@ -1,5 +1,12 @@
 [
   {
+    "updateId": "upd_1775573420000",
+    "version": "2.11.6",
+    "date": "02/04/2026",
+    "title": "MANDO DE RESPUESTA INMEDIATA",
+    "description": "Capitán, hemos erradicado la latencia en dispositivos táctiles. Se implementó el 'Mando de Respuesta Inmediata' mediante la inyección de PointerEvents (@pointerdown.stop.prevent) en los retos de Fútbol, Burbujas, Mercado y Ángulos, eliminando el retraso nativo de 300ms. Además, recalibramos el archivo raíz index.html para liberar el flujo de interacción en el contenedor principal sin comprometer el blindaje estricto contra el scroll accidental."
+  },
+  {
     "updateId": "upd_1775129577498",
     "version": "2.11.5",
     "date": "02/04/2026",

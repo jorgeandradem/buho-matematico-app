@@ -1,7 +1,7 @@
 <script setup>
 /** * ARCHIVO: SubmarineAlgebra.vue
- * NOTA INTERNA: BURBUJAS DE ALGEBRA v5.4 - OPTIMIZACIÓN QUIRÚRGICA PARA TABLETS
- * FIX: Se corrige el secuestro de eventos táctiles y superposición de capas.
+ * NOTA INTERNA: BURBUJAS DE ALGEBRA v5.5 - MANDO DE RESPUESTA INMEDIATA PARA TABLETS
+ * FIX: Implementación de @pointerdown para ignorar el delay táctil y conflictos de scroll.
  */
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { Trophy, X, RotateCcw, Target, Coins, Zap, ChevronRight, Volume2, Home } from 'lucide-vue-next';
@@ -71,12 +71,11 @@ const formattedEquation = computed(() => {
 
 // --- 2. LÓGICA DE NAVEGACIÓN OPTIMIZADA ---
 const startGame = () => {
-  stopAllEffects(); // Limpieza quirúrgica previa
+  stopAllEffects(); 
   gameState.value = 'playing';
   gameActive.value = true;
   window.speechSynthesis.cancel();
   
-  // Pequeño delay para asegurar que el DOM de 'playing' esté renderizado en Tablets
   setTimeout(() => {
     generateEquation();
     if (bubbleInterval) clearInterval(bubbleInterval);
@@ -205,7 +204,7 @@ onUnmounted(() => { stopAllEffects(); });
     <main class="app-canvas submarino-bg">
       
       <button v-if="gameState === 'rules'" 
-              @click.stop="emit('close')" 
+              @pointerdown.stop.prevent="emit('close')" 
               class="absolute top-4 right-6 bg-white/10 w-10 h-10 rounded-full flex items-center justify-center text-white border border-white/20 backdrop-blur-sm z-[200] active:scale-75 touch-manipulation">
           <X size="20" stroke-width="2.5" />
       </button>
@@ -231,7 +230,7 @@ onUnmounted(() => { stopAllEffects(); });
           </div>
         </div>
 
-        <button @click.stop="gameState === 'playing' ? returnToRules() : emit('close')" 
+        <button @pointerdown.stop.prevent="gameState === 'playing' ? returnToRules() : emit('close')" 
                 class="btn-close-circle p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors border border-white/20 touch-manipulation relative z-[160]">
           <X size="20" stroke-width="2.5" />
         </button>
@@ -253,7 +252,7 @@ onUnmounted(() => { stopAllEffects(); });
         </div>
 
         <div class="rules-panel shadow-2xl w-[90%] max-w-[480px] bg-[#0f172a]/60 border border-sky-400/40 backdrop-blur-md mx-auto relative rounded-3xl">
-          <button @click.stop="vocalizeRules" class="absolute -top-4 -right-4 bg-yellow-400 text-slate-900 p-2.5 rounded-full shadow-lg active:scale-90 border-2 border-white z-[60] touch-manipulation">
+          <button @pointerdown.stop.prevent="vocalizeRules" class="absolute -top-4 -right-4 bg-yellow-400 text-slate-900 p-2.5 rounded-full shadow-lg active:scale-90 border-2 border-white z-[60] touch-manipulation">
               <Volume2 size="20" />
           </button>
           
@@ -283,7 +282,7 @@ onUnmounted(() => { stopAllEffects(); });
           </div>
         </div>
 
-        <button @click.stop="startGame" class="w-[85%] max-w-[340px] shrink-0 bg-blue-600 hover:bg-blue-500 text-white font-black italic text-xl uppercase rounded-full shadow-[0_10px_20px_rgba(37,99,235,0.4)] transition-all flex items-center justify-center py-4 px-8 mt-4 relative z-[100] touch-manipulation border-b-4 border-blue-800 active:translate-y-1 active:border-b-0">
+        <button @pointerdown.stop.prevent="startGame" class="w-[85%] max-w-[340px] shrink-0 bg-blue-600 hover:bg-blue-500 text-white font-black italic text-xl uppercase rounded-full shadow-[0_10px_20px_rgba(37,99,235,0.4)] transition-all flex items-center justify-center py-4 px-8 mt-4 relative z-[100] touch-manipulation border-b-4 border-blue-800 active:translate-y-1 active:border-b-0">
             ¡EMPEZAR MISIÓN! <ChevronRight class="ml-2 bg-white text-blue-600 rounded-full" size="22" stroke-width="4" />
         </button>
       </div>
@@ -316,10 +315,10 @@ onUnmounted(() => { stopAllEffects(); });
         </div>
         
         <div class="action-buttons flex flex-col w-full max-w-xs mx-auto gap-3 mt-8 shrink-0 relative z-[100]">
-          <button @click.stop="resetGame" class="w-full btn-main-ocean flex items-center justify-center gap-2 touch-manipulation">
+          <button @pointerdown.stop.prevent="resetGame" class="w-full btn-main-ocean flex items-center justify-center gap-2 touch-manipulation">
             <RotateCcw size="20" stroke-width="3" /> NUEVA RONDA
           </button>
-          <button @click.stop="emit('close')" class="w-full py-3 bg-white/10 hover:bg-white/20 border-2 border-white/20 text-white rounded-[1.5rem] font-black text-sm uppercase transition-all flex items-center justify-center gap-2 touch-manipulation">
+          <button @pointerdown.stop.prevent="emit('close')" class="w-full py-3 bg-white/10 hover:bg-white/20 border-2 border-white/20 text-white rounded-[1.5rem] font-black text-sm uppercase transition-all flex items-center justify-center gap-2 touch-manipulation">
             <Home size="18" /> Regresar a la Base
           </button>
         </div>
@@ -336,7 +335,6 @@ onUnmounted(() => { stopAllEffects(); });
   display: flex; flex-direction: column; justify-content: space-between; position: relative;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); user-select: none; -webkit-tap-highlight-color: transparent;
   width: 100vw; height: 100dvh; 
-  /* CAMBIO CRÍTICO: overflow hidden para evitar interferencia táctil de scroll */
   overflow: hidden !important; 
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   touch-action: none;
@@ -381,7 +379,6 @@ onUnmounted(() => { stopAllEffects(); });
 
 .submarine-3d-epic { position: relative; width: 160px; height: 120px; pointer-events: none; }
 .sub-body { position: absolute; bottom: 10px; left: 20px; width: 120px; height: 60px; background: linear-gradient(180deg, #fde047 0%, #eab308 40%, #b45309 100%); border-radius: 40px 60px 60px 40px; border: 4px solid #451a03; box-shadow: inset -5px -5px 15px rgba(0,0,0,0.3), 0 15px 20px rgba(0,0,0,0.4); z-index: 3; overflow: hidden; }
-/* ... (Resto de los estilos intactos para no dañar visuales) ... */
 .sub-stripe { position: absolute; top: 50%; left: 0; width: 100%; height: 8px; background: #451a03; transform: translateY(-50%); opacity: 0.8; }
 .sub-cabin { position: absolute; top: 10px; left: 60px; width: 45px; height: 25px; background: linear-gradient(180deg, #facc15, #ca8a04); border: 4px solid #451a03; border-bottom: none; border-radius: 15px 15px 0 0; z-index: 2; }
 .sub-periscope { position: absolute; top: -10px; left: 75px; width: 8px; height: 25px; background: #94a3b8; border: 2px solid #0f172a; z-index: 1; }
