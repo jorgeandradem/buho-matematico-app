@@ -1,7 +1,8 @@
 <script setup>
 /** * ARCHIVO: AngleNavigation.vue
- * NOTA INTERNA: NAVEGACIÓN DE ÁNGULOS v6.0 - X EN LA DERECHA + RETORNO LÓGICO
- * LOGICA: Basada en el motor de respuesta instantánea para tablets y PWA empaquetadas.
+ * NOTA INTERNA: NAVEGACIÓN DE ÁNGULOS v6.1 - OPTIMIZACIÓN QUIRÚRGICA TABLET
+ * FIX: Se elimina overflow-y auto en tablets para evitar secuestro de touch.
+ * FIX: Z-Index reforzado (500) en el botón de cierre y eventos de arrastre blindados.
  */
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { Trophy, X, Compass, Anchor, RotateCcw, Home, Volume2 } from 'lucide-vue-next';
@@ -211,10 +212,10 @@ const resetGame = () => {
 const handleClose = () => {
   window.speechSynthesis.cancel();
   if (currentStep.value === 2) {
-    currentStep.value = 1; // Vuelve a la Bitácora
+    currentStep.value = 1; 
     playIntroVoiceInternal();
   } else {
-    emit('close'); // Cierra el juego al portal
+    emit('close'); 
   }
 };
 
@@ -227,7 +228,7 @@ onUnmounted(() => window.speechSynthesis.cancel());
     <main class="app-canvas ocean-bg">
       
       <button 
-        @click="handleClose" 
+        @click.stop="handleClose" 
         class="absolute w-10 h-10 flex items-center justify-center bg-white/20 hover:bg-white/30 backdrop-blur-md rounded-full text-white shadow-lg border border-white/40 active:scale-75 transition-all cursor-pointer z-[500]" 
         style="top: 15px; right: 15px;"
       >
@@ -272,9 +273,9 @@ onUnmounted(() => window.speechSynthesis.cancel());
         
         <div class="rules-panel shadow-2xl bg-[#0f172a]/80 backdrop-blur-md border-[#fbbf24] border-2 mx-auto w-[90%] max-w-[600px] flex flex-col">
           <div class="rules-badge bg-[#fbbf24] text-[#020617] flex justify-between items-center w-full px-4 box-border left-0 top-[-14px] rounded-full">
-            <span class="drop-shadow-sm uppercase font-black">BITÁCORA DEL CAPITÁN</span>
-            <button @click="playIntroVoiceInternal" class="text-slate-900 hover:text-slate-700 transition-colors active:scale-90 ml-4 touch-manipulation">
-              <Volume2 size="16" />
+            <span class="drop-shadow-sm uppercase font-black text-[10px] sm:text-xs">BITÁCORA DEL CAPITÁN</span>
+            <button @click.stop="playIntroVoiceInternal" class="text-slate-900 hover:text-slate-700 transition-colors active:scale-90 ml-4 touch-manipulation">
+              <Volume2 size="18" />
             </button>
           </div>
           <div class="rules-grid p-2 text-left space-y-2 mt-2 text-slate-200 font-medium overflow-y-auto custom-scrollbar flex-1 relative z-10 max-h-[40vh]">
@@ -288,13 +289,13 @@ onUnmounted(() => window.speechSynthesis.cancel());
           </div>
         </div>
 
-        <button @click="startGame" class="btn-ocean w-[90%] max-w-sm flex justify-center items-center gap-2 text-lg shrink-0 touch-manipulation relative z-[100]">
+        <button @click.stop="startGame" class="btn-ocean w-[90%] max-w-sm flex justify-center items-center gap-2 text-lg shrink-0 touch-manipulation relative z-[100]">
           ¡A TODA VELA! <Compass stroke-width="3" class="animate-spin-slow" />
         </button>
       </div>
 
       <div v-if="currentStep === 2" class="game-content flex-1 flex flex-col items-center justify-between py-4 animate-fade-in z-40 relative overflow-hidden w-full min-h-0">
-        <div class="instruction-banner z-20 text-center w-[90%] max-w-sm shrink-0 mt-2 bg-white/95 shadow-md">
+        <div class="instruction-banner z-20 text-center w-[90%] max-w-sm shrink-0 mt-2 bg-white/95 shadow-md rounded-xl">
           <span class="text-slate-500 text-xs font-black uppercase tracking-widest block mb-0.5">El Capitán Pide:</span>
           <strong class="text-sky-600 text-2xl block">{{ currentQuestion.name }}</strong>
           <p class="text-xs text-slate-500 font-bold mt-0.5">{{ currentQuestion.hint }}</p>
@@ -333,17 +334,17 @@ onUnmounted(() => window.speechSynthesis.cancel());
 
         <div class="controls-area w-[90%] max-w-sm shrink-0 flex flex-col items-center gap-3 pb-2">
             <div class="flex gap-3 w-full z-20">
-               <button @pointerdown="rotate(-45)" :disabled="isAnimating" class="flex-1 bg-white/95 text-red-600 font-black py-2 md:py-3 rounded-xl shadow-lg active:scale-95 border-b-4 border-red-200 disabled:opacity-50 transition-all flex flex-col items-center leading-none gap-1 touch-manipulation cursor-pointer">
+               <button @pointerdown.stop="rotate(-45)" :disabled="isAnimating" class="flex-1 bg-white/95 text-red-600 font-black py-2 md:py-3 rounded-xl shadow-lg active:scale-95 border-b-4 border-red-200 disabled:opacity-50 transition-all flex flex-col items-center leading-none gap-1 touch-manipulation cursor-pointer">
                  <span class="text-[10px] text-red-400">BABOR</span>
                  <span class="text-sm md:text-base">↺ -45°</span>
                </button>
-               <button @pointerdown="rotate(45)" :disabled="isAnimating" class="flex-1 bg-white/95 text-green-600 font-black py-2 md:py-3 rounded-xl shadow-lg active:scale-95 border-b-4 border-green-200 disabled:opacity-50 transition-all flex flex-col items-center leading-none gap-1 touch-manipulation cursor-pointer">
+               <button @pointerdown.stop="rotate(45)" :disabled="isAnimating" class="flex-1 bg-white/95 text-green-600 font-black py-2 md:py-3 rounded-xl shadow-lg active:scale-95 border-b-4 border-green-200 disabled:opacity-50 transition-all flex flex-col items-center leading-none gap-1 touch-manipulation cursor-pointer">
                  <span class="text-[10px] text-green-500">ESTRIBOR</span>
-                 <span class="text-sm md:text-base">+45°  Burn ↻</span>
+                 <span class="text-sm md:text-base">+45° ↻</span>
                </button>
             </div>
 
-            <button @click="checkAngle" :disabled="isAnimating" class="btn-ocean z-20 w-full disabled:opacity-50 disabled:grayscale transition-all touch-manipulation cursor-pointer">
+            <button @click.stop="checkAngle" :disabled="isAnimating" class="btn-ocean z-20 w-full disabled:opacity-50 disabled:grayscale transition-all touch-manipulation cursor-pointer">
               VALIDAR RUMBO
             </button>
         </div>
@@ -367,10 +368,10 @@ onUnmounted(() => window.speechSynthesis.cancel());
         </div>
 
         <div class="action-buttons flex flex-col w-full max-w-xs mx-auto gap-4 mb-8 shrink-0 relative z-[180]">
-          <button @click="resetGame" class="w-full py-4 bg-white/10 border-2 border-white/20 text-white hover:bg-white/20 rounded-2xl font-black text-lg shadow-sm active:scale-95 transition-all flex items-center justify-center gap-3 touch-manipulation cursor-pointer">
+          <button @click.stop="resetGame" class="w-full py-4 bg-white/10 border-2 border-white/20 text-white hover:bg-white/20 rounded-2xl font-black text-lg shadow-sm active:scale-95 transition-all flex items-center justify-center gap-3 touch-manipulation cursor-pointer">
             <RotateCcw stroke-width="3" /> NUEVO VIAJE
           </button>
-          <button @click="handleClose" class="btn-ocean w-full flex items-center justify-center gap-3 text-lg touch-manipulation cursor-pointer">
+          <button @click.stop="handleClose" class="btn-ocean w-full flex items-center justify-center gap-3 text-lg touch-manipulation cursor-pointer">
             <Home stroke-width="3" /> AL PORTAL
           </button>
         </div>
@@ -389,7 +390,10 @@ onUnmounted(() => window.speechSynthesis.cancel());
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); user-select: none; -webkit-tap-highlight-color: transparent;
   padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom);
   padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right);
-  width: 100vw; height: 100dvh; overflow-y: auto; overflow-x: hidden;
+  width: 100vw; height: 100dvh; 
+  /* CAMBIO CRÍTICO: overflow hidden evita que tablets activen scroll fantasma */
+  overflow: hidden !important;
+  touch-action: none;
 }
 
 .touch-manipulation { touch-action: manipulation; cursor: pointer; position: relative; }
@@ -398,21 +402,23 @@ onUnmounted(() => window.speechSynthesis.cancel());
 
 @media (min-width: 1025px) {
   .master-container { background-color: #f1f5f9; }
-  .app-canvas { width: 1024px; height: 90dvh; border-radius: 45px; box-shadow: 0 40px 100px rgba(0,0,0,0.5); border: 8px solid white; padding: 0; overflow: hidden; }
+  .app-canvas { width: 1024px; height: 90dvh; border-radius: 45px; box-shadow: 0 40px 100px rgba(0,0,0,0.5); border: 8px solid white; padding: 0; overflow: hidden !important; }
 }
 @media (min-width: 600px) and (max-width: 1024px) {
-  .app-canvas { width: 85vw; max-width: 800px; height: 95dvh; border-radius: 35px; box-shadow: 0 20px 50px rgba(0,0,0,0.3); padding: 0; }
+  /* OPTIMIZACIÓN TABLET: 100vw/vh para blindar interactividad */
+  .app-canvas { width: 100vw; height: 100vh; border-radius: 0; box-shadow: none; padding: 0; overflow: hidden !important; }
+  .game-content { position: relative; z-index: 50; }
 }
 
-.header-standard { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1.5rem; }
+.header-standard { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1.5rem; pointer-events: auto !important; }
 .session-loot-capsule { display: flex; align-items: center; padding: 6px 16px; border-radius: 9999px; border: 1px solid rgba(255,255,255,0.2); box-shadow: inset 0 2px 4px rgba(0,0,0,0.1); }
 .loot-item { display: flex; align-items: center; gap: 6px; padding: 0 10px; }
 .loot-item img { width: 1.1rem; height: 1.1rem; object-fit: contain; }
 
 .game-title { font-size: clamp(1.2rem, 5vw, 2.5rem); font-weight: 900; text-transform: uppercase; font-style: italic; letter-spacing: -0.05em; }
 
-.rules-panel { width: 92%; max-width: 600px; padding: 1.2rem 1rem 1rem 1rem; border-radius: 1.5rem; position: relative; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3); }
-.rules-badge { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); font-size: 11px; padding: 4px 14px; border-radius: 9999px; letter-spacing: 0.05em; }
+.rules-panel { width: 92%; max-width: 600px; padding: 1.2rem 1rem 1rem 1rem; border-radius: 1.5rem; position: relative; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3); z-index: 60; }
+.rules-badge { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); font-size: 11px; padding: 4px 14px; border-radius: 9999px; letter-spacing: 0.05em; white-space: nowrap; }
 
 .app-canvas::-webkit-scrollbar { display: none; }
 .app-canvas { -ms-overflow-style: none; scrollbar-width: none; }
@@ -433,18 +439,18 @@ onUnmounted(() => window.speechSynthesis.cancel());
 @media (min-width: 768px) { .wheel-spoke { width: 8px; height: 110px; } }
 
 .wheel-hub { width: 20px; height: 20px; background: #451a03; border-radius: 50%; position: absolute; z-index: 10; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.6); }
-
 .wheel-hub-inner { width: 8px; height: 8px; background: #d97706; border-radius: 50%; box-shadow: inset 0 1px 2px rgba(255,255,255,0.5); }
 
 .btn-ocean {
   background: linear-gradient(to bottom, #0ea5e9, #0284c7); color: white; padding: 1.2rem; border-radius: 2rem; font-weight: 900;
   border-bottom: 6px solid #0369a1; box-shadow: 0 10px 20px rgba(0,0,0,0.3); transition: all 0.1s;
+  pointer-events: auto !important;
 }
 .btn-ocean:active { transform: translateY(4px); border-bottom-width: 2px; }
 
-.instruction-banner { padding: 15px; border-radius: 1rem; border-bottom-width: 4px; }
+.instruction-banner { padding: 15px; border-radius: 1rem; border-bottom-width: 4px; position: relative; z-index: 25; }
 
-.rudder-wheel { width: 200px; height: 200px; background: transparent; border: 15px solid #78350f; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 15px 35px rgba(0,0,0,0.5), inset 0 0 20px rgba(0,0,0,0.8); }
+.rudder-wheel { width: 200px; height: 200px; background: transparent; border: 15px solid #78350f; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 15px 35px rgba(0,0,0,0.5), inset 0 0 20px rgba(0,0,0,0.8); position: relative; z-index: 30; }
 @media (min-width: 768px) { .rudder-wheel { width: 250px; height: 250px; border-width: 20px; } }
 
 .rudder-handle { position: absolute; width: 18px; height: 240px; background: linear-gradient(to right, #451a03, #78350f, #451a03); z-index: -1; border-radius: 12px; box-shadow: 0 5px 10px rgba(0,0,0,0.5); }
@@ -458,6 +464,7 @@ onUnmounted(() => window.speechSynthesis.cancel());
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
 .animate-spin-slow { animation: spin 8s linear infinite; }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 .animate-bounce-slow { animation: bounceSlow 3s infinite ease-in-out; }
 @keyframes bounceSlow { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
 
