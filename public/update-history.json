@@ -1,5 +1,12 @@
 [
   {
+    "updateId": "upd_1775746800000",
+    "version": "2.11.7",
+    "date": "04/04/2026",
+    "title": "AUDITORÍA CUÁNTICA Y REPRODUCTOR MAESTRO",
+    "description": "Capitán, hemos blindado la nave. Se implementó el 'Peaje de Abandono' y una Auditoría Estricta en las Tablas Rápidas, asegurando que los marineros completen el 100% de la tabla para obtener sus recompensas. El portal a la Dimensión Cuántica ahora cuenta con una apertura cinematográfica 4K sin compresión. Además, reescribimos el motor de sonido creando un 'Reproductor Maestro' (Audio Pool) que erradica la saturación de memoria y garantiza que el ulular del Búho y el tintineo de monedas suenen perfectos en cualquier dispositivo táctil."
+  },
+  {
     "updateId": "upd_1775573420000",
     "version": "2.11.6",
     "date": "02/04/2026",

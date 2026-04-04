@@ -1,6 +1,8 @@
 // src/utils/sound.js
 
-// Singleton para mantener el contexto de audio vivo
+// ----------------------------------------------------
+// A. SINGLETON PARA AUDIO SINTETIZADO (Osciladores)
+// ----------------------------------------------------
 let audioCtx = null;
 
 const getAudioContext = () => {
@@ -11,6 +13,33 @@ const getAudioContext = () => {
         }
     }
     return audioCtx;
+};
+
+// ----------------------------------------------------
+// B. EL REPRODUCTOR MAESTRO (Caché de MP3 - Evita colapsos)
+// ----------------------------------------------------
+const audioPool = {};
+
+const playCachedAudio = (path, vol = 1.0) => {
+    try {
+        // Si el audio no existe en la memoria, lo creamos una sola vez
+        if (!audioPool[path]) {
+            audioPool[path] = new Audio(path);
+        }
+        
+        const sound = audioPool[path];
+        
+        // Rebobinamos y disparamos sin crear nuevas instancias en el DOM
+        sound.pause(); 
+        sound.currentTime = 0; 
+        sound.volume = vol;
+        
+        sound.play().catch(error => {
+            console.warn(`Autoplay bloqueado para ${path}:`, error);
+        });
+    } catch (err) {
+        console.error(`Error en el reproductor maestro con ${path}:`, err);
+    }
 };
 
 // ----------------------------------------------------
@@ -89,29 +118,16 @@ export const playExitSound = () => {
 };
 
 // ----------------------------------------------------
-// 3. SONIDO DE MONEDAS CAYENDO (Archivo MP3)
+// 3. SONIDO DE MONEDAS CAYENDO (Apunta al Reproductor Maestro)
 // ----------------------------------------------------
 export const playCoinSound = () => {
-  try {
-    // Apunta al archivo físico en public/audios/coins.mp3
-    const audio = new Audio('/audios/coins.mp3');
-    
-    // Volumen moderado para la experiencia del usuario
-    audio.volume = 0.5; 
-    
-    // Reproducción con manejo de promesas para evitar bloqueos del navegador
-    audio.play().catch(error => {
-      console.warn('El navegador bloqueó el inicio automático del sonido:', error);
-    });
-  } catch (error) {
-    console.error('Error al intentar reproducir coins.mp3:', error);
-  }
+    // Usamos el pool de memoria con volumen moderado (0.5)
+    playCachedAudio('/audios/coins.mp3', 0.5);
 };
 
-/**
- * Función genérica para disparar sonidos por nombre
- * Útil para integraciones rápidas en componentes
- */
+// ----------------------------------------------------
+// 4. DESPACHADOR CENTRAL
+// ----------------------------------------------------
 export const playSound = (soundName) => {
   switch (soundName) {
     case 'coin':
@@ -125,6 +141,6 @@ export const playSound = (soundName) => {
       playExitSound();
       break;
     default:
-      console.warn(`Sonido no encontrado: ${soundName}`);
+      console.warn(`Sonido no encontrado en el despachador: ${soundName}`);
   }
 };

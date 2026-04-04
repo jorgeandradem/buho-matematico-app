@@ -20,6 +20,12 @@ const retosGanadosRealmente = ref(0);
 const plataSesion = computed(() => retosGanadosRealmente.value * 2);
 const radioZ = ref(1000); 
 
+// Variables globales del componente para blindar el audio
+let audioCristal = null;
+let audioTech = null;
+let timerVoz = null;
+let timerJuego = null;
+
 const claseLluvia = computed(() => {
   if (retoActivo.value === 0) return 'lluvia-esferas';
   if (retoActivo.value === 1) return 'lluvia-poligonos';
@@ -36,17 +42,53 @@ const calcularRadioOctagono = () => {
   radioZ.value = Math.round((ancho / 2) / 0.4142) + 30; 
 };
 
+// Función para adelantar la evolución a los juegos
+const saltarIntro = () => {
+  clearTimeout(timerJuego);
+  fase.value = 'jugando';
+};
+
+// NUEVO: Función maestra de cierre (Apaga audios y temporizadores antes de salir)
+const goBack = () => {
+  if (audioCristal) { audioCristal.pause(); audioCristal.currentTime = 0; }
+  if (audioTech) { audioTech.pause(); audioTech.currentTime = 0; }
+  clearTimeout(timerVoz);
+  clearTimeout(timerJuego);
+  emit('close');
+};
+
 onMounted(() => {
   calcularRadioOctagono();
   window.addEventListener('resize', calcularRadioOctagono);
 
-  const audioBienvenida = new Audio('/audios/owl.mp3');
-  audioBienvenida.play().catch(e => console.log("Bloqueo autoplay audio."));
-  setTimeout(() => { fase.value = 'jugando'; }, 3500);
+  // --- SECUENCIA DE AUDIO BLINDADA ---
+  audioCristal = new Audio('/audios/buho-cristal.mp3');
+  audioCristal.volume = 1.0;
+  
+  audioTech = new Audio('/audios/buho_tech.mp3');
+  audioTech.volume = 1.0;
+  audioTech.playbackRate = 1.25; 
+  audioTech.preservesPitch = false; 
+
+  // Disparo 1 Inmediato
+  audioCristal.play().catch(e => console.log("Bloqueo autoplay audio 1", e));
+  
+  // Disparo 2 (A los 3 segundos)
+  timerVoz = setTimeout(() => {
+    if(fase.value === 'intro') { // Solo suena si no ha saltado la intro
+      audioTech.play().catch(e => console.log("Bloqueo autoplay audio 2", e));
+    }
+  }, 3000);
+
+  // Disparo 3: Evolución automática a los juegos (11 segundos)
+  timerJuego = setTimeout(() => { 
+    saltarIntro(); 
+  }, 11000);
 });
 
 onUnmounted(() => {
   window.removeEventListener('resize', calcularRadioOctagono);
+  goBack(); // Seguro de vida por si se desmonta de golpe
 });
 
 const girarManual = () => {
@@ -90,7 +132,7 @@ const abrirReglasActivas = () => {
           <span class="font-black text-cyan-100 text-sm md:text-base">{{ plataSesion }}</span>
         </div>
 
-        <button v-if="fase !== 'premio'" @click="emit('close')" class="absolute top-2 right-2 md:top-4 md:right-4 z-[100] p-2 md:p-3 bg-white/10 rounded-full text-cyan-400 hover:bg-white/20 transition-all backdrop-blur-md border border-cyan-400/30">
+        <button v-if="fase !== 'premio'" @click="goBack" class="absolute top-2 right-2 md:top-4 md:right-4 z-[100] p-2 md:p-3 bg-white/10 rounded-full text-cyan-400 hover:bg-white/20 transition-all backdrop-blur-md border border-cyan-400/30">
           <X size="20" class="md:w-6 md:h-6" />
         </button>
 
@@ -105,12 +147,20 @@ const abrirReglasActivas = () => {
         </h1>
 
         <transition name="fade-curtain">
-          <div v-if="fase === 'intro'" class="absolute inset-0 z-[90] flex flex-col items-center justify-center bg-[#050b14] backdrop-blur-xl">
-              <h2 class="text-3xl md:text-5xl font-black text-cyan-300 drop-shadow-[0_0_20px_rgba(34,211,238,0.8)] mb-10 text-center uppercase tracking-widest">Bienvenido a la<br>Dimensión</h2>
-              <div class="relative w-64 h-64 md:w-96 md:h-96 flex items-center justify-center animate-pulse-glow">
-                  <div class="absolute inset-0 bg-emerald-500/20 rounded-full blur-3xl"></div>
-                  <img src="@/assets/cristal-3d/buho-cristal.png" class="w-full h-full object-contain relative z-10 filter drop-shadow-[0_0_40px_rgba(34,211,238,0.9)]" />
-              </div>
+          <div v-if="fase === 'intro'" class="absolute inset-0 z-[90] flex flex-col items-center justify-center bg-[#050b14] overflow-hidden">
+              
+              <video 
+                src="/videos/buho_tech.mp4" 
+                autoplay 
+                loop 
+                muted 
+                playsinline
+                class="absolute inset-0 w-full h-full object-contain z-0"
+              ></video>
+
+              <button @click="saltarIntro" class="absolute bottom-6 right-6 z-[100] text-cyan-500/60 hover:text-cyan-300 font-bold text-sm tracking-widest uppercase transition-all flex items-center gap-2">
+                Saltar Intro >
+              </button>
           </div>
         </transition>
 
@@ -158,7 +208,7 @@ const abrirReglasActivas = () => {
                               <RotateCcw size="20" /> Volver a Jugar
                           </button>
                           
-                          <button @click="emit('close')" class="px-8 py-3 bg-transparent hover:bg-white/10 text-cyan-300 font-bold rounded-xl border border-cyan-500/50 transition-all active:scale-95 text-base md:text-lg w-full flex items-center justify-center gap-2">
+                          <button @click="goBack" class="px-8 py-3 bg-transparent hover:bg-white/10 text-cyan-300 font-bold rounded-xl border border-cyan-500/50 transition-all active:scale-95 text-base md:text-lg w-full flex items-center justify-center gap-2">
                               <LogOut size="20" /> Regresar al Portal
                           </button>
                         </div>
@@ -177,7 +227,7 @@ const abrirReglasActivas = () => {
                 <Box size="20" class="md:w-6 md:h-6 text-cyan-300 group-hover:text-white" />
                 <span>Girar 3D</span>
             </button>
-            <button @click="emit('close')" class="ui-btn group">
+            <button @click="goBack" class="ui-btn group">
                 <Undo2 size="20" class="md:w-6 md:h-6 text-cyan-300 group-hover:text-white" />
                 <span>Retorno</span>
             </button>
@@ -201,7 +251,6 @@ const abrirReglasActivas = () => {
 @keyframes pulse-glow { 0%, 100% { transform: scale(1); filter: drop-shadow(0 0 40px rgba(34,211,238,0.6)); } 50% { transform: scale(1.05); filter: drop-shadow(0 0 80px rgba(16,185,129,0.9)); } }
 .animate-pulse-glow { animation: pulse-glow 3s ease-in-out infinite; }
 
-/* 🛠️ FIX: Clases renombradas para evitar pelea con App.vue */
 .crystal-master { position: fixed; inset: 0; z-index: 9999; display: flex; justify-content: center; align-items: center; background-color: #f8fafc; overflow: hidden; }
 .crystal-bg { background-color: #020617; background-image: radial-gradient(circle at 50% 50%, #0f172a 0%, #020617 100%); }
 .crystal-canvas { display: flex; flex-direction: column; position: relative; overflow: hidden; width: 100vw; height: 100dvh; }

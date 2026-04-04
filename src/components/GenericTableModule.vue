@@ -57,6 +57,14 @@ const showTable = ref(false);
 const exercises = ref([]);
 const activeInputId = ref(null); 
 
+// --- NUEVO: ESTADOS PARA EL PEAJE DE ABANDONO ---
+const showAbandonModal = ref(false);
+
+// --- NUEVO: AUDITORÍA DE CASILLAS CORRECTAS ---
+const correctAnswersCount = computed(() => {
+    return Object.values(userInputs.value).filter(val => val === 'correct').length;
+});
+
 const generateExercises = async () => {
   isSuccess.value = false;
   showCoinRain.value = false; 
@@ -98,6 +106,31 @@ onMounted(() => { setTimeout(initModule, 100); });
 
 const focusInput = (id) => { activeInputId.value = id; };
 
+// --- NUEVO: LÓGICA DE INTERCEPCIÓN AL SALIR ---
+const attemptExit = () => {
+    if (isNotebookMode.value) {
+        emit('back');
+        return;
+    }
+    
+    // Si ya ganó, o si no tiene ninguna correcta, lo dejamos salir sin penalización
+    if (isSuccess.value || correctAnswersCount.value === 0) {
+        emit('back');
+    } else {
+        // Si tiene respuestas pero no ha terminado (Peaje activado)
+        showAbandonModal.value = true;
+    }
+};
+
+const confirmExit = () => {
+    showAbandonModal.value = false;
+    emit('back'); // Sale y pierde el progreso
+};
+
+const cancelExit = () => {
+    showAbandonModal.value = false; // Se queda y sigue jugando
+};
+
 const handleKeypadPress = async (num) => {
     if (!activeInputId.value) return;
     const id = activeInputId.value;
@@ -113,15 +146,19 @@ const handleKeypadPress = async (num) => {
         userInputs.value[id] = 'correct'; 
         await gamificationStore.addCoins('copper', 1);
 
-        const idx = exercises.value.findIndex(e => e.id === id);
-        if (idx < exercises.value.length - 1) { 
-            focusInput(exercises.value[idx + 1].id); 
-        } else { 
+        // --- NUEVA LÓGICA DE AUDITORÍA DE 10 CASILLAS ---
+        if (correctAnswersCount.value === exercises.value.length) { 
             activeInputId.value = null; 
             isSuccess.value = true; 
             showCoinRain.value = true; 
             await gamificationStore.addCoins('copper', 5);
             speak("¡Fantástico! Has completado la tabla rápida y ganado muchas monedas de cobre.");
+        } else {
+            // Busca la SIGUIENTE casilla vacía de forma inteligente
+            const nextEmptyEx = exercises.value.find(e => userInputs.value[e.id] !== 'correct');
+            if (nextEmptyEx) {
+                focusInput(nextEmptyEx.id);
+            }
         }
     } else {
         const strResult = ex.result.toString();
@@ -151,12 +188,30 @@ const handleDelete = () => {
         <div v-if="showCoinRain" class="z-[200]">
             <CoinRain type="copper" :count="40" />
         </div>
+
+        <div v-if="showAbandonModal" class="absolute inset-0 z-[250] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+            <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm border-4 border-slate-100 overflow-hidden flex flex-col p-6 text-center relative">
+                <div class="text-6xl mb-4 animate-bounce">🦉</div>
+                <h2 class="text-2xl font-black text-slate-800 mb-2 leading-tight">¡Entrenamiento Incompleto!</h2>
+                <p class="text-slate-500 font-bold mb-6 text-sm">
+                    Tienes casillas vacías. Si sales ahora, <span class="text-red-500 font-black">perderás tu progreso</span> en esta tabla.
+                </p>
+                <div class="flex flex-col gap-3">
+                    <button @click="cancelExit" class="w-full py-3 bg-green-500 hover:bg-green-400 text-white font-black rounded-xl shadow-md active:scale-95 transition text-lg">
+                        Continuar practicando
+                    </button>
+                    <button @click="confirmExit" class="w-full py-2 bg-slate-100 hover:bg-red-50 text-slate-500 hover:text-red-500 font-bold rounded-xl active:scale-95 transition text-sm">
+                        Salir y perder progreso
+                    </button>
+                </div>
+            </div>
+        </div>
         
         <div v-if="!isNotebookMode" :class="`w-full h-full flex flex-col relative ${themeClasses.bg}`">
             
             <header class="flex-none p-2 flex items-center justify-between z-10 bg-white/60 backdrop-blur border-b border-slate-200">
               <div class="flex items-center gap-2">
-                <button @click="emit('back')" class="p-1.5 rounded-lg bg-slate-100 text-slate-600 font-bold text-xs flex items-center gap-1 active:scale-95 transition">
+                <button @click="attemptExit" class="p-1.5 rounded-lg bg-slate-100 text-slate-600 font-bold text-xs flex items-center gap-1 active:scale-95 transition">
                     <ChevronLeft class="w-4 h-4"/> Volver
                 </button>
                 <h1 class="text-lg font-black text-slate-800 flex items-center gap-2">
