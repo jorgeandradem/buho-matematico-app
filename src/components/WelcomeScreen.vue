@@ -1,7 +1,11 @@
 <script setup>
 import { onMounted } from 'vue';
+import { useNetwork } from '@vueuse/core'; // 👈 Importamos el detector de red
 
 const emit = defineEmits(['members', 'newcomers', 'close']);
+
+// --- DETECTOR INTELIGENTE DE INTERNET ---
+const { isOnline } = useNetwork(); // 👈 Obtenemos el estado en tiempo real
 
 // --- NUEVO: Función para reproducir el ulular (owl.mp3) ---
 const playOwlSound = () => {
@@ -40,6 +44,7 @@ const goBack = () => {
     <main class="app-canvas relative overflow-hidden bg-indigo-950">
       
       <video 
+        v-if="isOnline"
         src="/videos/buhonav.mp4" 
         autoplay 
         loop 
@@ -48,6 +53,14 @@ const goBack = () => {
         class="absolute inset-0 w-full h-full object-cover z-0"
         style="filter: contrast(1.08) saturate(1.1) brightness(1.05);"
       ></video>
+
+      <img 
+        v-else 
+        src="/images/buho_estatico.png" 
+        alt="Profesor Búho" 
+        class="absolute inset-0 w-full h-full object-cover z-0"
+        style="filter: contrast(1.08) saturate(1.1) brightness(1.05);"
+      />
 
       <div class="absolute inset-0 bg-gradient-to-b from-indigo-900/40 via-transparent to-indigo-900/60 z-0 pointer-events-none"></div>
 

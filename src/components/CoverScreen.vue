@@ -1,7 +1,7 @@
 <script setup>
 /** * ARCHIVO: CoverScreen.vue
- * NOTA INTERNA: SISTEMA INTEGRAL v15.0.3 - LAYOUT COMPACTO & TOASTS FLOTANTES (FIX LEGAL)
- * LOGICA: Motor RGPD Estricto (3 Selects) + Radar Múltiple. 
+ * NOTA INTERNA: SISTEMA INTEGRAL v15.1.0 - VIDEO DINÁMICO & BLINDAJE OFFLINE INTEGRAL
+ * LOGICA: Motor RGPD Estricto (3 Selects) + Radar Múltiple + Interruptor MP4/PNG. 
  * ESTADO: Cero rueda libre en móviles. Rodillo táctil controlado 100%.
  */
 import { ref, onMounted, reactive, watch, computed } from 'vue'; 
@@ -30,6 +30,7 @@ import AccountSettings from './AccountSettings.vue';
 
 import pkg from '../../package.json';
 import { useGamificationStore } from '../stores/useGamificationStore';
+import { useNetwork } from '@vueuse/core'; // 👈 IMPORTACIÓN DETECTOR DE RED
 
 const props = defineProps({
   forceAuthMode: { type: String, default: null }
@@ -37,6 +38,9 @@ const props = defineProps({
 
 const emit = defineEmits(['start', 'showWelcome']);
 const store = useGamificationStore();
+
+// --- DETECTOR INTELIGENTE DE INTERNET ---
+const { isOnline } = useNetwork(); // 👈 Obtenemos el estado en tiempo real
 
 // --- ESTADOS VISUALES ---
 const showModal = ref(false);
@@ -324,6 +328,7 @@ const openHistory = () => {
 const checkAccess = () => {
   onAuthStateChanged(auth, async (user) => {
     if (user) {
+      // 🚀 NOTA: Esta función getDoc funciona offline gracias a nuestra configuración en firebaseConfig.js
       const userDoc = await getDoc(doc(db, "users", user.uid));
       if (userDoc.exists() && userDoc.data().acceptedLegal) {
           acceptedTerms.value = true; isExistingUser.value = true; hasReadLegal.value = true;
@@ -357,6 +362,26 @@ onMounted(async () => {
 <template>
   <div class="cover-master font-inter">
     <main class="cover-canvas shadow-pc">
+
+      <video 
+        v-if="isOnline"
+        src="/videos/buho_tech.mp4" 
+        autoplay 
+        loop 
+        muted 
+        playsinline
+        class="absolute inset-0 w-full h-full object-cover z-0"
+      ></video>
+
+      <img 
+        v-else-if="!isOnline && showModal" 
+        src="/images/buho_estatico.png" 
+        alt="Búho Fondo Offline" 
+        class="absolute inset-0 w-full h-full object-cover z-0"
+      />
+
+      <div class="absolute inset-0 bg-indigo-950/20 z-0 pointer-events-none"></div>
+
       <SimpleConfetti :isActive="true" />
       
       <div v-if="(customError || customSuccess) && !showRecovery" class="absolute top-8 left-0 right-0 z-[2000] flex justify-center px-4 pointer-events-none">
@@ -380,15 +405,22 @@ onMounted(async () => {
           </div>
       </div>
 
-      <div class="main-hero-area">
+      <div class="main-hero-area relative z-10">
         <h1 class="main-title animate-pop-in">Búho <span class="block text-yellow-300">Matemático</span></h1>
-        <div class="owl-hero-container owl-delayed"><OwlImage customClass="owl-img-responsive" /></div>
-        <button @click="handleStartButton" class="btn-empezar btn-delayed bg-yellow-400 text-indigo-900 font-black py-4 rounded-full shadow-[0_8px_0_rgb(180,83,9)]">
-          <span class="uppercase">¡Empezar!</span>
-        </button>
+        
+        <div v-if="!isOnline" class="owl-hero-container owl-delayed">
+           <img src="/pwa-icon.png" alt="Búho Matemático" class="w-full h-full object-contain drop-shadow-2xl" />
+        </div>
+
+     <button 
+  @click="handleStartButton" 
+  :class="['btn-empezar btn-delayed bg-yellow-400 text-indigo-900 font-black py-4 rounded-full shadow-[0_8px_0_rgb(180,83,9)] transition-all', isOnline ? 'mt-[45vh]' : 'mt-0']"
+>
+  <span class="uppercase">¡Empezar!</span>
+</button>
       </div>
 
-      <footer class="footer-anclado">
+      <footer class="footer-anclado relative z-10">
           <div @click="openHistory" class="relative inline-flex flex-col items-center cursor-pointer group">
               <div v-if="hasUnseenNews" class="absolute -top-1 -right-2 w-3.5 h-3.5 bg-orange-500 rounded-full border-2 border-indigo-900 animate-pulse z-10"></div>
               <p class="text-sm font-bold text-white drop-shadow-sm group-hover:text-yellow-300 transition-colors">@Copyright 2026</p>
@@ -417,6 +449,13 @@ onMounted(async () => {
           <div class="flex-1 overflow-y-auto scroll-interno bg-white relative">
               <div v-if="activeSubView === 'auth'" class="p-5 flex flex-col justify-start relative h-full">
                   
+                  <div v-if="!isOnline" class="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-2xl flex items-start gap-2 shadow-sm animate-pop-in">
+                      <AlertTriangle class="text-orange-500 shrink-0 mt-0.5" :size="18" />
+                      <p class="text-[11px] font-bold text-orange-800 leading-tight italic flex-1 text-left">
+                          Cortocircuito de red. El Búho no puede volar sin internet. Necesitas conexión para esta acción.
+                      </p>
+                  </div>
+
                   <template v-if="!showRecovery">
                     <div class="space-y-2 relative z-10">
                         <template v-if="authMode === 'register'">
@@ -469,7 +508,7 @@ onMounted(async () => {
                     </div>
 
                     <div class="mt-2 space-y-3 relative z-10 flex flex-col justify-start">
-                        <button @click="handleAuth" :disabled="isLoading" class="w-full bg-indigo-600 text-white font-black italic text-lg uppercase rounded-[2rem] border-b-[6px] border-indigo-900 py-2.5 shadow-lg active:translate-y-1 flex items-center justify-center transition-all">
+                        <button @click="handleAuth" :disabled="isLoading || !isOnline" class="w-full bg-indigo-600 text-white font-black italic text-lg uppercase rounded-[2rem] border-b-[6px] border-indigo-900 py-2.5 shadow-lg active:translate-y-1 flex items-center justify-center transition-all disabled:opacity-50 disabled:cursor-not-allowed">
                           <span v-if="!isLoading">{{ authMode === 'register' ? 'CREAR CUENTA' : 'ENTRAR AL NIDO' }}</span>
                           <RefreshCw v-else class="animate-spin" />
                         </button>
@@ -560,7 +599,7 @@ onMounted(async () => {
                                 </select>
                           </div>
                           
-                          <button @click="findEmailClue" :disabled="isLoading" class="w-full bg-orange-500 text-white font-black py-3.5 rounded-2xl shadow-lg uppercase text-xs active:scale-95 transition-transform flex items-center justify-center mt-3">
+                          <button @click="findEmailClue" :disabled="isLoading || !isOnline" class="w-full bg-orange-500 text-white font-black py-3.5 rounded-2xl shadow-lg uppercase text-xs active:scale-95 transition-transform flex items-center justify-center mt-3 disabled:opacity-50 disabled:cursor-not-allowed">
                             <span v-if="!isLoading">BUSCAR PISTA 🦉</span>
                             <RefreshCw v-else class="animate-spin text-white" size="18" />
                           </button>
@@ -571,7 +610,8 @@ onMounted(async () => {
                           
                           <div class="bg-indigo-50 p-4 rounded-2xl border border-indigo-100 space-y-2 mt-4">
                               <p class="text-[10px] text-slate-500 font-bold mb-2">Te enviaremos una llave mágica a tu correo para cambiar tu contraseña.</p>
-                              <button @click="handleForgotPassword" :disabled="isLoading" class="w-full bg-indigo-600 text-white font-black py-3.5 rounded-2xl shadow-lg uppercase text-xs active:scale-95 transition-transform flex items-center justify-center">
+                              
+                              <button @click="handleForgotPassword" :disabled="isLoading || !isOnline" class="w-full bg-indigo-600 text-white font-black py-3.5 rounded-2xl shadow-lg uppercase text-xs active:scale-95 transition-transform flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed">
                                   <span v-if="!isLoading">✨ ENVIAR ENLACE MÁGICO ✨</span>
                                   <RefreshCw v-else class="animate-spin text-white" size="18" />
                               </button>
@@ -594,21 +634,21 @@ onMounted(async () => {
         <div v-if="showHistoryModal" class="absolute inset-0 z-[1000] flex items-center justify-center p-4 bg-silver-gradient backdrop-blur-md">
           <div class="bg-white w-full max-w-md rounded-[3rem] shadow-2xl overflow-hidden border-4 border-indigo-600 flex flex-col max-h-[85vh] animate-pop-in">
             <div class="bg-gradient-to-r from-indigo-600 to-purple-600 p-6 text-white text-center relative shrink-0">
-               <button @click="showHistoryModal = false" class="absolute top-4 right-4 bg-white/20 hover:bg-white/40 p-2 rounded-full transition-colors"><X :size="20"/></button>
-               <History class="mx-auto mb-2 opacity-50" :size="32" />
-               <h2 class="text-2xl font-black italic uppercase tracking-tighter">Bitácora del Búho</h2>
+                <button @click="showHistoryModal = false" class="absolute top-4 right-4 bg-white/20 hover:bg-white/40 p-2 rounded-full transition-colors"><X :size="20"/></button>
+                <History class="mx-auto mb-2 opacity-50" :size="32" />
+                <h2 class="text-2xl font-black italic uppercase tracking-tighter">Bitácora del Búho</h2>
             </div>
             <div class="flex-1 overflow-y-auto p-6 space-y-6 custom-scroll bg-slate-50/50">
-               <div v-if="historyData.length === 0" class="text-center py-20 opacity-30"><Zap class="mx-auto mb-2" :size="48" /><p class="font-black uppercase text-xs">Sin registros</p></div>
-               <div v-for="(update, index) in historyData" :key="update.updateId" class="relative pl-8 border-l-4 transition-all bg-white p-5 rounded-r-3xl shadow-sm border-indigo-100" :class="{'!border-orange-500 scale-[1.02]': index === 0 && hasUnseenNews}">
-                 <div class="absolute -left-[14px] top-6 w-6 h-6 rounded-full border-4 border-slate-50 flex items-center justify-center" :class="index === 0 && hasUnseenNews ? 'bg-orange-500 animate-pulse' : 'bg-indigo-600'"><Sparkles v-if="index === 0" class="text-white" :size="10" /></div>
-                 <div class="flex items-center justify-between mb-2">
-                   <div class="flex items-center gap-1.5 bg-indigo-50 px-2 py-1 rounded-lg"><Zap class="text-indigo-600" :size="12" /><span class="text-[11px] font-black text-indigo-700 uppercase">v{{ update.version }}</span></div>
-                   <div class="flex items-center gap-1 text-slate-400"><CalendarIcon :size="10" /><span class="text-[10px] font-bold">{{ update.date }}</span></div>
-                 </div>
-                 <h4 class="text-sm font-black text-slate-800 uppercase mb-1">{{ update.title }}</h4>
-                 <p class="text-xs text-slate-600 leading-relaxed font-medium">{{ update.description }}</p>
-               </div>
+                <div v-if="historyData.length === 0" class="text-center py-20 opacity-30"><Zap class="mx-auto mb-2" :size="48" /><p class="font-black uppercase text-xs">Sin registros</p></div>
+                <div v-for="(update, index) in historyData" :key="update.updateId" class="relative pl-8 border-l-4 transition-all bg-white p-5 rounded-r-3xl shadow-sm border-indigo-100" :class="{'!border-orange-500 scale-[1.02]': index === 0 && hasUnseenNews}">
+                  <div class="absolute -left-[14px] top-6 w-6 h-6 rounded-full border-4 border-slate-50 flex items-center justify-center" :class="index === 0 && hasUnseenNews ? 'bg-orange-500 animate-pulse' : 'bg-indigo-600'"><Sparkles v-if="index === 0" class="text-white" :size="10" /></div>
+                  <div class="flex items-center justify-between mb-2">
+                    <div class="flex items-center gap-1.5 bg-indigo-50 px-2 py-1 rounded-lg"><Zap class="text-indigo-600" :size="12" /><span class="text-[11px] font-black text-indigo-700 uppercase">v{{ update.version }}</span></div>
+                    <div class="flex items-center gap-1 text-slate-400"><CalendarIcon :size="10" /><span class="text-[10px] font-bold">{{ update.date }}</span></div>
+                  </div>
+                  <h4 class="text-sm font-black text-slate-800 uppercase mb-1">{{ update.title }}</h4>
+                  <p class="text-xs text-slate-600 leading-relaxed font-medium">{{ update.description }}</p>
+                </div>
             </div>
             <div class="p-6 bg-white border-t text-center"><button @click="showHistoryModal = false" class="w-full bg-indigo-600 text-white p-4 rounded-2xl font-black uppercase shadow-lg active:scale-95 text-xs">¡RECIBIDO!</button></div>
           </div>

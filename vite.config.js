@@ -48,10 +48,10 @@ export default defineConfig({
         skipWaiting: true, 
         clientsClaim: true,
         
-        // 🛡️ Blindaje de archivos para caché
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,json,png,jpg,jpeg}'],
+        // 🛡️ Blindaje de archivos para caché (CIRUGÍA APLICADA: SE AGREGÓ mp3, EXCLUIDO mp4)
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,json,jpg,jpeg,mp3}'],
         navigateFallbackDenylist: [/^\/__/, /^\/api/],
-        maximumFileSizeToCacheInBytes: 5000000 
+        maximumFileSizeToCacheInBytes: 5000000 // Límite de 5MB por archivo
       },
       devOptions: {
         enabled: true,

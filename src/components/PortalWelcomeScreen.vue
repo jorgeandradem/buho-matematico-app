@@ -1,9 +1,13 @@
 <script setup>
 import { ref, onMounted } from 'vue';
+import { useNetwork } from '@vueuse/core'; // 👈 Importamos el detector de red
 import { incentiveMessages } from '../utils/messages';
 
 const emit = defineEmits(['proceed', 'close']);
 const dailyMessage = ref('');
+
+// --- DETECTOR INTELIGENTE DE INTERNET ---
+const { isOnline } = useNetwork(); // 👈 Obtenemos el estado en tiempo real
 
 // --- NUEVO: Función para reproducir el segundo ulular (owl1.mp3) ---
 const playPortalOwlSound = () => {
@@ -41,6 +45,7 @@ const goBack = () => {
     <main class="app-canvas relative overflow-hidden bg-indigo-950">
       
       <video 
+        v-if="isOnline"
         src="/videos/buhonav1.mp4" 
         autoplay 
         loop 
@@ -49,6 +54,14 @@ const goBack = () => {
         class="absolute inset-0 w-full h-full object-cover z-0"
         style="filter: contrast(1.08) saturate(1.1) brightness(1.05);"
       ></video>
+
+      <img 
+        v-else 
+        src="/images/buho_estatico.png" 
+        alt="Búho Mensajero Offline" 
+        class="absolute inset-0 w-full h-full object-cover z-0"
+        style="filter: contrast(1.08) saturate(1.1) brightness(1.05);"
+      />
 
       <div class="absolute inset-0 bg-gradient-to-b from-indigo-900/60 via-transparent to-indigo-900/80 z-0 pointer-events-none"></div>
 

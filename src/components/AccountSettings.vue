@@ -1,16 +1,20 @@
 <script setup>
 /** * ARCHIVO: AccountSettings.vue
- * NOTA INTERNA: v2.9.8 - DOBLE CONFIRMACIÓN INTEGRADA + AJUSTES VISUALES
+ * NOTA INTERNA: v2.9.9 - DOBLE CONFIRMACIÓN INTEGRADA + AJUSTES VISUALES + BLINDAJE OFFLINE
  */
 import { ref, reactive, watch } from 'vue';
 import { useGamificationStore } from '../stores/useGamificationStore';
-import { UserX, ShieldAlert, RefreshCw, Eye, EyeOff, Mail, Lock, X, AlertCircle, CheckCircle } from 'lucide-vue-next';
+import { UserX, ShieldAlert, RefreshCw, Eye, EyeOff, Mail, Lock, X, AlertCircle, CheckCircle, AlertTriangle } from 'lucide-vue-next';
+import { useNetwork } from '@vueuse/core'; // 👈 Importamos el detector de red
 
 const emit = defineEmits(['close']);
 const store = useGamificationStore();
 const isDeleting = ref(false);
 const showPassword = ref(false);
 const credentials = reactive({ email: '', password: '' });
+
+// --- DETECTOR INTELIGENTE DE INTERNET ---
+const { isOnline } = useNetwork(); // 👈 Obtenemos el estado en tiempo real
 
 // 🛡️ ESTADO DE DOBLE CONFIRMACIÓN
 const pendingConfirmation = ref(false);
@@ -125,6 +129,13 @@ const confirmDelete = async () => {
         </div>
       </div>
 
+      <div v-if="!isOnline" class="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-2xl flex items-start gap-2 shadow-sm animate-pop-in">
+          <AlertTriangle class="text-orange-500 shrink-0 mt-0.5" :size="18" />
+          <p class="text-[11px] font-bold text-orange-800 leading-tight italic flex-1 text-left">
+              El Búho detecta que estás sin conexión. Necesitas internet para eliminar tu cuenta del nido.
+          </p>
+      </div>
+
       <div class="space-y-3 bg-slate-50 p-4 rounded-[2rem] border border-red-50 mt-4">
         <div class="space-y-1">
           <label class="text-[9px] font-black text-slate-400 uppercase ml-2">Correo</label>
@@ -139,6 +150,7 @@ const confirmDelete = async () => {
                 placeholder="mail@ejemplo.com" 
                 class="lowercase w-full pl-10 pr-4 py-2.5 bg-white border-2 border-slate-100 rounded-xl outline-none focus:border-red-400 text-sm font-medium transition-colors"
                 :class="{'border-red-300 bg-red-50': pendingConfirmation}"
+                :disabled="!isOnline"
              />
           </div>
         </div>
@@ -154,15 +166,16 @@ const confirmDelete = async () => {
                 placeholder="••••••••" 
                 class="w-full pl-10 pr-10 py-2.5 bg-white border-2 border-slate-100 rounded-xl outline-none focus:border-red-400 text-sm font-medium transition-colors" 
                 :class="{'border-red-300 bg-red-50': pendingConfirmation}"
+                :disabled="!isOnline"
              />
-             <button @click="showPassword = !showPassword" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"><component :is="showPassword ? EyeOff : Eye" size="18" /></button>
+             <button @click="showPassword = !showPassword" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" :disabled="!isOnline"><component :is="showPassword ? EyeOff : Eye" size="18" /></button>
           </div>
         </div>
 
         <button 
           @click="confirmDelete" 
-          :disabled="isDeleting" 
-          class="w-full font-black italic text-base uppercase rounded-[1.5rem] border-b-[6px] active:translate-y-[2px] active:border-b-[2px] transition-all py-3.5 mt-2 flex items-center justify-center"
+          :disabled="isDeleting || !isOnline" 
+          class="w-full font-black italic text-base uppercase rounded-[1.5rem] border-b-[6px] active:translate-y-[2px] active:border-b-[2px] transition-all py-3.5 mt-2 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
           :class="pendingConfirmation 
             ? 'bg-gradient-to-b from-[#991B1B] to-[#7F1D1D] text-white border-[#450a0a] animate-pulse shadow-inner' 
             : 'bg-gradient-to-b from-[#EF4444] to-[#B91C1C] text-white border-[#7F1D1D] shadow-lg'"
@@ -186,4 +199,6 @@ const confirmDelete = async () => {
   from { opacity: 0; transform: translateY(-20px); }
   to { opacity: 1; transform: translateY(0); }
 }
+.animate-pop-in { animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+@keyframes popIn { from { opacity: 0; transform: scale(0.9) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
 </style>

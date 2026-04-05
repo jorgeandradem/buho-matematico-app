@@ -1,6 +1,6 @@
 <script setup>
 /** * ARCHIVO: IndexScreen.vue
- * NOTA INTERNA: TORRE DE CONTROL v3.0.0 - INTEGRACIÓN TOTAL DIMENSIÓN CRISTAL
+ * NOTA INTERNA: TORRE DE CONTROL v3.0.1 - AVISO DE DESCONEXIÓN OFFLINE INTEGRADO
  * LOGICA: Sincronización Privada + Gestión de Premios Cuánticos.
  */
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue'; 
@@ -8,7 +8,7 @@ import {
   Plus, Minus, X as MultiplyIcon, Divide, LogOut, 
   User, Pencil, BookOpen, Play, X as CloseIcon,
   ShoppingBag, Zap, Flame, Coffee, DoorOpen, BellRing, Target,
-  Eye, EyeOff, Volume2, Hexagon
+  Eye, EyeOff, Volume2, Hexagon, AlertTriangle
 } from 'lucide-vue-next';
 import OwlImage from './OwlImage.vue';
 import { incentiveMessages } from '../utils/messages';
@@ -228,23 +228,32 @@ const currentSubjectLabel = computed(() => options.find(o => o.id === selectedSu
         <ChallengeHub v-if="showChallengeHub" @close="showChallengeHub = false" />
         
         <div v-if="showExitConfirm" class="absolute inset-0 z-[110] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in">
-            <div class="bg-white rounded-[2.5rem] w-full max-w-sm p-8 shadow-2xl border-4 border-indigo-100 text-center flex flex-col gap-6">
-                <div class="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mx-auto border-2 border-indigo-100">
-                    <OwlImage customClass="w-14 h-14" />
+            <div class="bg-white rounded-[2.5rem] w-full max-w-sm p-6 shadow-2xl border-4 border-indigo-100 text-center flex flex-col gap-5">
+                <div class="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center mx-auto border-2 border-indigo-100">
+                    <OwlImage customClass="w-12 h-12" />
                 </div>
                 <div>
-                    <h3 class="text-2xl font-black text-slate-800 mb-2 uppercase leading-none">¿Ya terminaste?</h3>
-                    <p class="text-slate-500 font-bold leading-tight">Elige cómo quieres salir:</p>
+                    <h3 class="text-2xl font-black text-slate-800 mb-1 uppercase leading-none">¿Ya terminaste?</h3>
+                    <p class="text-slate-500 font-bold leading-tight text-sm">Elige cómo quieres salir:</p>
                 </div>
+                
                 <div class="flex flex-col gap-3">
                     <button @click="confirmTakeBreak" class="w-full py-4 bg-green-500 hover:bg-green-600 text-white rounded-2xl font-black text-lg shadow-[0_4px_0_rgb(21,128,61)] active:translate-y-1 transition-all flex items-center justify-center gap-3">
                         <Coffee :size="24" /> Tomar un descanso
                     </button>
-                    <button @click="confirmFullLogout" class="w-full py-3 bg-slate-100 hover:bg-red-50 text-slate-500 rounded-2xl font-bold text-sm transition-all flex items-center justify-center gap-2">
-                        <DoorOpen :size="18" /> Cerrar sesión
-                    </button>
+                    
+                    <div class="bg-orange-50 border border-orange-200 rounded-2xl p-3 flex flex-col gap-2 mt-1">
+                       <p class="text-xs font-bold text-orange-800 leading-tight flex items-center justify-center gap-1.5 text-center px-1">
+                            <AlertTriangle :size="14" class="shrink-0 text-orange-500"/>
+                            Si cierras sesión, necesitarás internet para volver a entrar al nido.
+                        </p>
+                        <button @click="confirmFullLogout" class="w-full py-2.5 bg-white hover:bg-red-50 text-slate-500 hover:text-red-500 border border-slate-200 hover:border-red-200 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 active:scale-95">
+                            <DoorOpen :size="18" /> Desconectar Cuenta
+                        </button>
+                    </div>
                 </div>
-                <button @click="showExitConfirm = false" class="text-indigo-600 font-black tracking-widest text-xs mt-2 hover:underline uppercase">Continuar practicando</button>
+                
+                <button @click="showExitConfirm = false" class="text-indigo-600 font-black tracking-widest text-xs mt-1 hover:underline uppercase">Continuar practicando</button>
             </div>
         </div>
 

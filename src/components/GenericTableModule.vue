@@ -4,7 +4,6 @@ import {
   ArrowLeft, Eraser, Eye, EyeOff, HelpCircle, Check, X, 
   BookOpen, Calculator, ChevronLeft 
 } from 'lucide-vue-next';
-import CoinRain from './CoinRain.vue';
 import VerticalExercise from './VerticalExercise.vue';
 import MultiplicationAdvancedModule from './MultiplicationAdvancedModule.vue';
 import VirtualKeypad from './VirtualKeypad.vue'; 
@@ -21,7 +20,6 @@ const gamificationStore = useGamificationStore();
 
 const isNotebookMode = ref(props.initialMode === 'notebook'); 
 const selectedNumber = ref(props.initialTable || 'random');
-const showCoinRain = ref(false);
 const isSuccess = ref(false);
 const refreshKey = ref(0);
 
@@ -34,6 +32,12 @@ const themes = {
   orange: { bg: 'bg-orange-50', text: 'text-orange-900', btn: 'bg-orange-600', border: 'border-orange-200', ring: 'ring-orange-100', soft: 'bg-orange-50' },
 };
 const themeClasses = computed(() => themes[props.colorTheme] || themes.blue);
+
+// --- REPRODUCTOR DE SONIDOS ---
+const playSound = (name) => {
+  const audio = new Audio(`/audios/${name}.mp3`);
+  audio.play().catch(() => {});
+};
 
 const initModule = async () => {
   if (isNotebookMode.value) {
@@ -57,17 +61,17 @@ const showTable = ref(false);
 const exercises = ref([]);
 const activeInputId = ref(null); 
 
-// --- NUEVO: ESTADOS PARA EL PEAJE DE ABANDONO ---
+// --- ESTADOS PARA EL PEAJE DE ABANDONO ---
 const showAbandonModal = ref(false);
+const isExiting = ref(false);
 
-// --- NUEVO: AUDITORÍA DE CASILLAS CORRECTAS ---
+// --- AUDITORÍA DE CASILLAS CORRECTAS ---
 const correctAnswersCount = computed(() => {
     return Object.values(userInputs.value).filter(val => val === 'correct').length;
 });
 
 const generateExercises = async () => {
   isSuccess.value = false;
-  showCoinRain.value = false; 
   userInputs.value = {};
   activeInputId.value = null;
   exercises.value = [];
@@ -106,32 +110,49 @@ onMounted(() => { setTimeout(initModule, 100); });
 
 const focusInput = (id) => { activeInputId.value = id; };
 
-// --- NUEVO: LÓGICA DE INTERCEPCIÓN AL SALIR ---
+// --- LÓGICA DE INTERCEPCIÓN AL SALIR ---
 const attemptExit = () => {
     if (isNotebookMode.value) {
         emit('back');
         return;
     }
     
-    // Si ya ganó, o si no tiene ninguna correcta, lo dejamos salir sin penalización
     if (isSuccess.value || correctAnswersCount.value === 0) {
         emit('back');
     } else {
-        // Si tiene respuestas pero no ha terminado (Peaje activado)
         showAbandonModal.value = true;
+        isExiting.value = false;
     }
 };
 
-const confirmExit = () => {
-    showAbandonModal.value = false;
-    emit('back'); // Sale y pierde el progreso
+const confirmExit = async () => {
+    isExiting.value = true; 
+    
+    // Reproducir sonido de error/fracaso para el abandono
+    playSound('wrong1'); 
+    
+    // Revertir las monedas ganadas parcialmente
+    if (correctAnswersCount.value > 0) {
+        await gamificationStore.spendCoins('copper', correctAnswersCount.value);
+    }
+
+    if (navigator.vibrate) navigator.vibrate([100, 50, 100]); 
+    
+    // Esperamos 1.5s para que el niño lea que no ganó nada, y luego salimos
+    setTimeout(() => {
+        showAbandonModal.value = false;
+        emit('back'); 
+    }, 1500);
 };
 
 const cancelExit = () => {
-    showAbandonModal.value = false; // Se queda y sigue jugando
+    showAbandonModal.value = false; 
 };
 
 const handleKeypadPress = async (num) => {
+    // 🛡️ Bloqueo de seguridad: No aceptar inputs si el modal está abierto
+    if (showAbandonModal.value || isExiting.value) return;
+    
     if (!activeInputId.value) return;
     const id = activeInputId.value;
     const ex = exercises.value.find(e => e.id === id);
@@ -144,17 +165,18 @@ const handleKeypadPress = async (num) => {
     
     if (parseInt(newVal) === ex.result) {
         userInputs.value[id] = 'correct'; 
-        await gamificationStore.addCoins('copper', 1);
+        await gamificationStore.addCoins('copper', 1); 
 
-        // --- NUEVA LÓGICA DE AUDITORÍA DE 10 CASILLAS ---
         if (correctAnswersCount.value === exercises.value.length) { 
             activeInputId.value = null; 
             isSuccess.value = true; 
-            showCoinRain.value = true; 
-            await gamificationStore.addCoins('copper', 5);
+            
+            // 🚀 RECOMPENSA AUDITIVA EN VEZ DE LLUVIA DE MONEDAS
+            playSound('success'); 
+            
+            await gamificationStore.addCoins('copper', 5); 
             speak("¡Fantástico! Has completado la tabla rápida y ganado muchas monedas de cobre.");
         } else {
-            // Busca la SIGUIENTE casilla vacía de forma inteligente
             const nextEmptyEx = exercises.value.find(e => userInputs.value[e.id] !== 'correct');
             if (nextEmptyEx) {
                 focusInput(nextEmptyEx.id);
@@ -171,6 +193,7 @@ const handleKeypadPress = async (num) => {
 };
 
 const handleDelete = () => {
+    if (showAbandonModal.value || isExiting.value) return;
     if (!activeInputId.value) return;
     const id = activeInputId.value;
     if (userInputs.value[id] === 'correct') return;
@@ -185,25 +208,32 @@ const handleDelete = () => {
     
     <div class="w-full max-w-[500px] h-full flex flex-col relative bg-white shadow-2xl overflow-hidden mx-auto border-x border-slate-100">
         
-        <div v-if="showCoinRain" class="z-[200]">
-            <CoinRain type="copper" :count="40" />
-        </div>
-
         <div v-if="showAbandonModal" class="absolute inset-0 z-[250] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-            <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm border-4 border-slate-100 overflow-hidden flex flex-col p-6 text-center relative">
-                <div class="text-6xl mb-4 animate-bounce">🦉</div>
-                <h2 class="text-2xl font-black text-slate-800 mb-2 leading-tight">¡Entrenamiento Incompleto!</h2>
-                <p class="text-slate-500 font-bold mb-6 text-sm">
-                    Tienes casillas vacías. Si sales ahora, <span class="text-red-500 font-black">perderás tu progreso</span> en esta tabla.
-                </p>
-                <div class="flex flex-col gap-3">
-                    <button @click="cancelExit" class="w-full py-3 bg-green-500 hover:bg-green-400 text-white font-black rounded-xl shadow-md active:scale-95 transition text-lg">
-                        Continuar practicando
-                    </button>
-                    <button @click="confirmExit" class="w-full py-2 bg-slate-100 hover:bg-red-50 text-slate-500 hover:text-red-500 font-bold rounded-xl active:scale-95 transition text-sm">
-                        Salir y perder progreso
-                    </button>
-                </div>
+            <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm border-4 border-slate-100 overflow-hidden flex flex-col p-6 text-center relative transition-all duration-300">
+                
+                <template v-if="!isExiting">
+                    <div class="text-6xl mb-4 animate-bounce">🦉</div>
+                    <h2 class="text-2xl font-black text-slate-800 mb-2 leading-tight">¡Entrenamiento Incompleto!</h2>
+                    <p class="text-slate-500 font-bold mb-6 text-sm">
+                        Tienes casillas vacías. Si sales ahora, <span class="text-red-500 font-black">perderás tu progreso</span> en esta tabla.
+                    </p>
+                    <div class="flex flex-col gap-3">
+                        <button @click="cancelExit" class="w-full py-3 bg-green-500 hover:bg-green-400 text-white font-black rounded-xl shadow-md active:scale-95 transition text-lg">
+                            Continuar practicando
+                        </button>
+                        <button @click="confirmExit" class="w-full py-2 bg-slate-100 hover:bg-red-50 text-slate-500 hover:text-red-500 font-bold rounded-xl active:scale-95 transition text-sm">
+                            Salir y perder progreso
+                        </button>
+                    </div>
+                </template>
+
+                <template v-else>
+                    <div class="text-6xl mb-4 animate-pulse drop-shadow-md">🛑</div>
+                    <h2 class="text-2xl font-black text-slate-800 mb-1">Incompleto</h2>
+                    <p class="text-red-500 font-black text-lg mb-1 uppercase tracking-wider">0 Monedas</p>
+                    <p class="text-slate-400 font-bold text-sm">Progreso cancelado...</p>
+                </template>
+
             </div>
         </div>
         

@@ -1,5 +1,12 @@
 [
   {
+    "updateId": "upd_1775833200000",
+    "version": "2.11.8",
+    "date": "05/04/2026",
+    "title": "EL NIDO CINEMATOGRÁFICO Y BLINDAJE OFFLINE",
+    "description": "Capitán, hemos elevado la inmersión del Nido a un nivel cinematográfico. El CoverScreen y el Portal Cuántico ahora cuentan con animaciones MP4 en alta definición que funcionan como motor visual principal. Además, desplegamos un 'Blindaje Offline' de grado militar en toda la plataforma: si el navío pierde conexión, el sistema sustituye inteligentemente los videos por el Búho de Cristal en PNG, emite alertas tácticas de prevención de desconexión en el cierre de sesión y deshabilita acciones críticas (como borrado de cuentas o nuevos ingresos) para proteger la integridad de los datos de la tripulación."
+  },
+  {
     "updateId": "upd_1775746800000",
     "version": "2.11.7",
     "date": "04/04/2026",

@@ -1,11 +1,45 @@
 <script setup>
-// Definimos que este componente puede recibir una clase CSS extra
-defineProps(['customClass']);
+// ARCHIVO: OwlImage.vue
+// NOTA INTERNA: Modo Híbrido. Soporta el SVG clásico y el nuevo modo Video/Imagen Dinámico.
+
+defineProps({
+  customClass: {
+    type: String,
+    default: ''
+  },
+  // Si es true, activa el modo video/png. Si es false, dibuja el SVG clásico.
+  isDynamic: {
+    type: Boolean,
+    default: false
+  },
+  // Recibe el estado de red desde la pantalla padre para saber qué archivo cargar
+  isOnline: {
+    type: Boolean,
+    default: true
+  }
+});
 </script>
 
 <template>
-  <!-- Usamos :class para mezclar tus clases con las del SVG -->
-  <svg viewBox="0 0 200 200" :class="customClass" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <div v-if="isDynamic" :class="['relative overflow-hidden', customClass]">
+    <video 
+      v-if="isOnline"
+      src="/videos/buho_tech.mp4" 
+      autoplay 
+      loop 
+      muted 
+      playsinline
+      class="w-full h-full object-contain scale-110"
+    ></video>
+    <img 
+      v-else 
+      src="/images/buho_estatico.png" 
+      alt="Profesor Búho Offline" 
+      class="w-full h-full object-contain scale-110"
+    />
+  </div>
+
+  <svg v-else viewBox="0 0 200 200" :class="customClass" fill="none" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <linearGradient id="bodyGrad" x1="100" y1="40" x2="100" y2="190" gradientUnits="userSpaceOnUse">
         <stop offset="0%" stopColor="#B45309" /> 

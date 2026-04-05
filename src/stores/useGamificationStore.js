@@ -1,5 +1,5 @@
 /** * ARCHIVO: useGamificationStore.js
- * NOTA INTERNA: BANCO CENTRAL v3.2.0 - INTEGRACIÓN NEWS SCANNER + DIMENSIÓN CRISTAL
+ * NOTA INTERNA: BANCO CENTRAL v3.3.0 - MODO OFFLINE BLINDADO + DIMENSIÓN CRISTAL
  * LOGICA: Sincronización Privada (UID) + Memoria de Actualizaciones.
  */
 import { defineStore } from 'pinia';
@@ -7,7 +7,7 @@ import { missionsData } from '../data/missions';
 
 // --- IMPORTACIONES FIREBASE ---
 import { auth, db } from '../firebaseConfig';
-import { doc, runTransaction, deleteDoc, getDoc, setDoc } from "firebase/firestore";
+import { doc, deleteDoc, getDoc, setDoc } from "firebase/firestore";
 import { 
   deleteUser, 
   signInWithEmailAndPassword 
@@ -58,15 +58,17 @@ export const useGamificationStore = defineStore('gamification', {
   },
 
   actions: {
-    // --- 🛡️ CARGA INICIAL DESDE CARPETA PRIVADA ---
+    // --- 🛡️ CARGA INICIAL (FILOSOFÍA OFFLINE-FIRST) ---
     async fetchUserStats() {
+      // 🚀 CIRUGÍA OFFLINE 1: Cargamos la memoria local INMEDIATAMENTE.
+      // Así el niño puede jugar al instante sin esperar a que el internet responda.
+      this.loadFromStorage();
+      
       const user = auth.currentUser;
-      if (!user) {
-        this.loadFromStorage();
-        return;
-      }
+      if (!user) return; // Si no hay usuario, ya cargamos lo local, terminamos aquí.
 
       try {
+        // Luego intentamos actualizar con la nube en segundo plano (Silencioso)
         const userRef = doc(db, "users", user.uid);
         const docSnap = await getDoc(userRef);
 
@@ -76,12 +78,12 @@ export const useGamificationStore = defineStore('gamification', {
             this.setCoinsFromCloud(cloudData);
           }
         } else {
-          this.generateNewMissions();
+          // Si no existe perfil en la nube aún, lo inicializamos
+          if (this.activeMissions.length === 0) this.generateNewMissions();
           this.syncAllToCloud();
         }
       } catch (error) {
-        console.error("Error cargando desde nube:", error);
-        this.loadFromStorage();
+        console.warn("🦉 Modo Offline Activo: No hay conexión con la base central. Jugando con caché local.");
       }
     },
 
@@ -125,39 +127,20 @@ export const useGamificationStore = defineStore('gamification', {
             try {
                 const userRef = doc(db, "users", user.uid);
                 
-                await runTransaction(db, async (transaction) => {
-                    const sfDoc = await transaction.get(userRef);
-                    
-                    if (!sfDoc.exists()) {
-                        transaction.set(userRef, {
-                            stats: this.buildStatsObject(),
-                            lastActivity: Date.now()
-                        });
-                        return;
-                    }
-
-                    transaction.update(userRef, {
-                        "stats.gold": this.gold,
-                        "stats.silver": this.silver,
-                        "stats.copper": this.copper,
-                        "stats.racha": this.currentStreak,
-                        "stats.lastPlayedDate": this.lastPlayedDate,
-                        "stats.purchasedItems": this.purchasedItems,
-                        "stats.activeMissions": this.activeMissions,
-                        "stats.pirateLevel": this.pirateLevel,
-                        "stats.completedIslands": this.completedIslands,
-                        "stats.worldTourLevel": this.worldTourLevel,
-                        "stats.lastSeenUpdateId": this.lastSeenUpdateId,
-                        lastActivity: Date.now()
-                    });
-                });
+                // 🚀 CIRUGÍA OFFLINE 2: Reemplazamos runTransaction por setDoc con merge.
+                // setDoc permite a Firestore guardar los cambios en el disco duro del móvil 
+                // y los encola para enviarlos solos cuando detecte WiFi o Datos Móviles.
+                await setDoc(userRef, {
+                    stats: this.buildStatsObject(),
+                    lastActivity: Date.now()
+                }, { merge: true });
 
                 this.lastSyncedGold = this.gold;
                 this.lastSyncedSilver = this.silver;
                 this.lastSyncedCopper = this.copper;
                 
             } catch (error) {
-                console.warn("🦉 Banco Central: Guardado en caché (Modo offline)");
+                console.warn("🦉 Banco Central: Puntos guardados en mochila (Modo offline esperando red)");
             } finally {
                 this.isSyncing = false;
             }

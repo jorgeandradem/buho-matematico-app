@@ -1,11 +1,13 @@
 /** * ARCHIVO: firebaseConfig.js
- * NOTA INTERNA: CONFIGURACIÓN MAESTRA v2.9.2 + MULTI-TAB SYNC
- * LOGICA: Persistencia Offline Avanzada + Blindaje Multi-dispositivo
+ * NOTA INTERNA: CONFIGURACIÓN MAESTRA v3.0.0 + MULTI-TAB SYNC OFFLINE
+ * LÓGICA: Persistencia Offline de Nueva Generación + Blindaje Multi-dispositivo
  */
 import { initializeApp } from "firebase/app";
 import { 
-  getFirestore, 
-  enableMultiTabIndexedDbPersistence // 🚀 MEJORA: Soporte para múltiples pestañas/ventanas
+  initializeFirestore, 
+  persistentLocalCache, 
+  persistentMultipleTabManager,
+  CACHE_SIZE_UNLIMITED
 } from "firebase/firestore";
 import { getAuth, setPersistence, browserLocalPersistence } from "firebase/auth";
 
@@ -21,21 +23,17 @@ const firebaseConfig = {
 // 1. Inicializamos la App
 const app = initializeApp(firebaseConfig);
 
-// 2. Inicializamos la Base de Datos
-export const db = getFirestore(app);
-
-// --- 🛡️ ACTIVACIÓN DEL MODO TANQUE PRO (MULTI-TAB PERSISTENCE) ---
-// Esto permite que el Búho mantenga la sincronización perfecta 
-// incluso si el alumno abre varias ventanas del juego.
-enableMultiTabIndexedDbPersistence(db).catch((err) => {
-    if (err.code == 'failed-precondition') {
-        // Este error es raro en modo multi-tab, pero se mantiene por seguridad.
-        console.warn("⚠️ Persistencia: Conflicto de precondición (Base de datos bloqueada)");
-    } else if (err.code == 'unimplemented') {
-        // Navegadores muy antiguos que no soportan IndexedDB
-        console.warn("⚠️ Persistencia: El navegador no soporta guardado offline.");
-    }
+// 2. Inicializamos la Base de Datos con PERSISTENCIA OFFLINE MODERNA
+// 🚀 MEJORA: Utilizamos initializeFirestore para activar la caché local 
+// ilimitada y el soporte multi-pestaña de nueva generación.
+export const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({
+    tabManager: persistentMultipleTabManager(),
+    cacheSizeBytes: CACHE_SIZE_UNLIMITED // 🛡️ Guarda todo lo necesario para jugar en el parque
+  })
 });
+
+console.log("🦉 Búho Matemático Config: Base de datos local blindada (Modo Tanque Pro) activada.");
 
 // 3. Configuración Avanzada de Autenticación
 export const auth = getAuth(app);

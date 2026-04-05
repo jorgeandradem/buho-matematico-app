@@ -2,6 +2,10 @@
 import { ref, onMounted } from 'vue';
 import { Plus, Minus, X as MultiplyIcon, Divide } from 'lucide-vue-next';
 
+// --- NUEVAS IMPORTACIONES: EL GUARDIÁN OFFLINE ---
+import { auth } from '@/firebaseConfig';
+import { onAuthStateChanged } from "firebase/auth";
+
 import CoverScreen from './components/CoverScreen.vue';
 import WelcomeScreen from './components/WelcomeScreen.vue'; 
 import PortalWelcomeScreen from './components/PortalWelcomeScreen.vue'; 
@@ -18,9 +22,44 @@ const previousView = ref(null);
 const currentConfig = ref({}); 
 const gamificationStore = useGamificationStore();
 
+// --- ESTADO DE CARGA PARA EL GUARDIÁN ---
+const isLoadingAuth = ref(true);
+
 onMounted(() => {
+  // 1. Cargamos el progreso local (monedas, rachas) por si acaso
   gamificationStore.loadFromStorage();
   gamificationStore.checkDailyStreak();
+
+  // 2. EL GUARDIÁN SILENCIOSO: Revisa la caché de Firebase
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      console.log("🦉 Guardián: Sesión detectada (Modo Offline/Online listo). Entrando al juego...");
+      
+      // Intentamos traer estadísticas frescas de la nube (si está offline, la función usa la caché automáticamente)
+      if (gamificationStore.fetchUserStats) {
+        gamificationStore.fetchUserStats();
+      }
+      
+      // Lo mandamos directo al índice sin pasar por el login
+      currentView.value = 'index';
+    } else {
+      console.log("🦉 Guardián: No hay sesión registrada. Pidiendo credenciales...");
+      currentView.value = 'cover';
+    }
+    
+    // Retiramos la pantalla de carga
+    isLoadingAuth.value = false;
+    
+  }, (error) => {
+    console.error("❌ Error en el Guardián:", error);
+    // FALLBACK DE EMERGENCIA: Si Firebase falla por red inestable, pero hay monedas locales, ¡lo dejamos jugar!
+    if (gamificationStore.totalWealthInCopper > 0) {
+      currentView.value = 'index';
+    } else {
+      currentView.value = 'cover';
+    }
+    isLoadingAuth.value = false;
+  });
 });
 
 const navigateTo = (viewName, config) => {
@@ -53,8 +92,13 @@ const navigateTo = (viewName, config) => {
 
         <main v-else class="app-canvas">
             
+            <div v-if="isLoadingAuth" class="w-full h-full flex flex-col items-center justify-center bg-[#f8fafc]">
+              <div class="animate-bounce text-7xl mb-4 drop-shadow-lg">🦉</div>
+              <p class="text-indigo-900 font-black text-xl animate-pulse tracking-wide uppercase">Preparando el nido...</p>
+            </div>
+
             <CoverScreen 
-              v-if="currentView === 'cover'" 
+              v-else-if="currentView === 'cover'" 
               :force-auth-mode="currentConfig.mode"
               @show-welcome="navigateTo('welcome')" 
               @start="navigateTo('index')" 

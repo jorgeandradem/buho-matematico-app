@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted, computed, onUnmounted } from 'vue';
+import { useNetwork } from '@vueuse/core'; // 👈 IMPORTACIÓN DETECTOR DE RED AÑADIDA
 import { Box, Undo2, X, Info, RotateCcw, Trophy, LogOut } from 'lucide-vue-next';
 import RetoACoordenadas from './RetoACoordenadas.vue';
 import RetoBPoliedros from './RetoBPoliedros.vue'; 
@@ -10,6 +11,9 @@ import RetoFFracciones from './RetoFFracciones.vue';
 import RetoGVistas from './RetoGVistas.vue'; 
 
 const emit = defineEmits(['close', 'sumar-premios']);
+
+// --- DETECTOR INTELIGENTE DE INTERNET ---
+const { isOnline } = useNetwork(); // 👈 Obtenemos el estado en tiempo real
 
 const fase = ref('intro'); 
 const rotationY = ref(0);
@@ -104,8 +108,8 @@ const registrarExitoYVotar = () => {
   emit('sumar-premios', 2);
 
   setTimeout(() => {
-     rotationY.value -= 45; 
-     retoActivo.value = (retoActivo.value + 1) % 8; 
+      rotationY.value -= 45; 
+      retoActivo.value = (retoActivo.value + 1) % 8; 
   }, 1000); 
 };
 
@@ -150,6 +154,7 @@ const abrirReglasActivas = () => {
           <div v-if="fase === 'intro'" class="absolute inset-0 z-[90] flex flex-col items-center justify-center bg-[#050b14] overflow-hidden">
               
               <video 
+                v-if="isOnline"
                 src="/videos/buho_tech.mp4" 
                 autoplay 
                 loop 
@@ -157,7 +162,12 @@ const abrirReglasActivas = () => {
                 playsinline
                 class="absolute inset-0 w-full h-full object-contain z-0"
               ></video>
-
+              <img 
+                v-else 
+                src="/images/buho_estatico.png" 
+                alt="Búho Cuántico Offline" 
+                class="absolute inset-0 w-full h-full object-contain z-0"
+              />
               <button @click="saltarIntro" class="absolute bottom-6 right-6 z-[100] text-cyan-500/60 hover:text-cyan-300 font-bold text-sm tracking-widest uppercase transition-all flex items-center gap-2">
                 Saltar Intro >
               </button>
