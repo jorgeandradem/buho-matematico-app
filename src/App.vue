@@ -15,6 +15,10 @@ import DivisionModule from './components/DivisionModule.vue';
 import ReloadPrompt from './components/ReloadPrompt.vue';
 import CrystalDimension from './components/CrystalDimension.vue'; 
 
+// 🚀 NUEVAS IMPORTACIONES: EL LABORATORIO Y SUS HERRAMIENTAS
+import ToolsHub from './components/ToolsHub.vue';
+import QuantumConverter from './components/QuantumConverter.vue';
+
 import { useGamificationStore } from '@/stores/useGamificationStore';
 
 const currentView = ref('cover'); 
@@ -90,6 +94,17 @@ const navigateTo = (viewName, config) => {
           @sumar-premios="gamificationStore.completeCrystalDimension()"
         />
 
+        <ToolsHub 
+          v-else-if="currentView === 'tools-hub'"
+          @close="navigateTo('index')"
+          @open-tool="(toolId) => navigateTo(toolId)"
+        />
+
+        <QuantumConverter 
+          v-else-if="currentView === 'converter'"
+          @close="navigateTo('tools-hub')"
+        />
+
         <main v-else class="app-canvas">
             
             <div v-if="isLoadingAuth" class="w-full h-full flex flex-col items-center justify-center bg-[#f8fafc]">
@@ -125,6 +140,7 @@ const navigateTo = (viewName, config) => {
               @exit="navigateTo('cover')"
               @open-portal-welcome="navigateTo('portal-welcome')"
               @open-crystal-dimension="navigateTo('crystal-dimension')"
+              @open-tools-hub="navigateTo('tools-hub')" 
             />
 
             <GenericTableModule 

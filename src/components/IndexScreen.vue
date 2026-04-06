@@ -1,17 +1,16 @@
 <script setup>
 /** * ARCHIVO: IndexScreen.vue
- * NOTA INTERNA: TORRE DE CONTROL v3.0.1 - AVISO DE DESCONEXIÓN OFFLINE INTEGRADO
- * LOGICA: Sincronización Privada + Gestión de Premios Cuánticos.
+ * NOTA INTERNA: TORRE DE CONTROL v3.1.0 - ARQUITECTURA DE 3 DISTRITOS (LABORATORIO AÑADIDO)
+ * LOGICA: Sincronización Privada + Gestión de Premios Cuánticos + Ruteo de Portales.
  */
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue'; 
 import { 
   Plus, Minus, X as MultiplyIcon, Divide, LogOut, 
   User, Pencil, BookOpen, Play, X as CloseIcon,
   ShoppingBag, Zap, Flame, Coffee, DoorOpen, BellRing, Target,
-  Eye, EyeOff, Volume2, Hexagon, AlertTriangle
+  Eye, EyeOff, Volume2, Hexagon, AlertTriangle, Beaker
 } from 'lucide-vue-next';
 import OwlImage from './OwlImage.vue';
-import { incentiveMessages } from '../utils/messages';
 import StatusBoard from './StatusBoard.vue';
 import SessionSummary from './SessionSummary.vue';
 import RewardShop from './RewardShop.vue';
@@ -24,12 +23,11 @@ import { auth, db } from '../firebaseConfig';
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { doc, onSnapshot, updateDoc } from "firebase/firestore";
 
-// 🛠️ FIX: Añadimos 'open-crystal-dimension' a la lista de eventos permitidos
-const emit = defineEmits(['select', 'exit', 'open-portal-welcome', 'open-crystal-dimension']);
+// 🛠️ FIX: Añadimos 'open-tools-hub' a la lista de eventos para abrir el Laboratorio
+const emit = defineEmits(['select', 'exit', 'open-portal-welcome', 'open-crystal-dimension', 'open-tools-hub']);
 const props = defineProps(['fromView', 'config']);
 
 const gamificationStore = useGamificationStore();
-const randomIncentive = ref("");
 const studentName = ref(""); 
 const isEditingName = ref(false);
 const showOwl = ref(false); 
@@ -89,11 +87,6 @@ const startRealTimeSync = (user) => {
             if (data.stats) gamificationStore.setCoinsFromCloud(data.stats);
         }
     });
-};
-
-const pickRandomMessage = () => {
-  const randomIndex = Math.floor(Math.random() * incentiveMessages.length);
-  randomIncentive.value = incentiveMessages[randomIndex];
 };
 
 const zoomIn = () => { if (guideFontSize.value < 28) guideFontSize.value += 2; }; 
@@ -168,7 +161,7 @@ onMounted(() => {
   if (!gamificationStore.activeMissions || gamificationStore.activeMissions.length === 0) {
       gamificationStore.generateNewMissions();
   }
-  pickRandomMessage();
+  
   onAuthStateChanged(auth, (user) => {
       if (user) startRealTimeSync(user); 
       else {
@@ -176,9 +169,11 @@ onMounted(() => {
           if (localName) studentName.value = localName;
       }
   });
+  
   if (props.fromView && ['add', 'sub', 'mult', 'div'].includes(props.fromView)) {
       setTimeout(() => { openConfig(props.fromView); }, 50);
   }
+  
   const isComingFromCover = props.fromView === 'cover' || !props.fromView;
   setTimeout(() => {
     showOwl.value = true;
@@ -309,7 +304,7 @@ const currentSubjectLabel = computed(() => options.find(o => o.id === selectedSu
             </button>
           </div>
 
-          <div class="px-4 w-full flex flex-col gap-2 shrink-0 max-w-md mx-auto">
+          <div class="px-4 w-full flex flex-col gap-2.5 shrink-0 max-w-md mx-auto">
               
               <button @click="emit('open-portal-welcome')" class="w-full bg-gradient-to-r from-yellow-400 to-orange-500 rounded-[2.5rem] p-1 shadow-[0_4px_0_rgb(194,65,12)] active:translate-y-1 transition-all group">
                 <div class="bg-white/10 rounded-[2.2rem] py-2 px-4 flex items-center gap-4">
@@ -323,7 +318,7 @@ const currentSubjectLabel = computed(() => options.find(o => o.id === selectedSu
                 </div>
               </button>
 
-              <button @click="emit('open-crystal-dimension')" class="w-full bg-slate-950 rounded-[2.5rem] p-1 shadow-[0_4px_0_rgb(2,6,23),0_0_15px_rgba(34,211,238,0.4)] border border-cyan-500/30 active:translate-y-1 transition-all group relative overflow-hidden">
+              <button @click="emit('open-crystal-dimension')" class="w-full bg-slate-950 rounded-[2.5rem] p-1 shadow-[0_4px_0_rgb(2,6,23),0_0_15px_rgba(34,211,238,0.3)] border border-cyan-500/30 active:translate-y-1 transition-all group relative overflow-hidden">
                   <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-cyan-400/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
                   <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-emerald-400/20 via-transparent to-transparent"></div>
                   <div class="bg-white/5 backdrop-blur-md rounded-[2.2rem] py-2 px-4 flex items-center gap-4 relative z-10 border border-white/5">
@@ -336,19 +331,25 @@ const currentSubjectLabel = computed(() => options.find(o => o.id === selectedSu
                       </div>
                   </div>
               </button>
-          </div>
 
-          <div class="w-full px-4 flex items-center justify-center min-h-[44px]">
-              <div class="bg-indigo-900/20 w-full rounded-2xl py-2 px-4 flex items-center justify-center gap-3 shadow-inner max-w-md">
-                  <button @click="speak(randomIncentive)" class="text-indigo-200 hover:text-white transition-colors shrink-0">
-                      <Volume2 :size="16" />
-                  </button>
-                  <p class="text-white text-[11px] font-black italic text-center leading-tight">{{ randomIncentive }}</p>
-              </div>
+              <button @click="emit('open-tools-hub')" class="w-full bg-slate-950 rounded-[2.5rem] p-1 shadow-[0_4px_0_rgb(2,6,23),0_0_15px_rgba(217,70,239,0.3)] border border-fuchsia-500/30 active:translate-y-1 transition-all group relative overflow-hidden">
+                  <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-fuchsia-400/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                  <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-purple-400/20 via-transparent to-transparent"></div>
+                  <div class="bg-white/5 backdrop-blur-md rounded-[2.2rem] py-2 px-4 flex items-center gap-4 relative z-10 border border-white/5">
+                      <div class="w-10 h-10 shrink-0 rounded-full bg-slate-900 border border-fuchsia-400/50 flex items-center justify-center group-hover:scale-110 group-hover:-rotate-12 transition-all shadow-[inset_0_0_15px_rgba(217,70,239,0.3)]">
+                          <Beaker size="22" class="text-fuchsia-400" />
+                      </div>
+                      <div class="text-left flex-1">
+                          <h3 class="font-black text-lg leading-tight uppercase tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-300 to-purple-300 drop-shadow-[0_0_8px_rgba(217,70,239,0.5)]">El Laboratorio</h3>
+                          <p class="text-fuchsia-200/80 text-[10px] font-bold uppercase tracking-widest leading-none mt-0.5">🧪 Artefactos del Búho</p>
+                      </div>
+                  </div>
+              </button>
+
           </div>
         </div>
 
-        <div class="shrink-0 pb-6 px-4 w-full">
+        <div class="shrink-0 pb-2 md:pb-4 px-4 w-full">
             <StatusBoard />
         </div>
 
@@ -436,7 +437,7 @@ const currentSubjectLabel = computed(() => options.find(o => o.id === selectedSu
   touch-action: none; 
 }
 
-/* 📱 CONFIGURACIÓN PARA SMARTPHONE (POR DEFECTO) */
+/* 📱 CONFIGURACIÓN PARA SMARTPHONE */
 .app-canvas { 
   display: flex; 
   flex-direction: column; 
@@ -446,20 +447,20 @@ const currentSubjectLabel = computed(() => options.find(o => o.id === selectedSu
   background: linear-gradient(to bottom right, #6366f1, #a855f7); 
   width: 100vw; 
   height: 100dvh; 
-  box-sizing: border-box; /* ⬅️ Evita desbordamientos laterales */
+  box-sizing: border-box;
 }
 
-/* 📑 CONFIGURACIÓN PARA TABLET (iPad, Android Tabs) */
+/* 📑 CONFIGURACIÓN PARA TABLET */
 @media (min-width: 600px) and (max-width: 1024px) { 
   .app-canvas { 
     width: 85vw; 
     height: 95dvh; 
     border-radius: 35px; 
-    max-width: 700px; /* ⬅️ Mantiene el encuadre profesional */
+    max-width: 700px; 
   } 
 }
 
-/* 💻 CONFIGURACIÓN PARA PC (INVARIABLE SEGÚN SOLICITUD) */
+/* 💻 CONFIGURACIÓN PARA PC */
 @media (min-width: 1025px) { 
   .app-canvas { 
     width: 1024px; 
@@ -469,12 +470,12 @@ const currentSubjectLabel = computed(() => options.find(o => o.id === selectedSu
   } 
 }
 
-/* 📐 ÁREA DE CONTENIDO DINÁMICA (ELASTICA VERTICALMENTE) */
+/* 📐 ÁREA DE CONTENIDO DINÁMICA */
 .content-hero-area {
   flex-grow: 1;
   display: flex;
   flex-direction: column;
-  justify-content: space-evenly; /* ⬅️ Reparte el espacio vacío de forma profesional */
+  justify-content: space-evenly;
   width: 100%;
   max-width: 100%;
   overflow-x: hidden;
