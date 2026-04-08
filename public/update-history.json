@@ -1,5 +1,12 @@
 [
   {
+    "updateId": "upd_1776092400000",
+    "version": "2.12.1",
+    "date": "08/04/2026",
+    "title": "LA CINTA DE PAPEL Y PRECISIÓN EUROPEA",
+    "description": "Capitán, el Laboratorio ha desbloqueado su tercer artefacto: la 'Cinta de Papel'. Se trata de una potente máquina contable secuencial (Adding Machine) con lógica algebraica real que permite procesar operaciones encadenadas con precisión absoluta. Hemos implementado un sistema de formateo europeo (puntos para millares y comas para decimales) con un selector dinámico de precisión de hasta 5 decimales. El motor de exportación dual ahora genera tickets profesionales de papel térmico en PDF y registros crudos en TXT. Todo el chasis ha sido forjado en 2.5D neumórfico ultra-achatado, garantizando un ajuste perfecto en PC, Tablet y Móvil, sincronizado con el nuevo efecto acústico 'Clip' de alta fidelidad."
+  },
+  {
     "updateId": "upd_1775919600000",
     "version": "2.12.0",
     "date": "06/04/2026",

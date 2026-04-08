@@ -4,7 +4,7 @@ import {
   BookOpen, Sparkles, ChevronDown, MousePointer2, Eye, 
   Eraser, Keyboard, GraduationCap, Trophy, User, 
   ShieldCheck, Heart, MessageCircle, ZoomIn, Shrink,
-  Type
+  Type, Map, Beaker, Hexagon, Target, CheckCircle2
 } from 'lucide-vue-next';
 import OwlImage from './OwlImage.vue';
 
@@ -95,7 +95,7 @@ const toggleZoom = () => {
         <div v-if="activeSection === 1" class="p-5 pt-0 text-[11px] text-slate-600 leading-relaxed space-y-4 animate-fade-in">
           <div class="flex gap-3">
             <User :size="18" class="text-indigo-500 shrink-0" />
-            <p><strong>¿Quién la creó?:</strong> Esta aplicación es una iniciativa personal de <strong>Jorge Andrade</strong>, mentor digital. Nació como un regalo para sus nietos y hoy es una herramienta abierta para usuarios de cualquier edad que deseen fortalecer su agilidad mental.</p>
+            <p><strong>¿Quién la creó?:</strong> Esta aplicación es una iniciativa personal de <strong>Jorge Andrade</strong>, Mentor Digital & IA. Nació como un regalo para sus nietos y hoy es una herramienta abierta para usuarios de cualquier edad que deseen fortalecer su agilidad mental.</p>
           </div>
           <div class="flex gap-3">
             <ShieldCheck :size="18" class="text-green-500 shrink-0" />
@@ -103,7 +103,7 @@ const toggleZoom = () => {
           </div>
           <div class="flex gap-3">
             <Heart :size="18" class="text-rose-500 shrink-0" />
-            <p><strong>Ayuda Universal:</strong> Está diseñada tanto para niños en etapa escolar como para adultos que quieran dejar de depender de la calculadora en su día a día.</p>
+            <p><strong>Ayuda Universal:</strong> Está diseñada tanto para niños en etapa escolar como para adultos que quieran mantener su mente activa, dejar de depender de la calculadora, y aprovechar nuestras herramientas de laboratorio para su día a día.</p>
           </div>
         </div>
       </div>
@@ -119,12 +119,16 @@ const toggleZoom = () => {
 
         <div v-if="activeSection === 2" class="p-5 pt-0 text-[11px] text-slate-600 space-y-4 animate-fade-in leading-relaxed">
           <div class="flex gap-3">
+            <CheckCircle2 :size="18" class="text-emerald-500 shrink-0" />
+            <p><strong>Blindaje Anti-Frustración:</strong> Creada con un diseño clínico y adaptativo. No importa si usas un móvil pequeño, una tablet o un PC, la plataforma se ajusta sin desbordes ni botones escondidos, garantizando una experiencia fluida.</p>
+          </div>
+          <div class="flex gap-3">
             <MousePointer2 :size="18" class="text-yellow-500 shrink-0" />
-            <p><strong>Foco Inteligente:</strong> No perderás tiempo buscando dónde pulsar. Verás un foco guía con bordes amarillos que late suavemente para orientarte. Además, la navegación es automática: el cursor salta solo a la siguiente casilla al responder correctamente.</p>
+            <p><strong>Foco Inteligente:</strong> No perderás tiempo buscando dónde pulsar. Verás un foco guía con bordes amarillos que late suavemente para orientarte. Además, la navegación es automática.</p>
           </div>
           <div class="flex gap-3">
             <Eye :size="18" class="text-blue-500 shrink-0" />
-            <p><strong>Ojos de Ayuda Continua:</strong> Si te sientes atascado en una tabla, ¡no te detengas! Despliega los ojos de ayuda para visualizar la tabla de multiplicar en práctica. Es un aprendizaje dinámico pensado para que nunca te detengas.</p>
+            <p><strong>Ojos de Ayuda Continua:</strong> Si te sientes atascado en una tabla, ¡no te detengas! Despliega los ojos de ayuda para visualizar la tabla de multiplicar en práctica.</p>
           </div>
           <div class="flex gap-3">
             <Eraser :size="18" class="text-slate-500 shrink-0" />
@@ -142,11 +146,41 @@ const toggleZoom = () => {
             <Trophy :size="18" class="text-orange-500 shrink-0" />
             <div class="space-y-1">
               <p><strong>Premios y Rachas:</strong> Gana monedas de Cobre, Plata y Oro por cada acierto.</p>
-              <p class="flex items-center gap-1"><MessageCircle :size="12" class="text-green-500"/> Mantén tu racha diaria para ver efectos de sonido especiales y recibir notificaciones de tus logros vía WhatsApp.</p>
+              <p class="flex items-center gap-1"><MessageCircle :size="12" class="text-green-500"/> Mantén tu racha diaria para recibir notificaciones de tus logros vía WhatsApp.</p>
             </div>
           </div>
         </div>
       </div>
+
+      <div class="border-2 rounded-2xl overflow-hidden transition-all duration-300" 
+           :class="activeSection === 3 ? 'border-indigo-500 bg-white shadow-md' : 'border-slate-100 bg-slate-50'">
+        <button @click="toggle(3)" class="w-full p-4 flex items-center justify-between text-left">
+          <div class="flex items-center gap-3 text-indigo-700 font-black uppercase text-xs tracking-widest">
+            <Map :size="20" /> 🧭 SECCIÓN 3: LAS DIMENSIONES DEL NIDO
+          </div>
+          <ChevronDown :size="20" class="transition-transform duration-300" :class="activeSection === 3 ? 'rotate-180' : ''" />
+        </button>
+
+        <div v-if="activeSection === 3" class="p-5 pt-0 text-[11px] text-slate-600 space-y-4 animate-fade-in leading-relaxed">
+          <div class="flex gap-3">
+            <BookOpen :size="18" class="text-blue-500 shrink-0" />
+            <p><strong>Los Cuadernos Base:</strong> Tu campo de entrenamiento diario para dominar las operaciones aritméticas fundamentales con la ayuda y voz del Profesor Búho.</p>
+          </div>
+          <div class="flex gap-3">
+            <Target :size="18" class="text-orange-500 shrink-0" />
+            <p><strong>Portal de Desafíos:</strong> Una sala de entrenamiento avanzado. Pon a prueba tus reflejos en minijuegos de destreza rápida para ganar monedas extra bajo presión.</p>
+          </div>
+          <div class="flex gap-3">
+            <Hexagon :size="18" class="text-cyan-500 shrink-0" />
+            <p><strong>Dimensión de Cristal:</strong> Entra al Reino Cuántico. Un entorno espacial en 2.5D y 3D diseñado para dominar la geometría, las fracciones espaciales y el pensamiento lógico avanzado.</p>
+          </div>
+          <div class="flex gap-3">
+            <Beaker :size="18" class="text-fuchsia-500 shrink-0" />
+            <p><strong>El Laboratorio Clínico:</strong> Una suite de instrumentos de alta precisión. Aquí encontrarás artefactos reales, como el Conversor Cuántico, diseñados no solo para aprender, sino como herramientas útiles y rápidas para la vida diaria de cualquier adulto.</p>
+          </div>
+        </div>
+      </div>
+
     </div>
 
     <Teleport to="body">
@@ -205,39 +239,59 @@ const toggleZoom = () => {
                 <p class="font-medium leading-tight opacity-80 text-center">Te guiaré paso a paso en tu aprendizaje. 🦉</p>
               </div>
 
-              <div v-for="sec in [1, 2]" :key="sec" 
-                :ref="el => sectionRefs[sec - 1] = el" 
+              <div :ref="el => sectionRefs[0] = el" 
                 class="border-2 rounded-[2.5rem] overflow-hidden shadow-lg transition-all"
-                :class="[
-                  activeSection === sec ? 'border-indigo-600' : 'border-slate-100/50',
-                  readingTheme === 'dark' ? 'bg-slate-700/50' : 'bg-white/80'
-                ]"
-              >
-                <button @click="toggle(sec)" class="w-full p-8 flex items-center justify-between text-left" :class="readingTheme === 'dark' ? 'bg-slate-900/20' : 'bg-indigo-50/30'">
+                :class="[ activeSection === 1 ? 'border-indigo-600' : 'border-slate-100/50', readingTheme === 'dark' ? 'bg-slate-700/50' : 'bg-white/80' ]">
+                <button @click="toggle(1)" class="w-full p-8 flex items-center justify-between text-left" :class="readingTheme === 'dark' ? 'bg-slate-900/20' : 'bg-indigo-50/30'">
                   <span class="font-black uppercase flex items-center gap-4">
-                    <component :is="sec === 1 ? BookOpen : Sparkles" :size="fontSize * 1.2" class="text-indigo-600 shrink-0" /> 
-                    SECCIÓN {{ sec }}: {{ sec === 1 ? 'PROPÓSITO Y ORIGEN' : 'FUNCIONALIDADES Y MAGIA' }}
+                    <BookOpen :size="fontSize * 1.2" class="text-indigo-600 shrink-0" /> SECCIÓN 1: PROPÓSITO Y ORIGEN
                   </span>
-                  <ChevronDown :size="fontSize * 1.2" :class="activeSection === sec ? 'rotate-180 text-indigo-600' : ''" />
+                  <ChevronDown :size="fontSize * 1.2" :class="activeSection === 1 ? 'rotate-180 text-indigo-600' : ''" />
                 </button>
-                
-                <div v-if="activeSection === sec" class="p-10 leading-snug font-medium border-t-2 border-slate-100/20 animate-fade-in space-y-8">
-                  <template v-if="sec === 1">
-                    <div class="flex gap-4"><User :size="fontSize" class="text-indigo-500 shrink-0" /><p><strong>¿Quién la creó?:</strong> Esta aplicación es una iniciativa personal de <strong>Jorge Andrade</strong>, mentor digital. Nació como un regalo para sus nietos y hoy es una herramienta abierta para usuarios de cualquier edad que deseen fortalecer su agilidad mental.</p></div>
-                    <div class="flex gap-4"><ShieldCheck :size="fontSize" class="text-green-500 shrink-0" /><p><strong>Sin Distracciones:</strong> Nuestra misión es ofrecer un espacio seguro y ético. Por ello, la App es totalmente gratuita y está libre de publicidad.</p></div>
-                    <div class="flex gap-4"><Heart :size="fontSize" class="text-rose-500 shrink-0" /><p><strong>Ayuda Universal:</strong> Está diseñada tanto para niños en etapa escolar como para adultos que quieran dejar de depender de la calculadora en su día a día.</p></div>
-                  </template>
-
-                  <template v-else>
-                    <div class="flex gap-4"><MousePointer2 :size="fontSize" class="text-yellow-500 shrink-0" /><p><strong>Foco Inteligente:</strong> No perderás tiempo buscando dónde pulsar. Verás un foco guía con bordes amarillos que late suavemente para orientarte. Además, la navegación es automática: el cursor salta solo a la siguiente casilla al responder correctamente.</p></div>
-                    <div class="flex gap-4"><Eye :size="fontSize" class="text-blue-500 shrink-0" /><p><strong>Ojos de Ayuda Continua:</strong> Si te sientes atascado en una tabla, ¡no te detengas! Despliega los ojos de ayuda para visualizar la tabla de multiplicar en práctica. Es un aprendizaje dinámico pensado para que nunca te detengas.</p></div>
-                    <div class="flex gap-4"><Eraser :size="fontSize" class="text-slate-500 shrink-0" /><p><strong>Cambio y Reinicio:</strong> ¿Quieres otro reto? Usa el icono del borrador para resetear la pantalla o cambiar el tipo de ejercicio de forma aleatoria en cualquier momento.</p></div>
-                    <div class="flex gap-4"><Keyboard :size="fontSize" class="text-indigo-500 shrink-0" /><p><strong>Teclado Virtual:</strong> Hemos integrado un teclado virtual exclusivo dentro de la app para que resolver los ejercicios sea rápido, cómodo y táctil, sin que el teclado del móvil te estorbe.</p></div>
-                    <div class="flex gap-4"><GraduationCap :size="fontSize" class="text-indigo-800 shrink-0" /><p><strong>Mentoría del Búho:</strong> Dentro de cada cuaderno, yo (el Profesor Búho) te daré instrucciones precisas sobre qué paso sigue en cada operación.</p></div>
-                    <div class="flex gap-4"><Trophy :size="fontSize" class="text-orange-500 shrink-0" /><div class="space-y-2"><p><strong>Premios y Rachas:</strong> Gana monedas de Cobre, Plata y Oro por cada acierto.</p><p class="flex items-center gap-2 text-green-700 font-black"><MessageCircle :size="fontSize * 0.8"/> Mantén tu racha diaria para ver efectos de sonido especiales y recibir notificaciones de tus logros vía WhatsApp.</p></div></div>
-                  </template>
+                <div v-if="activeSection === 1" class="p-10 leading-snug font-medium border-t-2 border-slate-100/20 animate-fade-in space-y-8">
+                  <div class="flex gap-4"><User :size="fontSize" class="text-indigo-500 shrink-0" /><p><strong>¿Quién la creó?:</strong> Esta aplicación es una iniciativa personal de <strong>Jorge Andrade</strong>, Mentor Digital & IA. Nació como un regalo para sus nietos y hoy es una herramienta abierta para usuarios de cualquier edad que deseen fortalecer su agilidad mental.</p></div>
+                  <div class="flex gap-4"><ShieldCheck :size="fontSize" class="text-green-500 shrink-0" /><p><strong>Sin Distracciones:</strong> Nuestra misión es ofrecer un espacio seguro y ético. Por ello, la App es totalmente gratuita y está libre de publicidad.</p></div>
+                  <div class="flex gap-4"><Heart :size="fontSize" class="text-rose-500 shrink-0" /><p><strong>Ayuda Universal:</strong> Está diseñada tanto para niños en etapa escolar como para adultos que quieran mantener su mente activa, dejar de depender de la calculadora, y aprovechar nuestras herramientas de laboratorio para su día a día.</p></div>
                 </div>
               </div>
+
+              <div :ref="el => sectionRefs[1] = el" 
+                class="border-2 rounded-[2.5rem] overflow-hidden shadow-lg transition-all"
+                :class="[ activeSection === 2 ? 'border-indigo-600' : 'border-slate-100/50', readingTheme === 'dark' ? 'bg-slate-700/50' : 'bg-white/80' ]">
+                <button @click="toggle(2)" class="w-full p-8 flex items-center justify-between text-left" :class="readingTheme === 'dark' ? 'bg-slate-900/20' : 'bg-indigo-50/30'">
+                  <span class="font-black uppercase flex items-center gap-4">
+                    <Sparkles :size="fontSize * 1.2" class="text-indigo-600 shrink-0" /> SECCIÓN 2: FUNCIONALIDADES Y MAGIA
+                  </span>
+                  <ChevronDown :size="fontSize * 1.2" :class="activeSection === 2 ? 'rotate-180 text-indigo-600' : ''" />
+                </button>
+                <div v-if="activeSection === 2" class="p-10 leading-snug font-medium border-t-2 border-slate-100/20 animate-fade-in space-y-8">
+                  <div class="flex gap-4"><CheckCircle2 :size="fontSize" class="text-emerald-500 shrink-0" /><p><strong>Blindaje Anti-Frustración:</strong> Creada con un diseño clínico y adaptativo. No importa si usas un móvil pequeño, una tablet o un PC, la plataforma se ajusta sin desbordes ni botones escondidos, garantizando una experiencia fluida.</p></div>
+                  <div class="flex gap-4"><MousePointer2 :size="fontSize" class="text-yellow-500 shrink-0" /><p><strong>Foco Inteligente:</strong> No perderás tiempo buscando dónde pulsar. Verás un foco guía con bordes amarillos que late suavemente para orientarte. Además, la navegación es automática.</p></div>
+                  <div class="flex gap-4"><Eye :size="fontSize" class="text-blue-500 shrink-0" /><p><strong>Ojos de Ayuda Continua:</strong> Si te sientes atascado en una tabla, ¡no te detengas! Despliega los ojos de ayuda para visualizar la tabla de multiplicar en práctica.</p></div>
+                  <div class="flex gap-4"><Eraser :size="fontSize" class="text-slate-500 shrink-0" /><p><strong>Cambio y Reinicio:</strong> ¿Quieres otro reto? Usa el icono del borrador para resetear la pantalla o cambiar el tipo de ejercicio de forma aleatoria en cualquier momento.</p></div>
+                  <div class="flex gap-4"><Keyboard :size="fontSize" class="text-indigo-500 shrink-0" /><p><strong>Teclado Virtual:</strong> Hemos integrado un teclado virtual exclusivo dentro de la app para que resolver los ejercicios sea rápido, cómodo y táctil.</p></div>
+                  <div class="flex gap-4"><GraduationCap :size="fontSize" class="text-indigo-800 shrink-0" /><p><strong>Mentoría del Búho:</strong> Dentro de cada cuaderno, yo (el Profesor Búho) te daré instrucciones precisas sobre qué paso sigue en cada operación.</p></div>
+                  <div class="flex gap-4"><Trophy :size="fontSize" class="text-orange-500 shrink-0" /><div class="space-y-2"><p><strong>Premios y Rachas:</strong> Gana monedas de Cobre, Plata y Oro por cada acierto.</p><p class="flex items-center gap-2 text-green-700 font-black"><MessageCircle :size="fontSize * 0.8"/> Mantén tu racha diaria para recibir notificaciones de tus logros vía WhatsApp.</p></div></div>
+                </div>
+              </div>
+
+              <div :ref="el => sectionRefs[2] = el" 
+                class="border-2 rounded-[2.5rem] overflow-hidden shadow-lg transition-all"
+                :class="[ activeSection === 3 ? 'border-indigo-600' : 'border-slate-100/50', readingTheme === 'dark' ? 'bg-slate-700/50' : 'bg-white/80' ]">
+                <button @click="toggle(3)" class="w-full p-8 flex items-center justify-between text-left" :class="readingTheme === 'dark' ? 'bg-slate-900/20' : 'bg-indigo-50/30'">
+                  <span class="font-black uppercase flex items-center gap-4">
+                    <Map :size="fontSize * 1.2" class="text-indigo-600 shrink-0" /> SECCIÓN 3: LAS DIMENSIONES DEL NIDO
+                  </span>
+                  <ChevronDown :size="fontSize * 1.2" :class="activeSection === 3 ? 'rotate-180 text-indigo-600' : ''" />
+                </button>
+                <div v-if="activeSection === 3" class="p-10 leading-snug font-medium border-t-2 border-slate-100/20 animate-fade-in space-y-8">
+                  <div class="flex gap-4"><BookOpen :size="fontSize" class="text-blue-500 shrink-0" /><p><strong>Los Cuadernos Base:</strong> Tu campo de entrenamiento diario para dominar las operaciones aritméticas fundamentales con la ayuda y voz del Profesor Búho.</p></div>
+                  <div class="flex gap-4"><Target :size="fontSize" class="text-orange-500 shrink-0" /><p><strong>Portal de Desafíos:</strong> Una sala de entrenamiento avanzado. Pon a prueba tus reflejos en minijuegos de destreza rápida para ganar monedas extra bajo presión.</p></div>
+                  <div class="flex gap-4"><Hexagon :size="fontSize" class="text-cyan-500 shrink-0" /><p><strong>Dimensión de Cristal:</strong> Entra al Reino Cuántico. Un entorno espacial en 2.5D y 3D diseñado para dominar la geometría, las fracciones espaciales y el pensamiento lógico avanzado.</p></div>
+                  <div class="flex gap-4"><Beaker :size="fontSize" class="text-fuchsia-500 shrink-0" /><p><strong>El Laboratorio Clínico:</strong> Una suite de herramientas de alta precisión. Aquí encontrarás instrumentos reales, como el Conversor Cuántico, diseñados no solo para aprender, sino como herramientas útiles y rápidas para la vida diaria de cualquier adulto.</p></div>
+                </div>
+              </div>
+
             </div>
             <div class="h-32"></div>
           </div>

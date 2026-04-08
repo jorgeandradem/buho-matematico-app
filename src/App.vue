@@ -18,6 +18,8 @@ import CrystalDimension from './components/CrystalDimension.vue';
 // 🚀 NUEVAS IMPORTACIONES: EL LABORATORIO Y SUS HERRAMIENTAS
 import ToolsHub from './components/ToolsHub.vue';
 import QuantumConverter from './components/QuantumConverter.vue';
+import FinancialSimulator from './components/FinancialSimulator.vue'; // 👈 IMPORTACIÓN DEL INSTRUMENTO 02
+import TapeCalculator from './components/TapeCalculator.vue'; // 👈 IMPORTACIÓN DEL INSTRUMENTO 03 (🦉 NUEVO)
 
 import { useGamificationStore } from '@/stores/useGamificationStore';
 
@@ -102,6 +104,16 @@ const navigateTo = (viewName, config) => {
 
         <QuantumConverter 
           v-else-if="currentView === 'converter'"
+          @close="navigateTo('tools-hub')"
+        />
+
+        <FinancialSimulator 
+          v-else-if="currentView === 'simulator'"
+          @close="navigateTo('tools-hub')"
+        />
+
+        <TapeCalculator 
+          v-else-if="currentView === 'tape-calculator'"
           @close="navigateTo('tools-hub')"
         />
 

@@ -1,6 +1,6 @@
 <script setup>
 /** * ARCHIVO: ToolsHub.vue
- * NOTA INTERNA: EL LABORATORIO DEL BÚHO v4.2 - 8 ARTEFACTOS (SCROLL INTERNO)
+ * NOTA INTERNA: EL LABORATORIO DEL BÚHO v4.5 - INSTRUMENTO 03 DESBLOQUEADO (Cinta Calculadora)
  * LOGICA: Cuadrícula de utilidades con sistema de bloqueos.
  */
 import { ref } from 'vue';
@@ -15,13 +15,24 @@ const tools = [
     desc: 'Medidas y Valores', 
     locked: false, 
   },
-  { id: 't2', name: 'Artefacto 02', desc: 'Clasificado', locked: true },
-  { id: 't3', name: 'Artefacto 03', desc: 'Clasificado', locked: true },
-  { id: 't4', name: 'Artefacto 04', desc: 'Clasificado', locked: true },
-  { id: 't5', name: 'Artefacto 05', desc: 'Clasificado', locked: true },
-  { id: 't6', name: 'Artefacto 06', desc: 'Clasificado', locked: true },
-  { id: 't7', name: 'Artefacto 07', desc: 'Clasificado', locked: true },
-  { id: 't8', name: 'Artefacto 08', desc: 'Clasificado', locked: true }
+  { 
+    id: 'simulator', 
+    name: 'Simulador Financiero', 
+    desc: 'Cálculo de Préstamos', 
+    locked: false, 
+  },
+  // 🦉 INSTRUMENTO 03 ACTUALIZADO Y DESBLOQUEADO
+  { 
+    id: 'tape-calculator', 
+    name: 'Cinta Calculadora', 
+    desc: 'Historial de Cálculos', 
+    locked: false, 
+  },
+  { id: 't4', name: 'Instrumento 04', desc: 'Clasificado', locked: true },
+  { id: 't5', name: 'Instrumento 05', desc: 'Clasificado', locked: true },
+  { id: 't6', name: 'Instrumento 06', desc: 'Clasificado', locked: true },
+  { id: 't7', name: 'Instrumento 07', desc: 'Clasificado', locked: true },
+  { id: 't8', name: 'Instrumento 08', desc: 'Clasificado', locked: true }
 ];
 
 const handleToolClick = (tool) => {
@@ -63,10 +74,10 @@ const handleToolClick = (tool) => {
               
               <div class="mb-4 md:mb-8 text-center shrink-0">
                   <h2 class="text-[#1e293b] text-xl md:text-[28px] font-black uppercase tracking-wide leading-tight mb-1 md:mb-2">
-                      Módulo de Herramientas
+                      Módulo de Instrumentos
                   </h2>
                   <h3 class="text-[#334155] text-sm md:text-[22px] font-black uppercase tracking-wide leading-tight">
-                      Selecciona un artefacto activado
+                      Selecciona un instrumento activado
                   </h3>
               </div>
 
@@ -91,16 +102,36 @@ const handleToolClick = (tool) => {
                           </span>
                           
                           <div class="mt-2 md:mt-4 flex justify-center items-center">
-                              <svg v-if="!tool.locked" xmlns="http://www.w3.org/2000/svg" width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-600">
+                              
+                              <svg v-if="tool.locked" xmlns="http://www.w3.org/2000/svg" width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-[#52525b]">
+                                  <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+                                  <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                              </svg>
+
+                              <svg v-else-if="tool.id === 'converter'" xmlns="http://www.w3.org/2000/svg" width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-600">
                                   <circle cx="12" cy="12" r="1"/>
                                   <ellipse cx="12" cy="12" rx="11" ry="4" transform="rotate(45 12 12)"/>
                                   <ellipse cx="12" cy="12" rx="11" ry="4" transform="rotate(-45 12 12)"/>
                               </svg>
 
-                              <svg v-else xmlns="http://www.w3.org/2000/svg" width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-[#52525b]">
-                                  <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
-                                  <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                              <svg v-else-if="tool.id === 'simulator'" xmlns="http://www.w3.org/2000/svg" width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-600">
+                                  <line x1="12" x2="12" y1="2" y2="22"/>
+                                  <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
                               </svg>
+
+                              <svg v-else-if="tool.id === 'tape-calculator'" xmlns="http://www.w3.org/2000/svg" width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-600">
+                                  <rect width="16" height="20" x="4" y="2" rx="2"/>
+                                  <line x1="8" x2="16" y1="6" y2="6"/>
+                                  <line x1="16" x2="16" y1="14" y2="18"/>
+                                  <path d="M16 10h.01"/>
+                                  <path d="M12 10h.01"/>
+                                  <path d="M8 10h.01"/>
+                                  <path d="M12 14h.01"/>
+                                  <path d="M8 14h.01"/>
+                                  <path d="M12 18h.01"/>
+                                  <path d="M8 18h.01"/>
+                              </svg>
+
                           </div>
 
                           <div class="text-center w-full mt-1">
@@ -108,14 +139,17 @@ const handleToolClick = (tool) => {
                                   'font-black text-[13px] md:text-[15px] leading-tight tracking-tight w-full px-1 uppercase',
                                   tool.locked ? 'text-[#3f3f46]' : 'text-blue-800'
                               ]">
-                                  <span v-if="!tool.locked">Conversor<br>Cuántico</span>
+                                  <span v-if="tool.id === 'converter'">Conversor<br>Cuántico</span>
+                                  <span v-else-if="tool.id === 'simulator'">Simulador<br>Financiero</span>
+                                  <span v-else-if="tool.id === 'tape-calculator'">Cinta<br>Calculadora</span>
                                   <span v-else>{{ tool.name }}</span>
                               </h3>
                           </div>
                       </button>
                   </div>
               </div>
-              </div>
+              
+          </div>
 
       </div>
     </main>
@@ -127,7 +161,6 @@ const handleToolClick = (tool) => {
 
 .font-inter { font-family: 'Inter', sans-serif; }
 
-/* Blindaje global idéntico a las otras pantallas */
 .master-container { 
   height: 100dvh; 
   width: 100vw; 
@@ -156,7 +189,6 @@ const handleToolClick = (tool) => {
   .app-canvas { width: 1024px; height: 90dvh; border-radius: 45px; border: 6px solid rgba(255, 255, 255, 0.5); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15); } 
 }
 
-/* Ocultar barra de scroll, pero manteniendo la funcionalidad */
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 </style>
