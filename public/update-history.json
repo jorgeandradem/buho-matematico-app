@@ -1,5 +1,12 @@
 [
   {
+    "updateId": "upd_1776265200000",
+    "version": "2.12.2",
+    "date": "10/04/2026",
+    "title": "HARDWARE VIRTUAL Y TOTALIZACIÓN MAESTRA",
+    "description": "Capitán, hemos refinado el artefacto 'Cinta de Papel' hasta convertirlo en una pieza de hardware virtual de alta gama. El chasis ahora luce un blindaje 2.5D bitono (plateado y negro) con botones azules de contraste profundo y efecto táctil mejorado. Hemos compactado el puente de mando en una sola línea, ganando espacio vital para la cinta, la cual ahora opera bajo una lógica de sumadora profesional (Adding Machine) con disparos inmediatos en operadores, alineación de precisión a la derecha y función de repetición automática. El botón verde 'TOTAL (*)' ha recuperado el dominio absoluto del cierre de ciclos. Además, el motor de exportación dual (PDF/TXT) ha sido purificado de símbolos erráticos para reportes inmaculados, y el indicador acústico ahora cuenta con un código visual Verde/Gris de alta visibilidad."
+  },
+  {
     "updateId": "upd_1776092400000",
     "version": "2.12.1",
     "date": "08/04/2026",
