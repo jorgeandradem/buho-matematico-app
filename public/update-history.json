@@ -1,5 +1,12 @@
 [
   {
+    "updateId": "upd_1776351600000",
+    "version": "2.12.3",
+    "date": "11/04/2026",
+    "title": "EL CLUB LÓGICO: AJEDREZ, DAMAS E INTELIGENCIA ARTIFICIAL",
+    "description": "Capitán, hemos inaugurado la Sala de Recreación 'Club Lógico'. Integración exitosa de dos motores de juego nativos: Ajedrez y Damas Clásicas. El Búho Bot ahora cuenta con Inteligencia Artificial (algoritmo Minimax) para combates estratégicos equilibrados. Además, hemos inyectado una experiencia UX/UI Sensorial Bidireccional en 2.5D con efectos de luminiscencia, audio en tiempo real, cambio fluido de piezas y un sistema matemático avanzado de saltos múltiples (combos) para las damas. Toda la economía del club está conectada en vivo a la bóveda central."
+  },
+  {
     "updateId": "upd_1776265200000",
     "version": "2.12.2",
     "date": "10/04/2026",

@@ -1,6 +1,6 @@
 <script setup>
 /** * ARCHIVO: StatusBoard.vue
- * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.2 + SINCRONIZACIÓN BANCO CENTRAL
+ * NOTA INTERNA: ESTRUCTURA MAESTRA v3.0.0 + ANIMACIONES REACTIVAS CORREGIDAS
  * LOGICA: Visualización reactiva de saldos con animación de conteo suave.
  */
 import { ref, onMounted, watch } from 'vue';
@@ -16,15 +16,19 @@ const { copper, silver, gold } = storeToRefs(store);
 const showRain = ref(false);
 const rainType = ref('copper'); 
 
+// Variables para la animación visual (lo que el usuario ve)
 const displayCopper = ref(0);
 const displaySilver = ref(0);
 const displayGold = ref(0);
 
 /**
- * Función de animación quirúrgica con Easing
- * Evita saltos visuales durante las conversiones de moneda.
+ * 🛠️ FIX: Función elevada al Scope Global del componente.
+ * Animación quirúrgica con Easing Out Cubic.
  */
-const animateValue = (start, end, duration, elementRef) => {
+const animateValue = (startVal, endVal, duration, elementRef) => {
+  const start = parseInt(startVal) || 0;
+  const end = parseInt(endVal) || 0;
+  
   if (start === end) {
       elementRef.value = end;
       return;
@@ -34,6 +38,7 @@ const animateValue = (start, end, duration, elementRef) => {
   const step = (timestamp) => {
     if (!startTimestamp) startTimestamp = timestamp;
     const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+    
     // Easing Out Cubic para suavidad premium
     const easeProgress = 1 - Math.pow(1 - progress, 3);
     
@@ -81,10 +86,19 @@ onMounted(() => {
     }
 });
 
-// 🔄 VIGILANTES REACTIVOS: Reaccionan a las correcciones automáticas del Banco Central
-watch(copper, (newVal, oldVal) => animateValue(oldVal, newVal, 600, displayCopper));
-watch(silver, (newVal, oldVal) => animateValue(oldVal, newVal, 600, displaySilver));
-watch(gold, (newVal, oldVal) => animateValue(oldVal, newVal, 600, displayGold));
+// 🔄 VIGILANTES REACTIVOS GLOBALES
+// Ahora sí pueden llamar a animateValue sin causar errores ocultos en consola
+watch(copper, (newVal, oldVal) => {
+    animateValue(oldVal || 0, newVal, 600, displayCopper);
+});
+
+watch(silver, (newVal, oldVal) => {
+    animateValue(oldVal || 0, newVal, 600, displaySilver);
+});
+
+watch(gold, (newVal, oldVal) => {
+    animateValue(oldVal || 0, newVal, 600, displayGold);
+});
 
 </script>
 

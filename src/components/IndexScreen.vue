@@ -1,14 +1,14 @@
 <script setup>
 /** * ARCHIVO: IndexScreen.vue
- * NOTA INTERNA: TORRE DE CONTROL v3.1.0 - ARQUITECTURA DE 3 DISTRITOS (LABORATORIO AÑADIDO)
- * LOGICA: Sincronización Privada + Gestión de Premios Cuánticos + Ruteo de Portales.
+ * NOTA INTERNA: TORRE DE CONTROL v3.2.0 - ARQUITECTURA DE 4 DISTRITOS
+ * LOGICA: Sincronización Privada + Premios Cuánticos + Ruteo de Portales + Club Lógico (50/50).
  */
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue'; 
 import { 
   Plus, Minus, X as MultiplyIcon, Divide, LogOut, 
   User, Pencil, BookOpen, Play, X as CloseIcon,
   ShoppingBag, Zap, Flame, Coffee, DoorOpen, BellRing, Target,
-  Eye, EyeOff, Volume2, Hexagon, AlertTriangle, Beaker
+  Eye, EyeOff, Volume2, Hexagon, AlertTriangle, Beaker, Gamepad2
 } from 'lucide-vue-next';
 import OwlImage from './OwlImage.vue';
 import StatusBoard from './StatusBoard.vue';
@@ -23,8 +23,8 @@ import { auth, db } from '../firebaseConfig';
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { doc, onSnapshot, updateDoc } from "firebase/firestore";
 
-// 🛠️ FIX: Añadimos 'open-tools-hub' a la lista de eventos para abrir el Laboratorio
-const emit = defineEmits(['select', 'exit', 'open-portal-welcome', 'open-crystal-dimension', 'open-tools-hub']);
+// 🛠️ FIX: Añadimos 'open-game-lobby' a la lista de eventos
+const emit = defineEmits(['select', 'exit', 'open-portal-welcome', 'open-crystal-dimension', 'open-tools-hub', 'open-game-lobby']);
 const props = defineProps(['fromView', 'config']);
 
 const gamificationStore = useGamificationStore();
@@ -332,20 +332,34 @@ const currentSubjectLabel = computed(() => options.find(o => o.id === selectedSu
                   </div>
               </button>
 
-              <button @click="emit('open-tools-hub')" class="w-full bg-slate-950 rounded-[2.5rem] p-1 shadow-[0_4px_0_rgb(2,6,23),0_0_15px_rgba(217,70,239,0.3)] border border-fuchsia-500/30 active:translate-y-1 transition-all group relative overflow-hidden">
-                  <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-fuchsia-400/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                  <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-purple-400/20 via-transparent to-transparent"></div>
-                  <div class="bg-white/5 backdrop-blur-md rounded-[2.2rem] py-2 px-4 flex items-center gap-4 relative z-10 border border-white/5">
-                      <div class="w-10 h-10 shrink-0 rounded-full bg-slate-900 border border-fuchsia-400/50 flex items-center justify-center group-hover:scale-110 group-hover:-rotate-12 transition-all shadow-[inset_0_0_15px_rgba(217,70,239,0.3)]">
-                          <Beaker size="22" class="text-fuchsia-400" />
+              <div class="grid grid-cols-2 gap-2.5 w-full">
+                  
+                  <button @click="emit('open-tools-hub')" class="w-full bg-slate-950 rounded-[2rem] p-1 shadow-[0_4px_0_rgb(2,6,23)] border border-fuchsia-500/30 active:translate-y-1 transition-all group relative overflow-hidden">
+                      <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-fuchsia-400/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                      <div class="bg-white/5 backdrop-blur-md rounded-[1.8rem] py-2 px-1 flex flex-col items-center justify-center gap-1 h-full relative z-10 border border-white/5">
+                          <div class="w-8 h-8 shrink-0 rounded-full bg-slate-900 border border-fuchsia-400/50 flex items-center justify-center group-hover:scale-110 group-hover:-rotate-12 transition-all shadow-[inset_0_0_10px_rgba(217,70,239,0.3)]">
+                              <Beaker size="16" class="text-fuchsia-400" />
+                          </div>
+                          <div class="text-center w-full">
+                              <h3 class="font-black text-sm leading-tight uppercase tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-300 to-purple-300 drop-shadow-[0_0_8px_rgba(217,70,239,0.5)] truncate px-1">Laboratorio</h3>
+                          </div>
                       </div>
-                      <div class="text-left flex-1">
-                          <h3 class="font-black text-lg leading-tight uppercase tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-300 to-purple-300 drop-shadow-[0_0_8px_rgba(217,70,239,0.5)]">El Laboratorio</h3>
-                          <p class="text-fuchsia-200/80 text-[10px] font-bold uppercase tracking-widest leading-none mt-0.5">🧪 Artefactos del Búho</p>
-                      </div>
-                  </div>
-              </button>
+                  </button>
 
+                  <button @click="emit('open-game-lobby')" class="w-full bg-slate-950 rounded-[2rem] p-1 shadow-[0_4px_0_rgb(2,6,23)] border border-rose-500/30 active:translate-y-1 transition-all group relative overflow-hidden">
+                      <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-rose-400/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                      <div class="bg-white/5 backdrop-blur-md rounded-[1.8rem] py-2 px-1 flex flex-col items-center justify-center gap-1 h-full relative z-10 border border-white/5">
+                          <div class="w-8 h-8 shrink-0 rounded-full bg-slate-900 border border-rose-400/50 flex items-center justify-center group-hover:scale-110 group-hover:rotate-12 transition-all shadow-[inset_0_0_10px_rgba(244,63,94,0.3)]">
+                              <Gamepad2 size="16" class="text-rose-400" />
+                          </div>
+                          <div class="text-center w-full">
+                              <h3 class="font-black text-sm leading-tight uppercase tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-rose-300 to-pink-300 drop-shadow-[0_0_8px_rgba(244,63,94,0.5)] truncate px-1">Recreación</h3>
+                          </div>
+                      </div>
+                  </button>
+
+              </div>
+              
           </div>
         </div>
 

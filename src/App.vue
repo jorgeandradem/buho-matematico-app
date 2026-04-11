@@ -18,8 +18,13 @@ import CrystalDimension from './components/CrystalDimension.vue';
 // 🚀 NUEVAS IMPORTACIONES: EL LABORATORIO Y SUS HERRAMIENTAS
 import ToolsHub from './components/ToolsHub.vue';
 import QuantumConverter from './components/QuantumConverter.vue';
-import FinancialSimulator from './components/FinancialSimulator.vue'; // 👈 IMPORTACIÓN DEL INSTRUMENTO 02
-import TapeCalculator from './components/TapeCalculator.vue'; // 👈 IMPORTACIÓN DEL INSTRUMENTO 03 (🦉 NUEVO)
+import FinancialSimulator from './components/FinancialSimulator.vue'; 
+import TapeCalculator from './components/TapeCalculator.vue'; 
+
+// 🎮 NUEVA IMPORTACIÓN: EL CLUB LÓGICO (RECREACIÓN)
+import GameLobbyHub from './components/GameLobbyHub.vue';
+import GameChess from './components/GameChess.vue'; 
+import GameCheckers from './components/GameCheckers.vue'; // 👈 Fichas de Damas importadas
 
 import { useGamificationStore } from '@/stores/useGamificationStore';
 
@@ -32,33 +37,24 @@ const gamificationStore = useGamificationStore();
 const isLoadingAuth = ref(true);
 
 onMounted(() => {
-  // 1. Cargamos el progreso local (monedas, rachas) por si acaso
   gamificationStore.loadFromStorage();
   gamificationStore.checkDailyStreak();
 
-  // 2. EL GUARDIÁN SILENCIOSO: Revisa la caché de Firebase
   onAuthStateChanged(auth, (user) => {
     if (user) {
       console.log("🦉 Guardián: Sesión detectada (Modo Offline/Online listo). Entrando al juego...");
-      
-      // Intentamos traer estadísticas frescas de la nube (si está offline, la función usa la caché automáticamente)
       if (gamificationStore.fetchUserStats) {
         gamificationStore.fetchUserStats();
       }
-      
-      // Lo mandamos directo al índice sin pasar por el login
       currentView.value = 'index';
     } else {
       console.log("🦉 Guardián: No hay sesión registrada. Pidiendo credenciales...");
       currentView.value = 'cover';
     }
-    
-    // Retiramos la pantalla de carga
     isLoadingAuth.value = false;
     
   }, (error) => {
     console.error("❌ Error en el Guardián:", error);
-    // FALLBACK DE EMERGENCIA: Si Firebase falla por red inestable, pero hay monedas locales, ¡lo dejamos jugar!
     if (gamificationStore.totalWealthInCopper > 0) {
       currentView.value = 'index';
     } else {
@@ -100,6 +96,23 @@ const navigateTo = (viewName, config) => {
           v-else-if="currentView === 'tools-hub'"
           @close="navigateTo('index')"
           @open-tool="(toolId) => navigateTo(toolId)"
+        />
+
+        <GameLobbyHub 
+          v-else-if="currentView === 'game-lobby'" 
+          @close="navigateTo('index')"
+          @open-game="(gameId) => navigateTo(gameId)"
+          @go-earn-coins="navigateTo('mult', { id: 'mult', mode: 'quick', difficulty: 1, table: 'random' })"
+        />
+
+        <GameChess 
+          v-else-if="currentView === 'chess'" 
+          @close="navigateTo('game-lobby')" 
+        />
+
+        <GameCheckers 
+          v-else-if="currentView === 'checkers'" 
+          @close="navigateTo('game-lobby')" 
         />
 
         <QuantumConverter 
@@ -153,6 +166,7 @@ const navigateTo = (viewName, config) => {
               @open-portal-welcome="navigateTo('portal-welcome')"
               @open-crystal-dimension="navigateTo('crystal-dimension')"
               @open-tools-hub="navigateTo('tools-hub')" 
+              @open-game-lobby="navigateTo('game-lobby')"
             />
 
             <GenericTableModule 
@@ -183,16 +197,15 @@ const navigateTo = (viewName, config) => {
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Nunito:wght@400;700;800;900&display=swap');
 
-/* 🔒 CANDADO DE SCROLL GLOBAL ACTIVADO */
 html, body { 
   margin: 0 !important; 
   padding: 0 !important; 
   width: 100% !important; 
   height: 100% !important; 
-  overflow: hidden; /* Evita el scroll global */
+  overflow: hidden; 
   background-color: #ffffff !important; 
   -webkit-font-smoothing: antialiased; 
-  touch-action: none; /* Mitiga gestos accidentales como pull-to-refresh en móviles */
+  touch-action: none; 
 }
 
 #master-wrapper { 

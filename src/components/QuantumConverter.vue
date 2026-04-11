@@ -1,7 +1,18 @@
 <script setup>
+/** * ARCHIVO: QuantumConverter.vue
+ * VERSION: 3.7 - Ergonómica Pro (Teclado Ampliado y Ajuste al Tope).
+ * NOTA: Redistribución de espacio vertical para facilitar el uso táctil.
+ */
 import { ref, computed, watch } from 'vue';
 
 const emit = defineEmits(['close']);
+
+// --- 🔊 SISTEMA DE AUDIO (clip.mp3) ---
+const audioTick = new Audio('/audios/clip.mp3');
+const playTick = () => {
+  audioTick.currentTime = 0;
+  audioTick.play().catch(() => {}); 
+};
 
 // --- ⚙️ BASE DE DATOS DE UNIDADES (6 CATEGORÍAS COMPLETAS) ---
 const categories = [
@@ -193,7 +204,10 @@ const handleKey = (key) => {
 const dragState = { top: { isDragging: false, startY: 0 }, bottom: { isDragging: false, startY: 0 } };
 const DRAG_THRESHOLD = 30; 
 
-const playHapticTick = () => { if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(10); };
+const playHapticTick = () => { 
+  if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(10); 
+  playTick(); 
+};
 
 const moveVerticalIndex = (type, step) => {
   const max = currentUnits.value.length - 1;
@@ -234,7 +248,7 @@ const getVerticalRollerStyle = (index, selectedIdx) => {
   };
 };
 
-// --- 🚀 MOTOR FÍSICO 2.5D INFINITO (HORIZONTAL - CENTRADO PERFECTO) ---
+// --- 🚀 MOTOR FÍSICO 2.5D INFINITO (HORIZONTAL) ---
 const navDragState = { isDragging: false, startX: 0 };
 const NAV_DRAG_THRESHOLD = 40;
 
@@ -247,6 +261,7 @@ const selectCategory = (targetIdx) => {
   if (diff < -N / 2) diff += N;
   
   navIndex.value += diff;
+  playTick(); 
   playHapticTick();
 };
 
@@ -261,12 +276,17 @@ const onNavDrag = (e) => {
   const diff = navDragState.startX - currentX;
   if (Math.abs(diff) > NAV_DRAG_THRESHOLD) {
     navIndex.value += Math.sign(diff); 
+    playTick(); 
     playHapticTick();
     navDragState.startX = currentX; 
   }
 };
 const stopNavDrag = () => { navDragState.isDragging = false; };
-const handleNavWheel = (e) => { navIndex.value += e.deltaY > 0 ? 1 : -1; playHapticTick(); };
+const handleNavWheel = (e) => { 
+  navIndex.value += e.deltaY > 0 ? 1 : -1; 
+  playTick(); 
+  playHapticTick(); 
+};
 
 const getHorizontalRollerStyle = (idx) => {
   const N = categories.length;
@@ -311,11 +331,11 @@ const getHorizontalRollerStyle = (idx) => {
 
       </header>
 
-      <div class="game-content flex-1 flex flex-col items-center justify-between py-2 w-full overflow-hidden">
+      <div class="game-content flex-1 flex flex-col items-center py-1 w-full overflow-hidden">
         
-        <div class="main-visual-area flex-1 flex items-center justify-center w-full min-h-0 relative p-2">
+        <div class="main-visual-area flex-[1.2] flex items-center justify-center w-full min-h-0 relative px-2 pt-1 pb-2">
             
-            <div class="app-device w-full max-w-[380px] h-full max-h-[540px] rounded-[2rem] flex flex-col relative overflow-hidden bg-slate-800 border-[5px] border-slate-950 shadow-2xl">
+            <div class="app-device w-full max-w-[380px] h-full max-h-[580px] rounded-[2rem] flex flex-col relative overflow-hidden bg-slate-800 border-[5px] border-slate-950 shadow-2xl">
               
               <div class="h-10 bg-gradient-to-b from-indigo-900 via-slate-800 to-slate-900 flex items-center justify-center px-4 border-b border-black shrink-0 shadow-md z-20">
                 <span class="text-white font-black text-base drop-shadow-md uppercase tracking-widest">{{ activeCategory.name }}</span>
@@ -325,7 +345,7 @@ const getHorizontalRollerStyle = (idx) => {
                 <span class="text-black text-[11px] font-bold">{{ formulaDisplay }}</span>
               </div>
 
-              <div class="h-[90px] sm:h-[100px] flex flex-col shrink-0 border-b-[3px] border-slate-950 z-20 carbon-fiber shadow-[inset_0_5px_15px_rgba(0,0,0,0.8)]">
+              <div class="h-[85px] sm:h-[95px] flex flex-col shrink-0 border-b-[3px] border-slate-950 z-20 carbon-fiber shadow-[inset_0_5px_15px_rgba(0,0,0,0.8)]">
                 <div class="flex-1 flex justify-between items-center px-4 py-1 cursor-pointer relative transition-all" @click="selectBox('top')">
                   <div class="absolute inset-0 transition-colors" :class="activeBox === 'top' ? 'bg-white/10' : 'bg-transparent'"></div>
                   <div class="w-3 h-3 rounded-full border border-black shadow-[0_0_5px_rgba(0,0,0,0.8)] z-10 shrink-0" :class="activeBox === 'top' ? 'led-orange-on' : 'led-orange-off'"></div>
@@ -345,10 +365,10 @@ const getHorizontalRollerStyle = (idx) => {
                 </div>
               </div>
 
-              <div class="p-2 sm:p-2.5 grid grid-cols-5 gap-2 bg-gradient-to-b from-[#e0e4e8] to-[#c1c6cb] border-b-2 border-slate-900 z-20 shadow-inner shrink-0">
+              <div class="flex-1 p-2 sm:p-3 grid grid-cols-5 gap-2 bg-gradient-to-b from-[#e0e4e8] to-[#c1c6cb] border-b-2 border-slate-900 z-20 shadow-inner overflow-hidden">
                 <button 
                   v-for="(key, idx) in keypad" :key="idx" @click="handleKey(key)"
-                  class="h-[38px] sm:h-[44px] relative rounded-lg border border-[#888] flex items-center justify-center text-xl sm:text-2xl font-bold text-slate-800 metal-btn"
+                  class="h-full min-h-[48px] sm:min-h-[56px] relative rounded-lg border border-[#888] flex items-center justify-center text-xl sm:text-2xl font-bold text-slate-800 metal-btn"
                   :class="{ 'opacity-0 pointer-events-none': key === '' }"
                 >
                   <span v-if="key === '⌫'">
@@ -358,7 +378,7 @@ const getHorizontalRollerStyle = (idx) => {
                 </button>
               </div>
 
-              <div class="flex-1 relative w-full flex bg-gradient-to-b from-slate-400 via-slate-100 to-slate-400 z-10 perspective-container shadow-[inset_0_5px_15px_rgba(0,0,0,0.3)]">
+              <div class="h-[120px] sm:h-[140px] relative w-full flex bg-gradient-to-b from-slate-400 via-slate-100 to-slate-400 z-10 perspective-container shadow-[inset_0_5px_15px_rgba(0,0,0,0.3)]">
                 
                 <div class="absolute top-1/2 left-0 right-0 h-[35px] -translate-y-1/2 bg-gradient-to-b from-[rgba(255,255,255,0.7)] to-[rgba(255,255,255,0.3)] border-y border-[rgba(0,0,0,0.3)] shadow-[0_2px_4px_rgba(0,0,0,0.1)] pointer-events-none z-20"></div>
 
@@ -416,10 +436,10 @@ const getHorizontalRollerStyle = (idx) => {
 
         </div>
 
-        <div class="rules-panel shrink-0 mx-auto w-full mt-2">
+        <div class="rules-panel shrink-0 mx-auto w-full mt-1">
           <div class="rules-badge shadow-md">OPERACIÓN</div>
           <div class="rules-grid text-[13px] font-medium text-slate-600 text-center leading-tight">
-             Desliza la rueda de abajo o haz clic en los íconos para cambiar de herramienta.
+              Desliza la rueda de abajo o haz clic en los íconos para cambiar de herramienta.
           </div>
         </div>
 
@@ -499,11 +519,11 @@ const getHorizontalRollerStyle = (idx) => {
   width: 92%;
   max-width: 600px; 
   background: white;
-  padding: 1.2rem 1rem 0.8rem 1rem;
+  padding: 1.1rem 1rem 0.7rem 1rem;
   border-radius: 1.5rem;
   border: 2px solid #e2e8f0;
   position: relative;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.3rem;
   box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05);
 }
 

@@ -1,12 +1,12 @@
 <script setup>
 /** * ARCHIVO: RewardShop.vue
- * NOTA INTERNA: ESTRUCTURA MAESTRA v2.9.2 + BLINDAJE DE RIQUEZA GLOBAL
- * LOGICA: Tienda de 90 productos con sistema de "Cambio Automático".
+ * NOTA INTERNA: ESTRUCTURA MAESTRA v3.0.1 + BLINDAJE REACTIVIDAD + FIX LINTER
+ * LOGICA: Tienda de 90 productos con sistema de "Cambio Automático" y UI en Tiempo Real.
  */
 import { ref, computed, onMounted } from 'vue';
 import { X, ShoppingBag, Settings, Save, Backpack, Lock, Loader2 } from 'lucide-vue-next';
-// 🚀 UNIFICACIÓN: Usamos el alias @ para conectar con el Banco Central exacto
 import { useGamificationStore } from '@/stores/useGamificationStore';
+import { storeToRefs } from 'pinia'; 
 import { speak } from '../utils/voice';
 import RewardTicket from './RewardTicket.vue';
 
@@ -18,13 +18,15 @@ import { doc, updateDoc, increment } from "firebase/firestore";
 const emit = defineEmits(['close']);
 const store = useGamificationStore();
 
+// 🛑 BLINDAJE DE REACTIVIDAD
+const { gold, silver, copper, purchasedItems, totalWealthInCopper } = storeToRefs(store);
+
 const activeTab = ref('gold'); 
 const selectedProduct = ref(null); 
 const productToConfirm = ref(null); 
 const showSettings = ref(false);
 const parentPhone = ref('');
 
-// --- ESTADO DE PROCESAMIENTO ---
 const isProcessing = ref(false);
 
 const mathChallenge = ref(null);
@@ -151,12 +153,9 @@ const filteredProducts = computed(() => {
     return shuffledProducts.value.filter(p => p.type === activeTab.value);
 });
 
-// --- 🛡️ COMPROBACIÓN DE RIQUEZA GLOBAL (EVITA NEGATIVOS) ---
 const checkFundsSurgical = (product) => {
-    // Calculamos el valor del ítem en la unidad mínima (Cobre)
     const costInCopper = (product.type === 'gold') ? product.cost * 10000 : (product.type === 'silver') ? product.cost * 100 : product.cost;
-    // Si la riqueza total acumulada en todas las bóvedas es suficiente, se permite la compra
-    return store.totalWealthInCopper >= costInCopper;
+    return totalWealthInCopper.value >= costInCopper;
 };
 
 const confirmBuy = (product) => {
@@ -175,7 +174,6 @@ const executeBuy = async () => {
     isProcessing.value = true; 
 
     try {
-        // Invocamos al Banco Central para realizar el gasto con "cambio automático"
         const success = await store.spendCoins(product.type, product.cost);
 
         if (success) {
@@ -289,7 +287,7 @@ const shareReward = () => {
         <p class="text-[10px] font-black tracking-widest mb-2 text-orange-300 uppercase">⚠️ Zona de Control (Padres)</p>
         
         <div v-if="!mathChallenge" class="flex gap-2">
-            <button @click="triggerParentalAction('refund')" :disabled="!store.purchasedItems || store.purchasedItems.length === 0" class="flex-1 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed text-[11px] font-black py-2 rounded-lg transition">
+            <button @click="triggerParentalAction('refund')" :disabled="!purchasedItems || purchasedItems.length === 0" class="flex-1 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed text-[11px] font-black py-2 rounded-lg transition">
                 ↩️ Devolver último
             </button>
             <button @click="triggerParentalAction('reset')" class="flex-1 bg-red-500 hover:bg-red-600 text-[11px] font-black py-2 rounded-lg transition">
@@ -313,17 +311,17 @@ const shareReward = () => {
     <div class="flex flex-col p-2 gap-2 bg-indigo-700 shrink-0 shadow-md z-10">
         <div class="flex gap-2">
             <button @click="activeTab = 'gold'" :class="`flex-1 py-2 rounded-xl font-black text-xs flex items-center justify-center gap-1 transition-all ${activeTab === 'gold' ? 'bg-gradient-to-b from-yellow-300 to-yellow-500 text-yellow-900 shadow-lg scale-[1.02] border-b-4 border-yellow-600' : 'bg-indigo-800 text-indigo-300 hover:bg-indigo-600'}`">
-                <img src="/images/coin-gold.png" class="w-4 h-4 drop-shadow-sm" /> {{ store.gold }}
+                <img src="/images/coin-gold.png" class="w-4 h-4 drop-shadow-sm" /> {{ gold }}
             </button>
             <button @click="activeTab = 'silver'" :class="`flex-1 py-2 rounded-xl font-black text-xs flex items-center justify-center gap-1 transition-all ${activeTab === 'silver' ? 'bg-gradient-to-b from-slate-200 to-slate-400 text-slate-800 shadow-lg scale-[1.02] border-b-4 border-slate-500' : 'bg-indigo-800 text-indigo-300 hover:bg-indigo-600'}`">
-                <img src="/images/coin-silver.png" class="w-4 h-4 drop-shadow-sm" /> {{ store.silver }}
+                <img src="/images/coin-silver.png" class="w-4 h-4 drop-shadow-sm" /> {{ silver }}
             </button>
             <button @click="activeTab = 'copper'" :class="`flex-1 py-2 rounded-xl font-black text-xs flex items-center justify-center gap-1 transition-all ${activeTab === 'copper' ? 'bg-gradient-to-b from-orange-300 to-orange-500 text-orange-900 shadow-lg scale-[1.02] border-b-4 border-orange-600' : 'bg-indigo-800 text-indigo-300 hover:bg-indigo-600'}`">
-                <img src="/images/coin-copper.png" class="w-4 h-4 drop-shadow-sm" /> {{ store.copper }}
+                <img src="/images/coin-copper.png" class="w-4 h-4 drop-shadow-sm" /> {{ copper }}
             </button>
         </div>
         <button @click="activeTab = 'vales'" :class="`w-full py-2.5 rounded-xl font-black text-sm flex items-center justify-center gap-2 transition-all ${activeTab === 'vales' ? 'bg-indigo-900 text-white shadow-inner border-2 border-indigo-400' : 'bg-indigo-800 text-indigo-300 hover:bg-indigo-500 border-2 border-transparent'}`">
-            <Backpack size="18" /> MI MOCHILA ({{ store.purchasedItems?.length || 0 }})
+            <Backpack size="18" /> MI MOCHILA ({{ purchasedItems?.length || 0 }})
         </button>
     </div>
 
@@ -350,13 +348,13 @@ const shareReward = () => {
         </div>
 
         <div v-else class="pb-20">
-            <div v-if="!store.purchasedItems || store.purchasedItems.length === 0" class="flex flex-col items-center justify-center mt-10 opacity-50">
+            <div v-if="!purchasedItems || purchasedItems.length === 0" class="flex flex-col items-center justify-center mt-10 opacity-50">
                 <Backpack size="64" class="text-slate-400 mb-4" />
                 <h3 class="font-black text-xl text-slate-500 mb-2 italic">Mochila Vacía</h3>
                 <p class="text-slate-400 text-center text-sm font-bold px-8">¡Ahorra monedas ganando desafíos para canjear tus premios!</p>
             </div>
             <div v-else class="grid grid-cols-2 gap-4">
-                <button v-for="ticket in store.purchasedItems" :key="ticket.code" 
+                <button v-for="ticket in purchasedItems" :key="ticket.code" 
                     @click="viewTicket(ticket)"
                     class="bg-indigo-50 rounded-2xl shadow-sm border-2 border-indigo-200 hover:border-indigo-400 p-3 flex flex-col items-center gap-2 active:scale-95 transition-all relative">
                     <div class="text-4xl filter drop-shadow-md">{{ ticket.icon }}</div>
@@ -409,7 +407,15 @@ const shareReward = () => {
 .animate-fade-in { animation: fadeIn 0.2s ease-out forwards; }
 @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
 
+/* 🛠️ FIX CSS STANDARD LINTER */
 .no-spinners::-webkit-outer-spin-button,
-.no-spinners::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-.no-spinners { -moz-appearance: textfield; }
+.no-spinners::-webkit-inner-spin-button { 
+  -webkit-appearance: none; 
+  appearance: none; 
+  margin: 0; 
+}
+.no-spinners { 
+  -moz-appearance: textfield; 
+  appearance: textfield; 
+}
 </style>

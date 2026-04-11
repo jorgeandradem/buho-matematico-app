@@ -1,6 +1,6 @@
 /** * ARCHIVO: useGamificationStore.js
- * NOTA INTERNA: BANCO CENTRAL v3.3.0 - MODO OFFLINE BLINDADO + DIMENSIÓN CRISTAL
- * LOGICA: Sincronización Privada (UID) + Memoria de Actualizaciones.
+ * NOTA INTERNA: BANCO CENTRAL v3.4.0 - MODO OFFLINE BLINDADO + CLUB LÓGICO
+ * LOGICA: Sincronización Privada (UID) + Memoria de Actualizaciones + Recreación.
  */
 import { defineStore } from 'pinia';
 import { missionsData } from '../data/missions'; 
@@ -245,6 +245,14 @@ export const useGamificationStore = defineStore('gamification', {
       this.saveToStorage();
       this.syncAllToCloud(); 
       return true;
+    },
+
+    // 🎮 NUEVA ACCIÓN: PAGO PARA ENTRAR AL CLUB LÓGICO
+    async payRecreationEntry(costInCopper) {
+      // Reutiliza la lógica robusta de spendCoins que ya maneja conversiones y sincronización.
+      // Se asume siempre moneda de cobre para las entradas a juegos.
+      const success = await this.spendCoins('copper', costInCopper);
+      return success;
     },
 
     processConversions() {

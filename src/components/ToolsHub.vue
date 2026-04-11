@@ -1,32 +1,35 @@
 <script setup>
 /** * ARCHIVO: ToolsHub.vue
- * NOTA: Este es el MENÚ del Laboratorio. 
- * FUNCION: Emite 'open-tool' para que App.vue cambie la vista.
+ * VERSION: 3.0 - Multidispositivo Pro (Estándar Suite).
+ * NOTA: Adaptación de chasis para móviles, tablets y desktop.
  */
 import { ref } from 'vue';
+import { 
+  FlaskConical, X, ChevronRight, 
+  Scale, Calculator, ScrollText 
+} from 'lucide-vue-next';
 
 const emit = defineEmits(['close', 'open-tool']);
 
-// Lista de herramientas disponibles en el Laboratorio
 const tools = [
   { 
     id: 'converter', 
     name: 'Conversor Cuántico', 
-    icon: '⚖️', 
+    icon: Scale, 
     desc: 'Unidades y Medidas',
     color: '#3b82f6' 
   },
   { 
     id: 'simulator', 
     name: 'Simulador Financiero', 
-    icon: '💰', 
+    icon: Calculator, 
     desc: 'Interés y Ahorro',
     color: '#10b981' 
   },
   { 
     id: 'tape-calculator', 
     name: 'Cinta de Papel', 
-    icon: '📜', 
+    icon: ScrollText, 
     desc: 'Cálculo Secuencial Pro',
     color: '#f97316' 
   }
@@ -34,46 +37,59 @@ const tools = [
 </script>
 
 <template>
-  <div class="hub-overlay">
-    <main class="hub-canvas font-inter">
+  <div class="master-container font-inter">
+    <main class="app-canvas bg-slate-100">
       
-      <div class="hub-device-chassis shadow-25d">
+      <div class="hub-device-chassis">
         
-        <header class="hub-header">
-          <div class="hub-brand">
-            <span class="hub-icon">🧪</span>
-            <h1 class="hub-title">Laboratorio</h1>
+        <header class="header-standard shrink-0 relative flex justify-between items-center py-2 sm:py-3 px-4 sm:px-6 shadow-sm z-30 bg-white">
+          <div class="w-8 h-8 sm:w-10 sm:h-10 invisible hidden md:block"></div>
+          <div class="flex items-center justify-center gap-2 sm:gap-3 flex-1 md:flex-none">
+              <div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 shrink-0">
+                  <FlaskConical size="18" stroke-width="2.5" />
+              </div>
+              <span class="text-[#312e81] font-black text-[15px] sm:text-xl uppercase tracking-widest leading-none italic text-shadow-sm mt-0.5 truncate">
+                Laboratorio
+              </span>
           </div>
-          <button @click="emit('close')" class="btn-close-hub">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+          <button @click="emit('close')" class="w-8 h-8 sm:w-10 sm:h-10 shrink-0 bg-white border-2 border-slate-200 hover:bg-slate-100 rounded-full flex items-center justify-center text-slate-800 transition-colors shadow-sm cursor-pointer active:scale-95">
+            <X size="20" stroke-width="3" />
           </button>
         </header>
 
-        <div class="hub-content">
-          <p class="hub-subtitle">Selecciona un Instrumento</p>
-          
-          <div class="tools-grid">
-            <button 
-              v-for="tool in tools" 
-              :key="tool.id"
-              @click="emit('open-tool', tool.id)"
-              class="tool-card-2d"
-            >
-              <div class="tool-icon-box" :style="{ backgroundColor: tool.color + '20', color: tool.color }">
-                {{ tool.icon }}
-              </div>
-              <div class="tool-info">
-                <span class="tool-name">{{ tool.name }}</span>
-                <span class="tool-desc">{{ tool.desc }}</span>
-              </div>
-              <div class="tool-arrow">→</div>
-            </button>
-          </div>
+        <div class="hub-scroll-area custom-scrollbar">
+          <div class="hub-content">
+            <p class="hub-subtitle">Selecciona un Instrumento</p>
+            
+            <div class="tools-grid">
+              <button 
+                v-for="tool in tools" 
+                :key="tool.id"
+                @click="emit('open-tool', tool.id)"
+                class="tool-card-pro shadow-sm"
+              >
+                <div class="tool-icon-wrapper" :style="{ backgroundColor: tool.color + '15', color: tool.color }">
+                  <component :is="tool.icon" :size="28" stroke-width="2.5" />
+                </div>
+                
+                <div class="tool-meta">
+                  <span class="tool-name">{{ tool.name }}</span>
+                  <span class="tool-desc">{{ tool.desc }}</span>
+                </div>
 
-          <div class="hub-footer">
-            <p class="footer-note">Búho Matemático v2.12.1</p>
+                <div class="tool-action">
+                  <ChevronRight size="20" class="text-slate-300" />
+                </div>
+              </button>
+            </div>
           </div>
         </div>
+
+        <footer class="hub-footer-brand shrink-0">
+          <div class="version-pill">
+            BÚHO MATEMÁTICO V2.12.1
+          </div>
+        </footer>
 
       </div>
     </main>
@@ -81,72 +97,73 @@ const tools = [
 </template>
 
 <style scoped>
-.hub-overlay {
-  position: fixed; inset: 0; z-index: 9999; display: flex; justify-content: center; align-items: center;
-  background-color: #f1f5f9; overflow: hidden;
+/* --- 📱 NORMAS MULTIDISPOSITIVO --- */
+.master-container { 
+  position: fixed; inset: 0; z-index: 9999; 
+  display: flex; justify-content: center; align-items: center; 
+  background-color: #f1f5f9; overflow: hidden; 
 }
 
-.hub-canvas {
-  width: 100vw; height: 100dvh; display: flex; flex-direction: column; justify-content: center; align-items: center;
+.app-canvas { 
+  display: flex; flex-direction: column; 
+  position: relative; transition: all 0.4s; 
+  width: 100vw; height: 100dvh; overflow: hidden; 
 }
 
-@media (min-width: 1025px) {
-  .hub-canvas { width: 1024px; height: 90dvh; }
+/* 💻 ESTILO "SUITE" PARA DESKTOP */
+@media (min-width: 1025px) { 
+  .app-canvas { 
+    width: 1024px; height: 90dvh; 
+    border-radius: 45px; border: 8px solid white; 
+    box-shadow: 0 40px 100px rgba(0,0,0,0.15); 
+  } 
 }
 
+/* 📦 CHASIS DEL HUB */
 .hub-device-chassis {
   width: 100%; height: 100%; max-width: 440px; margin: 0 auto;
-  background: linear-gradient(145deg, #d1d5db, #ffffff);
-  display: flex; flex-direction: column; position: relative; overflow: hidden;
-  border: 1px solid #94a3b8;
+  background: #f8fafc; display: flex; flex-direction: column; 
+  position: relative; overflow: hidden;
 }
 
-@media (min-width: 600px) {
-  .hub-device-chassis { 
-    border-radius: 45px; border: 12px solid #e2e8f0; 
-    box-shadow: inset 2px 2px 12px rgba(255,255,255,1), 15px 25px 50px rgba(0,0,0,0.15);
-  }
+.hub-scroll-area {
+  flex: 1; overflow-y: auto; padding: 1.5rem 1rem;
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
-.hub-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 1.5rem 1.8rem 1rem; background: white; border-bottom: 2px solid #f1f5f9;
-}
+.hub-content { display: flex; flex-direction: column; gap: 1.5rem; max-width: 400px; margin: 0 auto; width: 100%; }
+.hub-subtitle { font-weight: 800; color: #94a3b8; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.15em; text-align: center; }
 
-.hub-brand { display: flex; align-items: center; gap: 0.75rem; }
-.hub-title { font-size: 1.4rem; font-weight: 900; color: #1e1b4b; text-transform: uppercase; font-style: italic; letter-spacing: -0.02em; }
-.hub-icon { font-size: 1.5rem; }
+/* 🃏 TARJETAS PRO */
+.tools-grid { display: flex; flex-direction: column; gap: 0.75rem; }
 
-.btn-close-hub {
-  width: 2.5rem; height: 2.5rem; border-radius: 50%; background: #fff; border: 2px solid #f1f5f9;
-  box-shadow: 2px 2px 8px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; color: #f43f5e; cursor: pointer;
-}
-
-.hub-content { flex: 1; padding: 1.5rem; display: flex; flex-direction: column; gap: 1.5rem; }
-.hub-subtitle { font-weight: 800; color: #64748b; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.1em; text-align: center; }
-
-.tools-grid { display: flex; flex-direction: column; gap: 1rem; }
-
-.tool-card-2d {
+.tool-card-pro {
   display: flex; align-items: center; gap: 1rem; padding: 1rem;
-  background: white; border-radius: 1.25rem; border: none;
-  border-bottom: 5px solid #cbd5e1; transition: all 0.1s; cursor: pointer; text-align: left;
+  background: white; border-radius: 1.5rem; border: 2px solid #f1f5f9;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; text-align: left;
 }
 
-.tool-card-2d:active { transform: translateY(4px); border-bottom-width: 0; }
+.tool-card-pro:hover { border-color: #dbeafe; background: #fdfdfd; transform: translateY(-2px); }
+.tool-card-pro:active { transform: scale(0.98) translateY(0); }
 
-.tool-icon-box {
-  width: 3.5rem; height: 3.5rem; border-radius: 1rem;
-  display: flex; align-items: center; justify-content: center; font-size: 1.8rem;
+.tool-icon-wrapper {
+  width: 3.8rem; height: 3.8rem; border-radius: 1.1rem;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
 }
 
-.tool-info { flex: 1; display: flex; flex-direction: column; }
-.tool-name { font-weight: 900; color: #1e1b4b; font-size: 1rem; }
-.tool-desc { font-size: 0.75rem; color: #64748b; font-weight: 600; }
-.tool-arrow { font-weight: 900; color: #cbd5e1; font-size: 1.2rem; }
+.tool-meta { flex: 1; display: flex; flex-direction: column; gap: 0.1rem; }
+.tool-name { font-weight: 900; color: #1e1b4b; font-size: 1.05rem; letter-spacing: -0.01em; }
+.tool-desc { font-size: 0.8rem; color: #64748b; font-weight: 600; }
 
-.hub-footer { margin-top: auto; padding-bottom: 1rem; text-align: center; }
-.footer-note { font-size: 0.65rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; }
+/* 🏁 FOOTER */
+.hub-footer-brand { padding: 1.5rem; display: flex; justify-content: center; }
+.version-pill {
+  background: #f1f5f9; color: #94a3b8; font-size: 10px; font-weight: 900;
+  padding: 0.4rem 1rem; border-radius: 2rem; letter-spacing: 0.1em;
+}
 
-.shadow-25d { box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
+/* 🎨 UTILIDADES */
+.text-shadow-sm { text-shadow: 1px 1px 2px rgba(0,0,0,0.05); }
+.custom-scrollbar::-webkit-scrollbar { width: 5px; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
 </style>
