@@ -1,6 +1,6 @@
 <script setup>
 /** * ARCHIVO: IndexScreen.vue
- * NOTA INTERNA: TORRE DE CONTROL v3.2.0 - ARQUITECTURA DE 4 DISTRITOS
+ * NOTA INTERNA: TORRE DE CONTROL v3.2.1 - SELLADO TÉCNICO DISCRETO
  * LOGICA: Sincronización Privada + Premios Cuánticos + Ruteo de Portales + Club Lógico (50/50).
  */
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue'; 
@@ -10,6 +10,10 @@ import {
   ShoppingBag, Zap, Flame, Coffee, DoorOpen, BellRing, Target,
   Eye, EyeOff, Volume2, Hexagon, AlertTriangle, Beaker, Gamepad2
 } from 'lucide-vue-next';
+
+// --- IMPORTACIÓN DE DATOS MAESTROS ---
+import pkg from '../../package.json'; // Sincronización automática con tu package.json
+
 import OwlImage from './OwlImage.vue';
 import StatusBoard from './StatusBoard.vue';
 import SessionSummary from './SessionSummary.vue';
@@ -365,6 +369,12 @@ const currentSubjectLabel = computed(() => options.find(o => o.id === selectedSu
 
         <div class="shrink-0 pb-2 md:pb-4 px-4 w-full">
             <StatusBoard />
+        </div>
+
+        <div class="absolute bottom-1 right-2 pointer-events-none select-none opacity-20 z-50">
+            <span class="text-[8px] font-mono text-white/50 uppercase tracking-tighter">
+                Build v{{ pkg.version }}
+            </span>
         </div>
 
         <div v-if="showConfigModal" class="absolute inset-0 z-[150] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">

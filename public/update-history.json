@@ -1,5 +1,12 @@
 [
   {
+    "updateId": "upd_1776524400000",
+    "version": "2.12.4",
+    "date": "13/04/2026",
+    "title": "EXPANSIÓN DEL CLUB LÓGICO: CONECTA 4, SUDOKU Y REGLAS CLARAS",
+    "description": "Capitán, el Club Lógico está oficialmente completo. Hemos desplegado dos nuevos desafíos tácticos: 'Conecta 4' con físicas de gravedad 2.5D e IA de equilibrio posicional, y 'Sudoku' con generación dinámica y detección sensorial de errores (temblor y alertas visuales). Además, hemos homologado la Taquilla a 15 monedas de cobre por entrada, estabilizado las proporciones para dispositivos móviles, y añadido un sistema global de 'Reglas del Juego' interactivo en todos los tableros para garantizar que ningún marino juegue a ciegas."
+  },
+  {
     "updateId": "upd_1776351600000",
     "version": "2.12.3",
     "date": "11/04/2026",

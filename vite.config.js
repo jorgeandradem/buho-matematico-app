@@ -9,12 +9,13 @@ export default defineConfig({
     vue(),
     vueDevTools(),
     VitePWA({
-      // 🚀 CAMBIO TÁCTICO: Usamos 'prompt' para que nuestra lógica en ReloadPrompt.vue 
-      // tenga el control total del refresco nuclear y el timestamp de iOS.
-      registerType: 'prompt', 
+      // 🚀 ESTRATEGIA DE ACTUALIZACIÓN AUTOMÁTICA
+      // Cambiamos 'prompt' por 'autoUpdate' para eliminar el aviso manual del navegador.
+      registerType: 'autoUpdate', 
       
       injectRegister: 'auto',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
+      
       manifest: {
         name: 'Búho Matemático', 
         short_name: 'Búho Mate', 
@@ -42,17 +43,27 @@ export default defineConfig({
           }
         ]
       },
+
       workbox: {
+        // 🧹 Limpieza automática de cachés de versiones anteriores
         cleanupOutdatedCaches: true,
-        // ⚡ Forzamos la toma de control inmediata
+        
+        // ⚡ ACTIVACIÓN INMEDIATA: 
+        // skipWaiting hace que el nuevo Service Worker tome el control sin esperar a que se cierre la app.
+        // clientsClaim permite que el SW controle las pestañas abiertas desde el primer segundo.
         skipWaiting: true, 
         clientsClaim: true,
         
-        // 🛡️ Blindaje de archivos para caché (CIRUGÍA APLICADA: SE AGREGÓ mp3, EXCLUIDO mp4)
+        // 🛡️ PATRONES DE CACHÉ (Incluye MP3 para el Búho, excluye MP4 para ligereza)
         globPatterns: ['**/*.{js,css,html,ico,png,svg,json,jpg,jpeg,mp3}'],
+        
+        // Seguridad para rutas de API o autenticación externa
         navigateFallbackDenylist: [/^\/__/, /^\/api/],
-        maximumFileSizeToCacheInBytes: 5000000 // Límite de 5MB por archivo
+        
+        // Límite de 5MB por archivo para asegurar rendimiento en móviles modestos
+        maximumFileSizeToCacheInBytes: 5000000 
       },
+
       devOptions: {
         enabled: true,
         type: 'module'

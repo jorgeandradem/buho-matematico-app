@@ -2,8 +2,8 @@
 import { ref, onMounted } from 'vue';
 import { Plus, Minus, X as MultiplyIcon, Divide } from 'lucide-vue-next';
 
-// --- NUEVAS IMPORTACIONES: EL GUARDIÁN OFFLINE ---
-import { auth } from '@/firebaseConfig';
+// --- NUEVAS IMPORTACIONES: EL GUARDIÁN OFFLINE Y TELEMETRÍA ---
+import { auth, logAppVersion } from '@/firebaseConfig'; // 🛰️ Radar inyectado
 import { onAuthStateChanged } from "firebase/auth";
 
 import CoverScreen from './components/CoverScreen.vue';
@@ -24,9 +24,16 @@ import TapeCalculator from './components/TapeCalculator.vue';
 // 🎮 NUEVA IMPORTACIÓN: EL CLUB LÓGICO (RECREACIÓN)
 import GameLobbyHub from './components/GameLobbyHub.vue';
 import GameChess from './components/GameChess.vue'; 
-import GameCheckers from './components/GameCheckers.vue'; // 👈 Fichas de Damas importadas
+import GameCheckers from './components/GameCheckers.vue'; 
+import GameSolitaire from './components/GameSolitaire.vue'; 
+import GameMastermind from './components/GameMastermind.vue'; 
+import GameConnect4 from './components/GameConnect4.vue'; 
+import GameSudoku from './components/GameSudoku.vue';
 
 import { useGamificationStore } from '@/stores/useGamificationStore';
+
+// 🏷️ CONTROL DE VERSIÓN MAESTRO
+const APP_VERSION = "4.0.0";
 
 const currentView = ref('cover'); 
 const previousView = ref(null); 
@@ -42,7 +49,11 @@ onMounted(() => {
 
   onAuthStateChanged(auth, (user) => {
     if (user) {
-      console.log("🦉 Guardián: Sesión detectada (Modo Offline/Online listo). Entrando al juego...");
+      console.log(`🦉 Guardián: Sesión detectada para ${user.email}. Registrando telemetría...`);
+      
+      // 🛰️ DISPARO DE RADAR: Registra versión y dispositivo en Firestore
+      logAppVersion(user.uid, APP_VERSION);
+
       if (gamificationStore.fetchUserStats) {
         gamificationStore.fetchUserStats();
       }
@@ -101,17 +112,43 @@ const navigateTo = (viewName, config) => {
         <GameLobbyHub 
           v-else-if="currentView === 'game-lobby'" 
           @close="navigateTo('index')"
-          @open-game="(gameId) => navigateTo(gameId)"
+          @open-game="(gamePayload) => navigateTo(gamePayload.id, { mode: gamePayload.mode })"
           @go-earn-coins="navigateTo('mult', { id: 'mult', mode: 'quick', difficulty: 1, table: 'random' })"
         />
 
         <GameChess 
           v-else-if="currentView === 'chess'" 
+          :gameMode="currentConfig.mode"
           @close="navigateTo('game-lobby')" 
         />
 
         <GameCheckers 
           v-else-if="currentView === 'checkers'" 
+          :gameMode="currentConfig.mode"
+          @close="navigateTo('game-lobby')" 
+        />
+
+        <GameSolitaire 
+          v-else-if="currentView === 'solitaire'" 
+          :gameMode="currentConfig.mode"
+          @close="navigateTo('game-lobby')" 
+        />
+
+        <GameMastermind 
+          v-else-if="currentView === 'mastermind'" 
+          :gameMode="currentConfig.mode"
+          @close="navigateTo('game-lobby')" 
+        />
+
+        <GameConnect4 
+          v-else-if="currentView === 'connect4'" 
+          :gameMode="currentConfig.mode"
+          @close="navigateTo('game-lobby')" 
+        />
+
+        <GameSudoku 
+          v-else-if="currentView === 'sudoku'" 
+          :gameMode="currentConfig.mode"
           @close="navigateTo('game-lobby')" 
         />
 
@@ -195,6 +232,7 @@ const navigateTo = (viewName, config) => {
 </template>
 
 <style>
+/* ... Mantener tus estilos iguales ... */
 @import url('https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Nunito:wght@400;700;800;900&display=swap');
 
 html, body { 

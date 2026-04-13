@@ -1,31 +1,40 @@
 <script setup>
 /** * ARCHIVO: GameLobbyHub.vue
- * NOTA INTERNA: CLUB LÓGICO v1.2 - FIX IMPORTACIONES Y DAMAS ACTIVAS
- * LOGICA: Taquilla de Tickets + Integración Económica.
+ * NOTA INTERNA: CLUB LÓGICO v2.0 - SELECTOR DE MODOS Y ECONOMÍA TRANSPARENTE
+ * LOGICA: Taquilla con desglose financiero y selección de tipo de partida.
  */
 import { ref, computed } from 'vue';
-// 🛠️ FIX: Gamepad2 importado correctamente para evitar el "Pantallazo Blanco"
 import { 
   X as CloseIcon, Crown, Circle, Club, Lightbulb, 
-  LayoutGrid, Grid3x3, Coins, Play, Zap, Ticket, AlertTriangle, Gamepad2
+  LayoutGrid, Grid3x3, Play, Zap, Ticket, AlertTriangle, Gamepad2,
+  User, Users, Globe, Cpu
 } from 'lucide-vue-next';
 import { useGamificationStore } from '../stores/useGamificationStore';
 
 const emit = defineEmits(['close', 'open-game', 'go-earn-coins']);
 const gamificationStore = useGamificationStore();
 
-// --- 🎮 CATÁLOGO DE JUEGOS DE RECREACIÓN ---
+// --- 🎮 CATÁLOGO CON SOPORTE DE MODOS ---
+const MODE_LABELS = {
+  'solo': { text: 'Solitario', icon: User },
+  'vs-pc': { text: 'Vs. Computadora', icon: Cpu },
+  'local': { text: '2 Jugadores (Local)', icon: Users },
+  'online': { text: 'Multijugador Online', icon: Globe }
+};
+
 const recreationGames = [
-  { id: 'chess', name: 'Ajedrez', icon: Crown, cost: 15, isVolando: false, desc: 'Rey de la Estrategia', color: 'bg-slate-800' },
-  // 🚀 DAMAS ACTIVADAS
-  { id: 'checkers', name: 'Damas', icon: Circle, cost: 15, isVolando: false, desc: 'Batalla Diagonal', color: 'bg-red-700' },
-  { id: 'solitaire', name: 'Solitario', icon: Club, cost: 10, isVolando: true, desc: 'Paciencia y Orden', color: 'bg-emerald-700' },
-  { id: 'mastermind', name: 'Código Secreto', icon: Lightbulb, cost: 10, isVolando: true, desc: 'Lógica Deductiva', color: 'bg-purple-700' },
-  { id: 'connect4', name: 'Conecta 4', icon: LayoutGrid, cost: 5, isVolando: true, desc: 'Bloqueo Espacial', color: 'bg-blue-600' },
-  { id: 'sudoku', name: 'Sudoku', icon: Grid3x3, cost: 5, isVolando: true, desc: 'Concentración Pura', color: 'bg-teal-600' }
+  { id: 'chess', name: 'Ajedrez', icon: Crown, cost: 15, isVolando: false, desc: 'Rey de la Estrategia', color: 'bg-slate-800', modes: ['vs-pc', 'local'] },
+  { id: 'checkers', name: 'Damas', icon: Circle, cost: 15, isVolando: false, desc: 'Batalla Diagonal', color: 'bg-red-700', modes: ['vs-pc', 'local'] },
+  { id: 'solitaire', name: 'Solitario', icon: Club, cost: 15, isVolando: false, desc: 'Paciencia y Orden', color: 'bg-emerald-700', modes: ['solo'] },
+  { id: 'mastermind', name: 'Código Secreto', icon: Lightbulb, cost: 15, isVolando: false, desc: 'Lógica Deductiva', color: 'bg-purple-700', modes: ['solo', 'vs-pc'] },
+  { id: 'connect4', name: 'Conecta 4', icon: LayoutGrid, cost: 15, isVolando: false, desc: 'Bloqueo Espacial', color: 'bg-blue-600', modes: ['vs-pc', 'local'] },
+  // 🚀 ¡SUDOKU ATERRIZADO Y DESBLOQUEADO! (isVolando: false)
+  { id: 'sudoku', name: 'Sudoku', icon: Grid3x3, cost: 15, isVolando: false, desc: 'Concentración Pura', color: 'bg-teal-600', modes: ['solo'] }
 ];
 
+// --- 🎟️ LÓGICA DE LA TAQUILLA ---
 const selectedGame = ref(null);
+const selectedMode = ref(null);
 const showTicketModal = ref(false);
 const isProcessingPayment = ref(false);
 const paymentError = ref(false);
@@ -38,13 +47,23 @@ const attemptOpenGame = (game) => {
     gamificationStore.bubbleMessage = `El juego ${game.name} aún está en construcción. 🦉`;
     return;
   }
+  
   selectedGame.value = game;
+  selectedMode.value = null; 
   paymentError.value = false;
   showTicketModal.value = true;
+
+  if (game.modes.length === 1) {
+    selectedMode.value = game.modes[0];
+  }
+};
+
+const selectMode = (modeId) => {
+  selectedMode.value = modeId;
 };
 
 const buyTicketAndPlay = async () => {
-  if (isProcessingPayment.value || !selectedGame.value) return;
+  if (isProcessingPayment.value || !selectedGame.value || !selectedMode.value) return;
   
   if (gamificationStore.totalWealthInCopper < selectedGame.value.cost) {
     paymentError.value = true;
@@ -66,7 +85,7 @@ const buyTicketAndPlay = async () => {
     setTimeout(() => {
       isProcessingPayment.value = false;
       showTicketModal.value = false;
-      emit('open-game', selectedGame.value.id); 
+      emit('open-game', { id: selectedGame.value.id, mode: selectedMode.value }); 
     }, 1200);
   } else {
     isProcessingPayment.value = false;
@@ -77,7 +96,7 @@ const buyTicketAndPlay = async () => {
 const closeTicketModal = () => {
   if (isProcessingPayment.value) return;
   showTicketModal.value = false;
-  setTimeout(() => { selectedGame.value = null; paymentError.value = false; }, 300);
+  setTimeout(() => { selectedGame.value = null; selectedMode.value = null; paymentError.value = false; }, 300);
 };
 
 const handleNeedCoins = () => {
@@ -144,6 +163,7 @@ const handleNeedCoins = () => {
     <Transition name="fade">
       <div v-if="showTicketModal" class="absolute inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm">
         <div class="relative w-full max-w-sm flex flex-col items-center transition-transform" :class="{'animate-pulse-fast': isProcessingPayment}">
+          
           <div class="w-20 h-20 bg-rose-100 rounded-full border-4 border-rose-300 flex items-center justify-center mb-[-2rem] z-10 shadow-lg">
             <span class="text-4xl">🦉</span>
           </div>
@@ -162,22 +182,49 @@ const handleNeedCoins = () => {
               </div>
             </div>
 
-            <div class="px-6 pt-8 pb-6 text-center z-10 bg-slate-50 flex flex-col gap-4">
-              <div v-if="!paymentError" class="flex flex-col items-center justify-center">
-                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Costo de Entrada</span>
-                <div class="flex items-center justify-center gap-2 mt-1">
-                  <span class="text-4xl font-black text-slate-800">{{ selectedGame?.cost }}</span>
-                  <div class="w-8 h-8 rounded-full bg-gradient-to-br from-orange-300 to-orange-600 border-2 border-orange-800 shadow-inner flex items-center justify-center">
-                    <span class="text-xs text-orange-900 font-black">C</span>
+            <div v-if="!selectedMode" class="px-6 pt-6 pb-6 bg-slate-50 flex flex-col gap-3">
+              <p class="text-center text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Selecciona el Modo de Juego</p>
+              
+              <button v-for="modeId in selectedGame.modes" :key="modeId" @click="selectMode(modeId)"
+                class="w-full py-3 bg-white border-2 border-slate-200 hover:border-rose-400 rounded-xl font-bold text-slate-600 flex items-center gap-3 px-4 transition-colors shadow-sm active:scale-95">
+                <div class="bg-slate-100 p-2 rounded-lg"><component :is="MODE_LABELS[modeId].icon" :size="18" class="text-slate-500"/></div>
+                <span class="uppercase text-sm">{{ MODE_LABELS[modeId].text }}</span>
+              </button>
+
+              <button @click="closeTicketModal" class="mt-2 w-full py-2 bg-transparent text-slate-400 hover:text-slate-600 rounded-xl font-bold text-sm transition-all uppercase">
+                Cancelar
+              </button>
+            </div>
+
+            <div v-else class="px-6 pt-8 pb-6 text-center z-10 bg-slate-50 flex flex-col gap-4">
+              
+              <div v-if="!paymentError" class="flex flex-col items-center justify-center w-full">
+                <div class="w-full bg-white p-3 rounded-xl border border-slate-200 shadow-inner mb-4">
+                  <div class="flex justify-between items-center mb-2">
+                    <span class="text-xs font-bold text-slate-400 uppercase">Fondo Base:</span>
+                    <span class="text-sm font-black text-slate-700">{{ gamificationStore.totalWealthInCopper }} 🥉</span>
+                  </div>
+                  <div class="flex justify-between items-center mb-2">
+                    <span class="text-xs font-bold text-slate-400 uppercase">Costo Entrada:</span>
+                    <span class="text-sm font-black text-rose-500">- {{ selectedGame?.cost }} 🥉</span>
+                  </div>
+                  <div class="w-full border-t-2 border-dashed border-slate-200 my-2"></div>
+                  <div class="flex justify-between items-center">
+                    <span class="text-xs font-black text-slate-500 uppercase">Saldo Final:</span>
+                    <span class="text-base font-black text-green-600">{{ gamificationStore.totalWealthInCopper - selectedGame?.cost }} 🥉</span>
                   </div>
                 </div>
-                <p class="text-xs font-bold text-slate-500 mt-2">Tienes: {{ gamificationStore.totalWealthInCopper }} 🥉 en tu bóveda.</p>
+
+                <div class="flex items-center gap-2 mb-2 text-rose-600 bg-rose-50 px-3 py-1 rounded-full border border-rose-100">
+                   <component :is="MODE_LABELS[selectedMode].icon" :size="14" />
+                   <span class="text-[10px] font-black uppercase">{{ MODE_LABELS[selectedMode].text }}</span>
+                </div>
               </div>
 
               <div v-else class="flex flex-col items-center justify-center bg-red-50 p-4 rounded-2xl border-2 border-red-200">
                 <AlertTriangle class="text-red-500 mb-2" :size="28" />
                 <span class="text-sm font-black text-red-700 uppercase leading-tight">Fondos Insuficientes</span>
-                <p class="text-xs font-bold text-red-500 mt-1">Te faltan {{ selectedGame?.cost - gamificationStore.totalWealthInCopper }} monedas.</p>
+                <p class="text-xs font-bold text-red-500 mt-1">Te faltan {{ selectedGame?.cost - gamificationStore.totalWealthInCopper }} monedas de cobre.</p>
               </div>
 
               <div class="flex flex-col gap-2 mt-2">
@@ -190,10 +237,14 @@ const handleNeedCoins = () => {
                   <Zap :size="20" fill="currentColor" /> ¡Ir a ganar cobre!
                 </button>
 
-                <button @click="closeTicketModal" :disabled="isProcessingPayment" class="w-full py-2.5 bg-transparent text-slate-400 hover:text-slate-600 rounded-xl font-bold text-sm transition-all uppercase">
+                <button v-if="!paymentError && selectedGame.modes.length > 1" @click="selectedMode = null" :disabled="isProcessingPayment" class="w-full py-2 bg-transparent text-slate-400 hover:text-slate-600 rounded-xl font-bold text-xs transition-all uppercase">
+                  Cambiar Modo
+                </button>
+                <button v-else @click="closeTicketModal" :disabled="isProcessingPayment" class="w-full py-2 bg-transparent text-slate-400 hover:text-slate-600 rounded-xl font-bold text-xs transition-all uppercase">
                   Cancelar
                 </button>
               </div>
+
             </div>
           </div>
         </div>
@@ -203,10 +254,12 @@ const handleNeedCoins = () => {
 </template>
 
 <style scoped>
-.master-hub { position: fixed; inset: 0; z-index: 150; background-color: #0f172a; display: flex; justify-content: center; align-items: center; overflow: hidden; touch-action: none !important; }
+.master-hub { position: fixed; inset: 0; z-index: 150; background-color: #f1f5f9; display: flex; justify-content: center; align-items: center; overflow: hidden; touch-action: none !important; }
 .hub-canvas { display: grid; grid-template-rows: auto 1fr; position: relative; overflow: hidden; background: linear-gradient(to bottom right, #be123c, #fb7185); padding: 1.25rem; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); user-select: none; touch-action: none !important; width: 100vw; height: 100dvh; }
-@media (min-width: 600px) and (max-width: 1024px) { .hub-canvas { width: 85vw; height: 92dvh; border-radius: 35px; padding: 2rem; } }
-@media (min-width: 1025px) { .hub-canvas { width: 1024px; height: 90dvh; border-radius: 45px; padding: 2.5rem; border: 6px solid rgba(255,255,255,0.1);} }
+
+@media (min-width: 600px) and (max-width: 1024px) { .hub-canvas { width: 85vw; height: 92dvh; border-radius: 35px; padding: 2rem; box-shadow: 0 20px 50px rgba(0,0,0,0.1); } }
+@media (min-width: 1025px) { .hub-canvas { width: 1024px; height: 90dvh; border-radius: 45px; padding: 2.5rem; border: 8px solid white; box-shadow: 0 40px 100px rgba(0,0,0,0.15);} }
+
 .header-hub { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
 .title-text { font-size: clamp(1.4rem, 5vw, 2.2rem); font-weight: 900; color: white; text-transform: uppercase; line-height: 1; letter-spacing: -0.02em; }
 .subtitle-text { color: #ffe4e6; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; }

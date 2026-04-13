@@ -1,13 +1,15 @@
 <script setup>
 /** * ARCHIVO: GameChess.vue
- * NOTA INTERNA: MOTOR DE AJEDREZ v4.1 - IA (MINIMAX) + UX SENSORIAL BIDIRECCIONAL
- * LOGICA: Evaluación Inteligente y Feedback Visual/Auditivo 360º.
+ * NOTA INTERNA: MOTOR DE AJEDREZ v4.2 - IA (MINIMAX) + REGLAS Y FINANZAS
+ * LOGICA: Evaluación Inteligente, Feedback Visual/Auditivo 360º, Cobro por Revancha.
  */
 import { ref, computed } from 'vue';
-import { X as CloseIcon, User, Cpu, RotateCcw, Trophy, Frown, Handshake } from 'lucide-vue-next';
+import { X as CloseIcon, User, Cpu, RotateCcw, Trophy, Frown, Handshake, Info } from 'lucide-vue-next';
 import { Chess } from 'chess.js';
+import { useGamificationStore } from '@/stores/useGamificationStore';
 
 const emit = defineEmits(['close']);
+const gamificationStore = useGamificationStore();
 
 // --- 🎵 MOTORES DE AUDIO ---
 const sndSelect = new Audio('/audios/select.mp3');
@@ -30,6 +32,8 @@ const legalMoves = ref([]);
 
 const gameResult = ref(null);
 const winReason = ref('');
+
+const showRules = ref(false); // 🌟 ESTADO PARA EL MODAL DE REGLAS
 
 // 🛠️ FIX EMOJI: Obliga a renderizar la fuente pura.
 const pieceIcons = {
@@ -56,6 +60,20 @@ const fromAlgebraic = (sq) => {
 const getLegalMove = (r, c) => {
   const targetSquare = toAlgebraic(r, c);
   return legalMoves.value.find(m => m.to === targetSquare);
+};
+
+// 🌟 COBRO POR REINICIAR (15 COBRES)
+const handleReplayClick = async () => {
+  if (gamificationStore.totalWealthInCopper >= 15) {
+    const success = await gamificationStore.payRecreationEntry(15);
+    if (success) {
+      playSound(sndKing); 
+      resetBoard();
+    }
+  } else {
+    gamificationStore.bubbleMessage = "¡No tienes 15 monedas de cobre para jugar otra vez!";
+    emit('close'); 
+  }
 };
 
 // --- 🕹️ FÍSICA DE MOVIMIENTO SENSORIAL (TÚ) ---
@@ -302,9 +320,14 @@ const getPieceClass = (pieceObj) => {
             <p class="text-slate-500 font-bold text-[10px] uppercase tracking-widest mt-0.5">Vs. Computadora</p>
           </div>
         </div>
-        <button @click="emit('close')" class="bg-slate-100 p-2 rounded-full hover:bg-slate-200 transition-colors text-slate-600">
-          <CloseIcon :size="24" stroke-width="2.5" />
-        </button>
+        <div class="flex items-center gap-2">
+          <button @click="showRules = true" class="bg-rose-50 p-2 rounded-full hover:bg-rose-100 transition-colors text-rose-600 border border-rose-200" title="Ver Reglas">
+            <Info :size="24" stroke-width="2.5" />
+          </button>
+          <button @click="emit('close')" class="bg-slate-100 p-2 rounded-full hover:bg-slate-200 transition-colors text-slate-600">
+            <CloseIcon :size="24" stroke-width="2.5" />
+          </button>
+        </div>
       </header>
 
       <div class="flex-1 flex flex-col items-center justify-center w-full px-4 gap-6 overflow-hidden relative">
@@ -316,7 +339,7 @@ const getPieceClass = (pieceObj) => {
             </div>
             <div>
               <span class="block text-slate-700 font-black text-sm uppercase">Búho Bot</span>
-              <span class="block text-slate-400 font-bold text-[10px] uppercase">Estratega</span>
+              <span class="block text-slate-400 font-bold text-[10px] uppercase">Estratega Minimax</span>
             </div>
           </div>
           <div v-if="playerTurn === 'b' && !gameResult" class="flex gap-1 animate-pulse mb-2">
@@ -366,13 +389,32 @@ const getPieceClass = (pieceObj) => {
             </div>
             <div>
               <span class="block text-slate-700 font-black text-sm uppercase">Tú</span>
-              <span class="block text-slate-400 font-bold text-[10px] uppercase">Blancas</span>
+              <span class="block text-slate-400 font-bold text-[10px] uppercase">Fichas Blancas</span>
             </div>
           </div>
-          <button @click="resetBoard" class="p-2 rounded-lg bg-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-300 transition-colors" title="Reiniciar Tablero">
+          <button @click="handleReplayClick" class="p-2 rounded-lg bg-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-300 transition-colors" title="Pagar 15 cobres y Reiniciar">
             <RotateCcw :size="20" stroke-width="2.5" />
           </button>
         </div>
+
+        <Transition name="bubble-pop">
+          <div v-if="showRules" class="absolute inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+            <div class="w-full max-w-sm rounded-[2rem] p-6 shadow-2xl border-4 border-rose-400 bg-white flex flex-col items-center gap-4 relative">
+              <div class="w-16 h-16 rounded-full border-4 border-white bg-rose-100 text-rose-600 flex items-center justify-center -mt-12 shadow-lg">
+                <Info :size="32" stroke-width="2.5" />
+              </div>
+              <h3 class="text-2xl font-black uppercase tracking-tighter leading-none text-rose-800">Reglas del Juego</h3>
+              <div class="text-slate-600 text-sm font-medium space-y-3 text-left w-full">
+                <p><strong>🎯 Objetivo:</strong> Dar "Jaque Mate" al rey del Búho Bot (dejarlo bajo ataque sin que pueda escapar o defenderse).</p>
+                <p><strong>🕹️ Controles:</strong> Toca una de tus piezas blancas (se iluminará) y luego toca el círculo verde o el anillo rojo para moverla o capturar.</p>
+                <p><strong>🧠 Estrategia:</strong> El Búho Bot evalúa el tablero matemáticamente. Intenta controlar el centro, desarrollar tus caballos/alfiles temprano y proteger siempre a tu rey.</p>
+              </div>
+              <button @click="showRules = false" class="w-full py-3 mt-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-black text-lg transition-all uppercase shadow-[0_4px_0_rgb(159,18,57)] active:translate-y-1 active:shadow-none">
+                ¡Entendido!
+              </button>
+            </div>
+          </div>
+        </Transition>
 
         <Transition name="bubble-pop">
           <div v-if="gameResult" class="absolute inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
@@ -408,13 +450,13 @@ const getPieceClass = (pieceObj) => {
               </div>
 
               <div class="w-full flex flex-col gap-2 mt-2">
-                <button @click="resetBoard" :class="[
+                <button @click="handleReplayClick" :class="[
                   'w-full py-4 rounded-xl font-black text-lg transition-all flex items-center justify-center gap-2 uppercase',
                   gameResult === 'win' ? 'bg-green-500 text-white shadow-[0_4px_0_rgb(22,163,74)] active:translate-y-1 active:shadow-none' : 
                   gameResult === 'lose' ? 'bg-rose-500 text-white shadow-[0_4px_0_rgb(159,18,57)] active:translate-y-1 active:shadow-none' : 
                   'bg-blue-500 text-white shadow-[0_4px_0_rgb(37,99,235)] active:translate-y-1 active:shadow-none'
                 ]">
-                  <RotateCcw :size="20" stroke-width="2.5" /> Jugar Revancha
+                  <RotateCcw :size="20" stroke-width="2.5" /> Otra Vez (15 🥉)
                 </button>
                 <button @click="emit('close')" :class="[
                   'w-full py-3 bg-transparent rounded-xl font-bold text-sm uppercase transition-colors',

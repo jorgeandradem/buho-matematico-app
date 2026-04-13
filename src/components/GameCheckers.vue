@@ -1,12 +1,17 @@
 <script setup>
 /** * ARCHIVO: GameCheckers.vue
- * NOTA INTERNA: MOTOR DE DAMAS v2.1 - UX SENSORIAL BIDIRECCIONAL + HOMOLOGACIÓN
- * LOGICA: Matriz 8x8, Capturas Múltiples, Audio 360º, y Pausas Tácticas de la IA.
+ * NOTA INTERNA: MOTOR DE DAMAS v2.2 - REGLAS + IA EQUILIBRADA
+ * LOGICA: IA con evaluación posicional (Igual a Igual), Modal de Reglas y Combos.
  */
 import { ref } from 'vue';
-import { X as CloseIcon, User, Cpu, RotateCcw, Trophy, Frown } from 'lucide-vue-next';
+import { X as CloseIcon, User, Cpu, RotateCcw, Trophy, Frown, Handshake, Info } from 'lucide-vue-next';
 
 const emit = defineEmits(['close']);
+
+const props = defineProps({ 
+  gameMode: { type: String, default: 'vs-pc' }, 
+  allowLandscape: { type: Boolean, default: true } 
+});
 
 // --- 🎵 MOTORES DE AUDIO ---
 const sndSelect = new Audio('/audios/select.mp3');
@@ -40,8 +45,8 @@ const moveError = ref(false);
 const gameResult = ref(null);
 const winReason = ref('');
 
-// 🔒 Candado para Combos (Saltos Múltiples)
 const isChainJumping = ref(false); 
+const showRules = ref(false); // 🌟 ESTADO PARA EL MODAL DE REGLAS
 
 // --- 📐 MOTOR LÓGICO NATIVO ---
 const getLegalMovesForPiece = (r, c, currentState) => {
@@ -57,7 +62,6 @@ const getLegalMovesForPiece = (r, c, currentState) => {
   if (color === 'w' || isKing) dirs.push(-1); 
   if (color === 'b' || isKing) dirs.push(1);  
 
-  // 1. Movimientos simples (Se anulan si estamos en medio de un combo)
   if (!isChainJumping.value) {
     dirs.forEach(dr => {
       [-1, 1].forEach(dc => {
@@ -69,7 +73,6 @@ const getLegalMovesForPiece = (r, c, currentState) => {
     });
   }
 
-  // 2. Capturas (Saltos)
   dirs.forEach(dr => {
     [-1, 1].forEach(dc => {
       const nr = r + dr, nc = c + dc;
@@ -95,7 +98,7 @@ const getLegalMove = (r, c) => {
   return legalMoves.value.find(m => m.to.r === r && m.to.c === c) || null;
 };
 
-// --- 🕹️ FÍSICA DE MOVIMIENTO INTERACTIVA (TÚ) ---
+// --- 🕹️ FÍSICA DE MOVIMIENTO INTERACTIVA ---
 const handleSquareClick = (r, c) => {
   if (playerTurn.value !== 'w' || gameResult.value) return; 
 
@@ -106,7 +109,6 @@ const handleSquareClick = (r, c) => {
     const isClickingSamePiece = selectedSquare.value.r === r && selectedSquare.value.c === c;
     const isClickingOtherFriendly = piece && piece.toLowerCase() === 'w';
 
-    // 1. Deseleccionar 
     if (isClickingSamePiece) {
       if (!isChainJumping.value) {
         selectedSquare.value = null;
@@ -118,7 +120,6 @@ const handleSquareClick = (r, c) => {
       return;
     }
 
-    // 2. Cambio fluido de selección
     if (isClickingOtherFriendly && !isChainJumping.value) {
       selectedSquare.value = { r, c };
       legalMoves.value = getLegalMovesForPiece(r, c, board.value);
@@ -126,7 +127,6 @@ const handleSquareClick = (r, c) => {
       return;
     }
     
-    // 3. Intentar Mover
     const validMove = getLegalMove(r, c);
 
     if (validMove) {
@@ -135,7 +135,6 @@ const handleSquareClick = (r, c) => {
       if (validMove.isCapture) {
         playSound(sndCapture);
         
-        // --- 🔄 LÓGICA DE SALTO MÚLTIPLE (COMBO) ---
         if (!promoted) {
           isChainJumping.value = true;
           const nextMoves = getLegalMovesForPiece(validMove.to.r, validMove.to.c, board.value);
@@ -144,14 +143,13 @@ const handleSquareClick = (r, c) => {
           if (nextCaptures.length > 0) {
             selectedSquare.value = { r: validMove.to.r, c: validMove.to.c };
             legalMoves.value = nextCaptures;
-            return; // Mantiene el turno
+            return; 
           }
         }
       } else {
         playSound(sndMove);
       }
 
-      // Fin de tu turno
       isChainJumping.value = false;
       selectedSquare.value = null;
       legalMoves.value = []; 
@@ -196,7 +194,16 @@ const executeMove = (fromR, fromC, move) => {
   return promoted;
 };
 
-// --- 🤖 IA DEL BÚHO BOT (CON COMBO Y SENSORIAL BIDIRECCIONAL) ---
+// --- 🤖 IA DEL BÚHO BOT (EQUILIBRIO "IGUAL A IGUAL") ---
+const evaluatePosition = (r, c) => {
+  // Puntuación posicional simple: Premia el centro y los bordes protegidos
+  let score = 0;
+  if (c >= 2 && c <= 5) score += 2; // Centro horizontal
+  if (r >= 3 && r <= 4) score += 2; // Centro vertical
+  if (r === 0 || c === 0 || c === 7) score += 3; // Bordes seguros
+  return score;
+};
+
 const simulateComputerMove = (chainPiece = null) => {
   if (gameResult.value) return;
 
@@ -231,43 +238,73 @@ const simulateComputerMove = (chainPiece = null) => {
   }
 
   const captureMoves = allPossibleMoves.filter(m => m.isCapture);
-  let chosenMove = captureMoves.length > 0 
-    ? captureMoves[Math.floor(Math.random() * captureMoves.length)] 
-    : allPossibleMoves[Math.floor(Math.random() * allPossibleMoves.length)];
+  let chosenMove = null;
+
+  if (captureMoves.length > 0) {
+    // Es obligatorio comer en las Damas, el bot elige una captura al azar
+    chosenMove = captureMoves[Math.floor(Math.random() * captureMoves.length)];
+  } else {
+    // 🌟 IA EQUILIBRADA: Si no hay captura, evalúa la mejor posición de llegada
+    let bestScore = -Infinity;
+    let bestMoves = [];
+
+    allPossibleMoves.forEach(move => {
+      let score = evaluatePosition(move.to.r, move.to.c);
+      
+      // Bonus por evitar que le coman en el próximo turno (simulación básica)
+      const isDangerous = [-1, 1].some(dc => {
+         const enemyR = move.to.r + 1; const enemyC = move.to.c + dc;
+         const backR = move.to.r - 1; const backC = move.to.c - dc;
+         if (enemyR < 8 && enemyC >= 0 && enemyC < 8 && backR >= 0 && backC >= 0 && backC < 8) {
+           return board.value[enemyR][enemyC]?.toLowerCase() === 'w' && board.value[backR][backC] === '';
+         }
+         return false;
+      });
+      if (isDangerous) score -= 5;
+
+      if (score > bestScore) {
+        bestScore = score;
+        bestMoves = [move];
+      } else if (score === bestScore) {
+        bestMoves.push(move);
+      }
+    });
+
+    // Pequeño margen de error humano (10%) para no ser invencible
+    if (Math.random() > 0.10) {
+       chosenMove = bestMoves[Math.floor(Math.random() * bestMoves.length)];
+    } else {
+       chosenMove = allPossibleMoves[Math.floor(Math.random() * allPossibleMoves.length)];
+    }
+  }
   
-  // 1. FEEDBACK VISUAL: El Bot "agarra" la ficha
   selectedSquare.value = { r: chosenMove.from.r, c: chosenMove.from.c };
   playSound(sndSelect);
 
-  // 2. PAUSA TÁCTICA
   setTimeout(() => {
     const promoted = executeMove(chosenMove.from.r, chosenMove.from.c, chosenMove);
     
-    // Sonido correcto
     if (promoted) playSound(sndKing);
     else if (chosenMove.isCapture) playSound(sndCapture);
     else playSound(sndMove);
 
-    // El Bot evalúa si puede hacer Combo
     if (chosenMove.isCapture && !promoted) {
       const nextMoves = getLegalMovesForPiece(chosenMove.to.r, chosenMove.to.c, board.value);
       if (nextMoves.some(m => m.isCapture)) {
         isChainJumping.value = true;
-        // Feedback visual del bot aterrizando antes del próximo salto
         selectedSquare.value = { r: chosenMove.to.r, c: chosenMove.to.c };
         setTimeout(() => simulateComputerMove(chosenMove.to), 700);
         return;
       }
     }
     
-    // Si no hay combo o terminó
     isChainJumping.value = false;
-    selectedSquare.value = { r: chosenMove.to.r, c: chosenMove.to.c }; // Ilumina destino brevemente
+    selectedSquare.value = { r: chosenMove.to.r, c: chosenMove.to.c }; 
 
     setTimeout(() => {
-      selectedSquare.value = null; // Suelta la ficha
+      selectedSquare.value = null; 
       if (!checkGameState()) {
-        playerTurn.value = 'w'; // Te devuelve el turno
+        playerTurn.value = 'w'; 
       }
     }, 400);
 
@@ -342,9 +379,14 @@ const isDarkSquare = (r, c) => (r + c) % 2 !== 0;
             <p class="text-slate-500 font-bold text-[10px] uppercase tracking-widest mt-0.5">Vs. Computadora</p>
           </div>
         </div>
-        <button @click="emit('close')" class="bg-slate-100 p-2 rounded-full hover:bg-slate-200 transition-colors text-slate-600">
-          <CloseIcon :size="24" stroke-width="2.5" />
-        </button>
+        <div class="flex items-center gap-2">
+          <button @click="showRules = true" class="bg-rose-50 p-2 rounded-full hover:bg-rose-100 transition-colors text-rose-600 border border-rose-200" title="Ver Reglas">
+            <Info :size="24" stroke-width="2.5" />
+          </button>
+          <button @click="emit('close')" class="bg-slate-100 p-2 rounded-full hover:bg-slate-200 transition-colors text-slate-600">
+            <CloseIcon :size="24" stroke-width="2.5" />
+          </button>
+        </div>
       </header>
 
       <div class="flex-1 flex flex-col items-center justify-center w-full px-4 gap-6 overflow-hidden relative">
@@ -356,7 +398,7 @@ const isDarkSquare = (r, c) => (r + c) % 2 !== 0;
             </div>
             <div>
               <span class="block text-slate-700 font-black text-sm uppercase">Búho Bot</span>
-              <span class="block text-slate-400 font-bold text-[10px] uppercase">Nivel 1</span>
+              <span class="block text-slate-400 font-bold text-[10px] uppercase">Nivel Estratégico</span>
             </div>
           </div>
           <div v-if="playerTurn === 'b' && !gameResult" class="flex gap-1 animate-pulse mb-2">
@@ -424,7 +466,26 @@ const isDarkSquare = (r, c) => (r + c) % 2 !== 0;
         </div>
 
         <Transition name="bubble-pop">
-          <div v-if="gameResult" class="absolute inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div v-if="showRules" class="absolute inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+            <div class="w-full max-w-sm rounded-[2rem] p-6 shadow-2xl border-4 border-rose-400 bg-white flex flex-col items-center gap-4 relative">
+              <div class="w-16 h-16 rounded-full border-4 border-white bg-rose-100 text-rose-600 flex items-center justify-center -mt-12 shadow-lg">
+                <Info :size="32" stroke-width="2.5" />
+              </div>
+              <h3 class="text-2xl font-black uppercase tracking-tighter leading-none text-rose-800">Reglas del Juego</h3>
+              <div class="text-slate-600 text-sm font-medium space-y-3 text-left w-full">
+                <p><strong>🎯 Objetivo:</strong> Captura todas las fichas del Búho Bot saltando sobre ellas en diagonal.</p>
+                <p><strong>🕹️ Movimiento:</strong> Las fichas normales solo avanzan en diagonal (cuadros oscuros). Si llegas al final del tablero, te conviertes en 👑 Rey y podrás moverte hacia atrás.</p>
+                <p><strong>⚔️ Captura Obligatoria:</strong> Si puedes comer una ficha, el juego te obligará a hacerlo. Aprovecha esta regla para crear trampas y combos.</p>
+              </div>
+              <button @click="showRules = false" class="w-full py-3 mt-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-black text-lg transition-all uppercase shadow-[0_4px_0_rgb(159,18,57)] active:translate-y-1 active:shadow-none">
+                ¡Entendido!
+              </button>
+            </div>
+          </div>
+        </Transition>
+
+        <Transition name="bubble-pop">
+          <div v-if="gameResult" class="absolute inset-0 z-[90] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
             <div :class="[
               'w-full max-w-sm rounded-[2rem] p-6 shadow-2xl border-4 text-center flex flex-col items-center gap-4',
               gameResult === 'win' ? 'bg-white border-green-400' : 'bg-slate-50 border-rose-400'
@@ -497,7 +558,6 @@ const isDarkSquare = (r, c) => (r + c) % 2 !== 0;
 .checker-b { background: radial-gradient(circle at 30% 30%, #f43f5e, #9f1239); border: 1px solid #881337; }
 .checker-inner { width: 60%; height: 60%; border-radius: 50%; border: 1px solid rgba(0,0,0,0.15); box-shadow: inset 0 2px 4px rgba(0,0,0,0.15); }
 
-/* ✨ AURA DE SELECCIÓN Y COMBOS */
 .animate-glow { animation: glow-pulse 1s infinite alternate; filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.8)); }
 @keyframes glow-pulse { 0% { filter: drop-shadow(0 0 4px rgba(251, 191, 36, 0.5)); } 100% { filter: drop-shadow(0 0 15px rgba(251, 191, 36, 1)); } }
 

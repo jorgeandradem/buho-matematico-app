@@ -1,7 +1,8 @@
 <script setup>
 /** * ARCHIVO: FinancialSimulator.vue
- * VERSION: 2.6 - Fix de ejecución PDF y Proporciones de Columna.
- * NOTA: Corrección de importación para jspdf-autotable y anchos A4 para Jorge.
+ * VERSION: 2.9 - PDF "Dual-Font" (Legibilidad Pro).
+ * NOTA: Pantalla compacta vs Impresión A4 con fuente ampliada (12pt/10pt).
+ * LOGICA: Cuerpo en Courier para alineación, tamaño optimizado para papel real.
  */
 import { ref, computed, watch } from 'vue';
 import { 
@@ -12,11 +13,11 @@ import {
 // --- 📦 LIBRERÍAS DE EXPORTACIÓN ---
 import { domToJpeg } from 'modern-screenshot'; 
 import jsPDF from 'jspdf';                   
-import autoTable from 'jspdf-autotable'; // Importación directa corregida
+import autoTable from 'jspdf-autotable'; 
 
 const emit = defineEmits(['close']);
 
-// --- 🧪 ESTADO DEL MOTOR ---
+// --- 🧪 ESTADO DEL MOTOR (INTACTO) ---
 const amountRaw = ref(''); 
 const years = ref('');
 const months = ref('');
@@ -156,7 +157,7 @@ const pieChartStyle = computed(() => {
   };
 });
 
-// --- 📤 MOTOR DE EXPORTACIÓN JORGE ---
+// --- 📤 MOTOR DE EXPORTACIÓN ---
 
 const exportJPG = async () => {
   if (!captureArea.value) return;
@@ -177,15 +178,24 @@ const exportPDF = () => {
   try {
     const doc = new jsPDF('p', 'mm', 'a4');
     
+    // --- LÓGICA DE FUENTE AMPLIADA PARA IMPRESIÓN ---
+    const maxBalanceVal = amortizationSchedule.value[0]?.balance || 0;
+    const balanceStr = formatCurrency(maxBalanceVal);
+    const isLongText = balanceStr.length > 12;
+
+    // AUMENTAMOS EL TAMAÑO: 12pt es ideal para A4, 10pt para casos densos.
+    const printFontSize = isLongText ? 10 : 12; 
+    const printPadding = isLongText ? 2.5 : 3.5;
+
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(18);
+    doc.setFontSize(20); // Título más imponente
     doc.setTextColor(30, 41, 59);
     doc.text("REPORTE DE AMORTIZACIÓN", 14, 20);
     
-    doc.setFontSize(10);
+    doc.setFontSize(11);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(100);
-    doc.text(`Préstamo: ${formatCurrency(parsedAmount.value)} | Interés: ${interestRateRaw.value}% | Plazo: ${totalMonths.value} meses`, 14, 28);
+    doc.text(`Préstamo: ${formatCurrency(parsedAmount.value)} | Interés: ${interestRateRaw.value}% | Plazo: ${totalMonths.value} meses`, 14, 30);
 
     const tableRows = amortizationSchedule.value.map(row => [
       row.month,
@@ -194,32 +204,41 @@ const exportPDF = () => {
       formatCurrency(row.balance)
     ]);
 
-    // Llamada directa corregida para evitar errores de ejecución
     autoTable(doc, {
-      startY: 35,
+      startY: 38,
       head: [['MES', 'CAPITAL', 'INTERÉS', 'BALANCE']],
       body: tableRows,
       theme: 'striped',
-      styles: { fontSize: 8.5, cellPadding: 2.5 },
-      headStyles: { fillColor: [30, 41, 59], halign: 'center' },
+      styles: { 
+        font: "courier", // Alineación tabular garantizada
+        fontSize: printFontSize, 
+        cellPadding: printPadding,
+        valign: 'middle'
+      },
+      headStyles: { 
+        fillColor: [30, 41, 59], 
+        halign: 'center',
+        font: "helvetica",
+        fontStyle: 'bold',
+        fontSize: 11
+      },
       columnStyles: {
-        0: { cellWidth: 15, halign: 'center' }, // MES: Estrecho
-        1: { cellWidth: 'auto', halign: 'right', textColor: [37, 99, 235] }, // CAPITAL
-        2: { cellWidth: 'auto', halign: 'right', textColor: [16, 185, 129] }, // INTERÉS
-        3: { cellWidth: 65, halign: 'right', fontStyle: 'bold' } // BALANCE: Prioritario (ancho asignado)
+        0: { cellWidth: 18, halign: 'center' }, 
+        1: { cellWidth: 'auto', halign: 'right', textColor: [37, 99, 235] }, 
+        2: { cellWidth: 'auto', halign: 'right', textColor: [16, 185, 129] }, 
+        3: { cellWidth: isLongText ? 62 : 52, halign: 'right', fontStyle: 'bold' } 
       },
       margin: { left: 14, right: 14 },
       didDrawPage: (data) => {
-        // Pie de página con numeración
-        doc.setFontSize(8);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
         doc.text(`Página ${data.pageNumber}`, 14, doc.internal.pageSize.height - 10);
       }
     });
 
-    doc.save(`Reporte_Financiero_A4.pdf`);
+    doc.save(`Reporte_Amortizacion_Profesional.pdf`);
   } catch (err) {
     console.error("Error al generar PDF:", err);
-    alert("Hubo un problema al generar el PDF. Revisa la consola.");
   }
 };
 </script>
@@ -228,7 +247,7 @@ const exportPDF = () => {
   <div class="master-container font-inter">
     <main class="app-canvas bg-slate-50">
       
-      <header class="header-standard shrink-0 relative flex justify-between items-center py-2 sm:py-3 px-4 sm:px-6 shadow-sm z-30">
+      <header class="header-standard shrink-0 relative flex justify-between items-center py-2 sm:py-3 px-4 sm:px-6 shadow-sm z-30 bg-white">
         <div class="w-8 h-8 sm:w-10 sm:h-10 invisible hidden md:block"></div>
         <div class="flex items-center justify-center gap-2 sm:gap-3 flex-1 md:flex-none">
             <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 shrink-0">
