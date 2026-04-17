@@ -1,7 +1,7 @@
 <script setup>
 /** * ARCHIVO: GameConnect4.vue
- * NOTA INTERNA: CONECTA 4 v1.2 - REGLAS Y EQUILIBRIO COMPETITIVO
- * LÓGICA: IA mejorada (Prioridad posicional central) para partidas "de igual a igual". Modal de reglas añadido.
+ * NOTA INTERNA: CONECTA 4 v1.3 - INDICADORES DE TURNO
+ * LÓGICA: IA mejorada, Modal de reglas añadido, Indicadores visuales de turno activo.
  * VISUAL: Tablero perforado azul, fichas 2.5D.
  */
 import { ref, onMounted } from 'vue';
@@ -267,7 +267,8 @@ const isWinningCell = (c, r) => {
           props.allowLandscape ? 'landscape:w-1/4 landscape:flex-col landscape:items-center landscape:justify-center landscape:gap-6 landscape:h-full' : ''
         ]">
           <div class="flex items-center gap-2 bg-white p-2.5 rounded-2xl shadow-sm border border-slate-200 w-full landscape:flex-col landscape:text-center">
-            <div class="bg-slate-100 p-2 rounded-xl border border-slate-300 relative">
+            <div :class="['p-2 rounded-xl border-2 relative transition-all duration-300',
+                          playerTurn === 2 ? 'bg-yellow-50 border-yellow-400 animate-turn-pulse shadow-[0_0_15px_rgba(250,204,21,0.5)]' : 'bg-slate-100 border-slate-300']">
               <Cpu v-if="props.gameMode === 'vs-pc'" class="text-blue-600" :size="20"/>
               <User v-else class="text-yellow-500" :size="20"/>
               <div v-if="playerTurn === 2 && !gameResult" class="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full border-2 border-white animate-pulse"></div>
@@ -327,7 +328,8 @@ const isWinningCell = (c, r) => {
           props.allowLandscape ? 'landscape:w-1/4 landscape:flex-col-reverse landscape:items-center landscape:justify-center landscape:gap-4 landscape:h-full' : ''
         ]">
           <div class="flex items-center gap-2 bg-white p-2.5 rounded-2xl shadow-sm border border-slate-200 w-full landscape:flex-col landscape:text-center">
-            <div class="bg-slate-100 p-2 rounded-xl border border-slate-300 relative">
+            <div :class="['p-2 rounded-xl border-2 relative transition-all duration-300',
+                          playerTurn === 1 ? 'bg-rose-50 border-rose-400 animate-turn-pulse shadow-[0_0_15px_rgba(244,63,94,0.5)]' : 'bg-slate-100 border-slate-300']">
               <User class="text-rose-600" :size="20"/>
               <div v-if="playerTurn === 1 && !gameResult" class="absolute -top-1 -right-1 w-3 h-3 bg-rose-500 rounded-full border-2 border-white animate-pulse"></div>
             </div>
@@ -443,4 +445,8 @@ const isWinningCell = (c, r) => {
 .bubble-pop-enter-active { animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
 .bubble-pop-leave-active { animation: popIn 0.3s reverse; }
 @keyframes popIn { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
+
+/* 🌟 ANIMACIÓN DE PULSO DE TURNO */
+.animate-turn-pulse { animation: turn-pulse 1.5s infinite alternate ease-in-out; }
+@keyframes turn-pulse { 0% { transform: scale(1); box-shadow: 0 0 5px currentColor; } 100% { transform: scale(1.05); box-shadow: 0 0 15px currentColor; } }
 </style>

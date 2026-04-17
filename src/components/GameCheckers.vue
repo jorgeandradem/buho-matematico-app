@@ -1,7 +1,7 @@
 <script setup>
 /** * ARCHIVO: GameCheckers.vue
- * NOTA INTERNA: MOTOR DE DAMAS v2.2 - REGLAS + IA EQUILIBRADA
- * LOGICA: IA con evaluación posicional (Igual a Igual), Modal de Reglas y Combos.
+ * NOTA INTERNA: MOTOR DE DAMAS v2.3 - INDICADORES DE TURNO
+ * LOGICA: IA con evaluación posicional (Igual a Igual), Modal de Reglas y Combos, Indicador de turno visual.
  */
 import { ref } from 'vue';
 import { X as CloseIcon, User, Cpu, RotateCcw, Trophy, Frown, Handshake, Info } from 'lucide-vue-next';
@@ -393,7 +393,8 @@ const isDarkSquare = (r, c) => (r + c) % 2 !== 0;
         
         <div class="w-full max-w-sm flex justify-between items-end px-2">
           <div class="flex items-center gap-2">
-            <div class="w-10 h-10 rounded-lg bg-slate-200 border-2 border-slate-300 flex items-center justify-center shadow-sm">
+            <div :class="['w-10 h-10 rounded-lg bg-slate-200 border-2 flex items-center justify-center shadow-sm transition-all duration-300', 
+                          playerTurn === 'b' ? 'border-rose-400 animate-turn-pulse shadow-[0_0_15px_rgba(244,63,94,0.5)]' : 'border-slate-300']">
               <Cpu class="text-rose-500" :size="20" />
             </div>
             <div>
@@ -449,7 +450,8 @@ const isDarkSquare = (r, c) => (r + c) % 2 !== 0;
 
         <div class="w-full max-w-sm flex justify-between items-start px-2">
           <div class="flex items-center gap-2">
-            <div class="w-10 h-10 rounded-lg bg-white border-2 border-slate-200 flex items-center justify-center shadow-sm">
+            <div :class="['w-10 h-10 rounded-lg bg-white border-2 flex items-center justify-center shadow-sm transition-all duration-300',
+                          playerTurn === 'w' ? 'border-emerald-400 animate-turn-pulse shadow-[0_0_15px_rgba(52,211,153,0.5)]' : 'border-slate-200']">
               <User class="text-slate-600" :size="20" />
             </div>
             <div>
@@ -567,4 +569,8 @@ const isDarkSquare = (r, c) => (r + c) % 2 !== 0;
 .bubble-pop-enter-active { animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
 .bubble-pop-leave-active { animation: popIn 0.3s reverse; }
 @keyframes popIn { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
+
+/* 🌟 ANIMACIÓN DE PULSO DE TURNO */
+.animate-turn-pulse { animation: turn-pulse 1.5s infinite alternate ease-in-out; }
+@keyframes turn-pulse { 0% { transform: scale(1); box-shadow: 0 0 5px currentColor; } 100% { transform: scale(1.05); box-shadow: 0 0 15px currentColor; } }
 </style>

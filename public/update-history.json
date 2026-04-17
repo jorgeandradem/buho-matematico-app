@@ -1,5 +1,12 @@
 [
   {
+    "updateId": "upd_1776956400000",
+    "version": "2.12.5",
+    "date": "18/04/2026",
+    "title": "ACELERACIÓN KINÉTICA Y SINCRONÍA DE TURNOS",
+    "description": "Capitán, hemos inyectado un Motor de Aceleración Inercial en la Bóveda de Tiempo (Quantum Engine) que evalúa la agresividad del gesto para aplicar saltos temporales largos (x10, x100) con modulación de tono (pitch) en el sonido del engranaje. En el Club Lógico, calibramos los motores de Ajedrez, Damas y Conecta 4: implementamos alertas visuales (pulsos latentes) en los avatares para indicar el turno activo, y reescribimos el núcleo del Solitario Klondike para permitir auto-destape de cartas, movimiento libre de Reyes a columnas vacías y selección fluida sin bloqueos."
+  },
+  {
     "updateId": "upd_1776524400000",
     "version": "2.12.4",
     "date": "13/04/2026",

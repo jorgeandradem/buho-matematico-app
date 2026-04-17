@@ -1,17 +1,24 @@
 <script setup>
 /** * ARCHIVO: ToolsHub.vue
- * VERSION: 3.0 - Multidispositivo Pro (Estándar Suite).
- * NOTA: Adaptación de chasis para móviles, tablets y desktop.
+ * VERSION: 3.1 - INTEGRACIÓN QUANTUM ENGINE
+ * NOTA: Adaptación de chasis con nueva herramienta de tiempo.
  */
 import { ref } from 'vue';
 import { 
   FlaskConical, X, ChevronRight, 
-  Scale, Calculator, ScrollText 
+  Scale, Calculator, ScrollText, Clock3 
 } from 'lucide-vue-next';
 
 const emit = defineEmits(['close', 'open-tool']);
 
 const tools = [
+  { 
+    id: 'time-quantum', 
+    name: 'Quantum Engine', 
+    icon: Clock3, 
+    desc: 'Motor de Tiempo Pro',
+    color: '#6366f1' // Indigo
+  },
   { 
     id: 'converter', 
     name: 'Conversor Cuántico', 
@@ -87,7 +94,7 @@ const tools = [
 
         <footer class="hub-footer-brand shrink-0">
           <div class="version-pill">
-            BÚHO MATEMÁTICO V2.12.1
+            BÚHO MATEMÁTICO V3.1.0
           </div>
         </footer>
 

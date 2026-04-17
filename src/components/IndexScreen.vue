@@ -1,7 +1,7 @@
 <script setup>
 /** * ARCHIVO: IndexScreen.vue
- * NOTA INTERNA: TORRE DE CONTROL v3.2.1 - SELLADO TÉCNICO DISCRETO
- * LOGICA: Sincronización Privada + Premios Cuánticos + Ruteo de Portales + Club Lógico (50/50).
+ * NOTA INTERNA: TORRE DE CONTROL v3.2.5 - BÚHO LIBERADO
+ * LOGICA: Resolución de recortes por Overflow y Z-Index. Búho 100% visible sin empujar el layout.
  */
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue'; 
 import { 
@@ -275,27 +275,29 @@ const currentSubjectLabel = computed(() => options.find(o => o.id === selectedSu
             </button>
         </header>
 
-        <div class="content-hero-area flex-1 flex flex-col justify-evenly">
+        <div class="content-hero-area flex-1 flex flex-col justify-evenly relative">
           
-          <div class="w-full grid grid-cols-2 px-6 items-end">
-             <div class="flex items-center justify-center h-full">
-                 <div v-if="showOwl" class="bg-white rounded-2xl p-2 shadow-xl border-2 border-indigo-200 relative animate-fade-in w-full text-center">
+          <div class="w-full px-6 flex justify-end relative z-[60] mb-1">
+             
+             <div v-if="showOwl" class="absolute bottom-full right-6 mb-2 flex items-end gap-2 animate-fade-in pointer-events-none">
+                 <div class="bg-white rounded-2xl p-2 shadow-xl border-2 border-indigo-200 relative w-[130px] sm:w-[150px] text-center mb-1">
                     <p class="text-indigo-900 font-black text-xs leading-tight">{{ greeting }}</p>
                     <div class="absolute -bottom-2 right-4 w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-t-[8px] border-t-white"></div>
                  </div>
-             </div>
-             <div class="flex flex-col items-center justify-end h-full">
-                 <div v-if="showOwl" class="w-16 h-16 sm:w-20 sm:h-20 transition-all duration-500 shrink-0"><OwlImage customClass="w-full h-full object-contain" /></div>
-                 <div class="bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded-full flex items-center gap-2 border border-white/30 shadow-sm w-full max-w-[140px]">
-                    <User :size="14" class="text-white shrink-0" />
-                    <input v-if="isEditingName" type="text" v-model="studentName" @keyup.enter="saveName" class="bg-transparent text-white font-black text-[11px] outline-none w-full" autofocus />
-                    <span v-else class="text-white font-black text-[11px] truncate w-full cursor-pointer uppercase tracking-tighter" @click="isEditingName = true">{{ studentName || "HOLA!" }}</span>
-                    <Pencil v-if="!isEditingName" :size="12" class="text-indigo-200 shrink-0" />
+                 <div class="w-16 h-16 sm:w-20 sm:h-20 shrink-0">
+                    <OwlImage customClass="w-full h-full object-contain drop-shadow-xl" />
                  </div>
+             </div>
+
+             <div class="bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded-full flex items-center gap-2 border border-white/30 shadow-sm w-full max-w-[140px] pointer-events-auto">
+                <User :size="14" class="text-white shrink-0" />
+                <input v-if="isEditingName" type="text" v-model="studentName" @keyup.enter="saveName" class="bg-transparent text-white font-black text-[11px] outline-none w-full" autofocus />
+                <span v-else class="text-white font-black text-[11px] truncate w-full cursor-pointer uppercase tracking-tighter" @click="isEditingName = true">{{ studentName || "HOLA!" }}</span>
+                <Pencil v-if="!isEditingName" :size="12" class="text-indigo-200 shrink-0" />
              </div>
           </div>
 
-          <div class="grid grid-cols-2 gap-3 w-full px-4 max-w-md mx-auto">
+          <div class="grid grid-cols-2 gap-3 w-full px-4 max-w-md mx-auto z-10">
             <button v-for="opt in options" :key="opt.id" @click="openConfig(opt.id)"
               class="group bg-white p-2 rounded-[2rem] border-4 border-transparent hover:border-indigo-100 shadow-xl active:scale-95 flex flex-col items-center justify-center gap-1 transition-all h-24 sm:h-28">
               <div :class="`w-10 h-10 rounded-xl ${opt.color} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform shrink-0`">
@@ -308,7 +310,7 @@ const currentSubjectLabel = computed(() => options.find(o => o.id === selectedSu
             </button>
           </div>
 
-          <div class="px-4 w-full flex flex-col gap-2.5 shrink-0 max-w-md mx-auto">
+          <div class="px-4 w-full flex flex-col gap-2.5 shrink-0 max-w-md mx-auto z-10 mt-2">
               
               <button @click="emit('open-portal-welcome')" class="w-full bg-gradient-to-r from-yellow-400 to-orange-500 rounded-[2.5rem] p-1 shadow-[0_4px_0_rgb(194,65,12)] active:translate-y-1 transition-all group">
                 <div class="bg-white/10 rounded-[2.2rem] py-2 px-4 flex items-center gap-4">
@@ -494,7 +496,7 @@ const currentSubjectLabel = computed(() => options.find(o => o.id === selectedSu
   } 
 }
 
-/* 📐 ÁREA DE CONTENIDO DINÁMICA */
+/* 📐 ÁREA DE CONTENIDO DINÁMICA (CORREGIDO EL CLIPPING DE OVERFLOW) */
 .content-hero-area {
   flex-grow: 1;
   display: flex;
@@ -502,7 +504,6 @@ const currentSubjectLabel = computed(() => options.find(o => o.id === selectedSu
   justify-content: space-evenly;
   width: 100%;
   max-width: 100%;
-  overflow-x: hidden;
   padding: 0.5rem 0;
 }
 

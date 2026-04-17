@@ -1,10 +1,10 @@
 <script setup>
 /** * ARCHIVO: GameSolitaire.vue
- * NOTA INTERNA: SOLITARIO KLONDIKE v4.4 - REGLAS INTEGRADAS + FINANZAS
- * LÓGICA: Modal de instrucciones añadido. Cobro de 15 cobres por Re-Play, Auto-Switch de selección.
+ * NOTA INTERNA: SOLITARIO KLONDIKE v4.5 - FLUJO DINÁMICO & AUTO-DESTAPE
+ * LÓGICA: Auto-selección fluida, destape activo de cartas ocultas, liberación de columnas vacías para Reyes.
  */
 import { ref, onMounted } from 'vue';
-import { X as CloseIcon, User, RotateCcw, Trophy, Club, Star, MousePointerClick, Info } from 'lucide-vue-next';
+import { X as CloseIcon, User, RotateCcw, Trophy, Club, Star, MousePointerClick, Info, Frown, Handshake } from 'lucide-vue-next';
 import { useGamificationStore } from '@/stores/useGamificationStore';
 
 const emit = defineEmits(['close']);
@@ -20,7 +20,7 @@ const props = defineProps({
 // 🎵 1. MOTOR DE AUDIO MAESTRO 
 // ==========================================
 const sndFlip = new Audio('/audios/card-flip.mp3'); 
-const sndPlace = new Audio('/audios/card-place.mp3'); 
+const sndPlace = new Audio('/audios/card-flip.mp3'); 
 const sndSpecial = new Audio('/audios/win-jingle-soft.mp3'); 
 
 const playSound = (audioElement) => {
@@ -146,8 +146,9 @@ const handleBoardClick = () => {
   clearSelection();
 };
 
-// --- VALIDACIONES ---
+// --- VALIDACIONES ACTUALIZADAS ---
 const canMoveToTableau = (movingCard, targetCard) => {
+  // 🌟 REGLA DEL REY: Si no hay carta destino (columna vacía), solo entra un Rey (valor 13)
   if (!targetCard) return movingCard.value === 13; 
   return movingCard.color !== targetCard.color && movingCard.value === targetCard.value - 1;
 };
@@ -191,8 +192,9 @@ const attemptAutoMove = (area, colIndex, cardIndex) => {
     }
   }
 
+  // Auto-mover Rey a columna vacía
   if (card.value === 13) {
-    if (area === 'tableau' && cardIndex === 0) return false;
+    if (area === 'tableau' && cardIndex === 0) return false; // Ya está en la base
 
     const emptyColIdx = tableaus.value.findIndex(col => col.length === 0);
     if (emptyColIdx !== -1) {
@@ -214,7 +216,7 @@ const attemptAutoMove = (area, colIndex, cardIndex) => {
   return false; 
 };
 
-// --- EJECUCIÓN DE CLICS (CON AUTO-DESBLOQUEO FLUIDO) ---
+// --- EJECUCIÓN DE CLICS (CON AUTO-DESBLOQUEO FLUIDO Y AUTO-DESTAPE) ---
 const handleWasteClick = () => {
   if (waste.value.length === 0) return;
   if (!selectedArea.value) {
@@ -223,6 +225,7 @@ const handleWasteClick = () => {
   } else if (selectedArea.value.area === 'waste') {
     clearSelection();
   } else {
+    // Auto-Switch de selección
     clearSelection();
     selectCard('waste', null, waste.value.length - 1);
   }
@@ -255,6 +258,7 @@ const handleFoundationClick = (fIndex) => {
       clearSelection();
       checkWin();
     } else {
+      // Auto-Switch si clica una fundación con cartas válidas para seleccionar
       clearSelection();
       const fCol = foundations.value[fIndex];
       if (fCol.length > 0) {
@@ -273,7 +277,15 @@ const handleFoundationClick = (fIndex) => {
 
 const handleTableauClick = (colIndex, cardIndex) => {
   const col = tableaus.value[colIndex];
-  const targetCard = col[col.length - 1];
+  const targetCard = col.length > 0 ? col[col.length - 1] : null;
+
+  // 🌟 INTERVENCIÓN DE AUTO-DESTAPE ACTIVO
+  // Si el usuario hace clic en la última carta de una columna y está boca abajo, la volteamos
+  if (col.length > 0 && cardIndex === col.length - 1 && !col[cardIndex].faceUp) {
+      revealTopCard(colIndex);
+      clearSelection();
+      return;
+  }
 
   if (!selectedArea.value) {
     if (col[cardIndex] && col[cardIndex].faceUp) {
@@ -317,6 +329,7 @@ const handleTableauClick = (colIndex, cardIndex) => {
       
       clearSelection();
     } else {
+      // 🌟 AUTO-SWITCH: Si el movimiento falla, selecciona automáticamente la nueva carta (si está boca arriba)
       clearSelection();
       if (col[cardIndex] && col[cardIndex].faceUp) {
         selectCard('tableau', colIndex, cardIndex);
@@ -327,9 +340,19 @@ const handleTableauClick = (colIndex, cardIndex) => {
   }
 };
 
+// 🌟 MANEJADOR EXPLÍCITO PARA COLUMNAS VACÍAS
 const handleEmptyTableauClick = (colIndex) => {
-  if (tableaus.value[colIndex].length === 0) {
-    handleTableauClick(colIndex, -1);
+  const col = tableaus.value[colIndex];
+  
+  // 1. Intentar destapar si quedó una carta oculta sola
+  if (col.length > 0 && !col[col.length - 1].faceUp) {
+      revealTopCard(colIndex);
+      return;
+  }
+  
+  // 2. Si la columna está completamente vacía, intentar mover un Rey seleccionado
+  if (col.length === 0 && selectedArea.value) {
+      handleTableauClick(colIndex, -1);
   }
 };
 
