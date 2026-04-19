@@ -1,6 +1,6 @@
 <script setup>
 /** * ARCHIVO: App.vue 
- * ESTADO: ESTABLE + INTEGRACIÓN TIME QUANTUM ENGINE
+ * ESTADO: ESTABLE + INTEGRACIÓN TIME QUANTUM ENGINE + SOLITARIO
  * NOTA: Reconstrucción sobre v4.0.0 para garantizar estabilidad.
  */
 import { ref, onMounted } from 'vue';
@@ -33,13 +33,13 @@ import TimeQuantumEngine from './components/laboratory/TimeQuantumEngine.vue';
 import GameLobbyHub from './components/GameLobbyHub.vue';
 import GameChess from './components/GameChess.vue'; 
 import GameCheckers from './components/GameCheckers.vue'; 
-import GameSolitaire from './components/GameSolitaire.vue'; 
+import GameCardTable from './components/GameCardTable.vue'; // 🚀 IMPORTACIÓN CORREGIDA
 import GameMastermind from './components/GameMastermind.vue'; 
 import GameConnect4 from './components/GameConnect4.vue'; 
 import GameSudoku from './components/GameSudoku.vue';
 
 // 🏷️ CONTROL DE VERSIÓN
-const APP_VERSION = "4.0.1"; // Incremento por integración de Laboratorio
+const APP_VERSION = "4.0.2"; // Incremento por integración de Solitario
 
 const currentView = ref('cover'); 
 const previousView = ref(null); 
@@ -114,7 +114,9 @@ const navigateTo = (viewName, config) => {
 
         <GameChess v-else-if="currentView === 'chess'" :gameMode="currentConfig.mode" @close="navigateTo('game-lobby')" />
         <GameCheckers v-else-if="currentView === 'checkers'" :gameMode="currentConfig.mode" @close="navigateTo('game-lobby')" />
-        <GameSolitaire v-else-if="currentView === 'solitaire'" :gameMode="currentConfig.mode" @close="navigateTo('game-lobby')" />
+        
+        <GameCardTable v-else-if="currentView === 'solitaire'" :gameMode="currentConfig.mode" @close="navigateTo('game-lobby')" />
+        
         <GameMastermind v-else-if="currentView === 'mastermind'" :gameMode="currentConfig.mode" @close="navigateTo('game-lobby')" />
         <GameConnect4 v-else-if="currentView === 'connect4'" :gameMode="currentConfig.mode" @close="navigateTo('game-lobby')" />
         <GameSudoku v-else-if="currentView === 'sudoku'" :gameMode="currentConfig.mode" @close="navigateTo('game-lobby')" />

@@ -25,10 +25,10 @@ const MODE_LABELS = {
 const recreationGames = [
   { id: 'chess', name: 'Ajedrez', icon: Crown, cost: 15, isVolando: false, desc: 'Rey de la Estrategia', color: 'bg-slate-800', modes: ['vs-pc', 'local'] },
   { id: 'checkers', name: 'Damas', icon: Circle, cost: 15, isVolando: false, desc: 'Batalla Diagonal', color: 'bg-red-700', modes: ['vs-pc', 'local'] },
+  // 🚀 ¡SOLITARIO ATERRIZADO Y DESBLOQUEADO!
   { id: 'solitaire', name: 'Solitario', icon: Club, cost: 15, isVolando: false, desc: 'Paciencia y Orden', color: 'bg-emerald-700', modes: ['solo'] },
   { id: 'mastermind', name: 'Código Secreto', icon: Lightbulb, cost: 15, isVolando: false, desc: 'Lógica Deductiva', color: 'bg-purple-700', modes: ['solo', 'vs-pc'] },
   { id: 'connect4', name: 'Conecta 4', icon: LayoutGrid, cost: 15, isVolando: false, desc: 'Bloqueo Espacial', color: 'bg-blue-600', modes: ['vs-pc', 'local'] },
-  // 🚀 ¡SUDOKU ATERRIZADO Y DESBLOQUEADO! (isVolando: false)
   { id: 'sudoku', name: 'Sudoku', icon: Grid3x3, cost: 15, isVolando: false, desc: 'Concentración Pura', color: 'bg-teal-600', modes: ['solo'] }
 ];
 

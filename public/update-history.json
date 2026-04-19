@@ -1,5 +1,12 @@
 [
   {
+    "updateId": "upd_1777042800000",
+    "version": "2.12.6",
+    "date": "19/04/2026",
+    "title": "SOLITARIO KLONDIKE: CRIPTO-AZAR, CERO SCROLL E IA DUAL",
+    "description": "Capitán, el Club Lógico ha recibido un blindaje monumental. El Solitario Klondike ha sido reconstruido con un motor de 'Cero Scroll' (compresión matemática de cartas en tiempo real) y vectores 2.5D elegantes. Elevamos la honestidad del reparto al nivel de casino inyectando un algoritmo Fisher-Yates respaldado por la API criptográfica nativa del navegador. Además, implementamos un Sistema Dual: el Modo Entrenamiento cuenta con el 'Búho Estratega' (un copiloto analítico que evita partidas trancadas desde el inicio y ofrece heurística en tiempo real), mientras que el Modo Justo (Pro) expone al jugador al azar puro y sin concesiones. La memoria de la mesa ahora es invulnerable (VueUse persistente) contra cierres accidentales del navío."
+  },
+  {
     "updateId": "upd_1776956400000",
     "version": "2.12.5",
     "date": "18/04/2026",
