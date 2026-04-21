@@ -1,7 +1,7 @@
 <script setup>
 /** * ARCHIVO: App.vue 
- * ESTADO: ESTABLE + INTEGRACIÓN TIME QUANTUM ENGINE + SOLITARIO
- * NOTA: Reconstrucción sobre v4.0.0 para garantizar estabilidad.
+ * ESTADO: ESTABLE + ZONA DECIMAL (LOBBY HUB)
+ * NOTA: Reconstrucción sobre v4.0.3 para integrar el DecimalLobby.
  */
 import { ref, onMounted } from 'vue';
 import { Plus, Minus, X as MultiplyIcon, Divide } from 'lucide-vue-next';
@@ -21,6 +21,9 @@ import DivisionModule from './components/DivisionModule.vue';
 import ReloadPrompt from './components/ReloadPrompt.vue';
 import CrystalDimension from './components/CrystalDimension.vue'; 
 
+// 🟢 NUEVO: MÓDULO DECIMAL AISLADO (AHORA ES EL LOBBY)
+import DecimalLobby from './components/DecimalLobby.vue'; 
+
 // --- LABORATORIO Y HERRAMIENTAS ---
 import ToolsHub from './components/ToolsHub.vue';
 import QuantumConverter from './components/QuantumConverter.vue';
@@ -33,19 +36,22 @@ import TimeQuantumEngine from './components/laboratory/TimeQuantumEngine.vue';
 import GameLobbyHub from './components/GameLobbyHub.vue';
 import GameChess from './components/GameChess.vue'; 
 import GameCheckers from './components/GameCheckers.vue'; 
-import GameCardTable from './components/GameCardTable.vue'; // 🚀 IMPORTACIÓN CORREGIDA
+import GameCardTable from './components/GameCardTable.vue'; 
 import GameMastermind from './components/GameMastermind.vue'; 
 import GameConnect4 from './components/GameConnect4.vue'; 
 import GameSudoku from './components/GameSudoku.vue';
 
 // 🏷️ CONTROL DE VERSIÓN
-const APP_VERSION = "4.0.2"; // Incremento por integración de Solitario
+const APP_VERSION = "4.0.4"; // Incremento por integración de Decimal Lobby
 
 const currentView = ref('cover'); 
 const previousView = ref(null); 
 const currentConfig = ref({}); 
 const gamificationStore = useGamificationStore();
 const isLoadingAuth = ref(true);
+
+// 🟢 ESTADO DEL MODAL LOBBY DECIMAL
+const showDecimalLobby = ref(false); 
 
 onMounted(() => {
   gamificationStore.loadFromStorage();
@@ -165,6 +171,7 @@ const navigateTo = (viewName, config) => {
                 @open-crystal-dimension="navigateTo('crystal-dimension')"
                 @open-tools-hub="navigateTo('tools-hub')" 
                 @open-game-lobby="navigateTo('game-lobby')"
+                @open-decimal-lobby="showDecimalLobby = true" 
               />
 
               <GenericTableModule 
@@ -185,6 +192,12 @@ const navigateTo = (viewName, config) => {
                 key="module-div-notebook"
                 @back="navigateTo('index')"
               />
+
+              <DecimalLobby 
+                v-if="showDecimalLobby" 
+                @close="showDecimalLobby = false" 
+              />
+
             </template>
         </main>
 

@@ -1,6 +1,6 @@
 <script setup>
 /** * ARCHIVO: IndexScreen.vue
- * NOTA INTERNA: TORRE DE CONTROL v3.2.5 - BÚHO LIBERADO
+ * NOTA INTERNA: TORRE DE CONTROL v3.2.7 - INTEGRACIÓN LOBBY DECIMAL
  * LOGICA: Resolución de recortes por Overflow y Z-Index. Búho 100% visible sin empujar el layout.
  */
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue'; 
@@ -27,8 +27,8 @@ import { auth, db } from '../firebaseConfig';
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { doc, onSnapshot, updateDoc } from "firebase/firestore";
 
-// 🛠️ FIX: Añadimos 'open-game-lobby' a la lista de eventos
-const emit = defineEmits(['select', 'exit', 'open-portal-welcome', 'open-crystal-dimension', 'open-tools-hub', 'open-game-lobby']);
+// 🛠️ FIX: Cambiamos 'open-decimal-notebook' por 'open-decimal-lobby'
+const emit = defineEmits(['select', 'exit', 'open-portal-welcome', 'open-crystal-dimension', 'open-tools-hub', 'open-game-lobby', 'open-decimal-lobby']);
 const props = defineProps(['fromView', 'config']);
 
 const gamificationStore = useGamificationStore();
@@ -277,8 +277,7 @@ const currentSubjectLabel = computed(() => options.find(o => o.id === selectedSu
 
         <div class="content-hero-area flex-1 flex flex-col justify-evenly relative">
           
-          <div class="w-full px-6 flex justify-end relative z-[60] mb-1">
-             
+          <div class="w-full px-6 flex justify-end relative z-[60] mb-0.5">
              <div v-if="showOwl" class="absolute bottom-full right-6 mb-2 flex items-end gap-2 animate-fade-in pointer-events-none">
                  <div class="bg-white rounded-2xl p-2 shadow-xl border-2 border-indigo-200 relative w-[130px] sm:w-[150px] text-center mb-1">
                     <p class="text-indigo-900 font-black text-xs leading-tight">{{ greeting }}</p>
@@ -297,29 +296,41 @@ const currentSubjectLabel = computed(() => options.find(o => o.id === selectedSu
              </div>
           </div>
 
-          <div class="grid grid-cols-2 gap-3 w-full px-4 max-w-md mx-auto z-10">
+          <div class="grid grid-cols-2 gap-2 w-full px-4 max-w-md mx-auto z-10">
             <button v-for="opt in options" :key="opt.id" @click="openConfig(opt.id)"
-              class="group bg-white p-2 rounded-[2rem] border-4 border-transparent hover:border-indigo-100 shadow-xl active:scale-95 flex flex-col items-center justify-center gap-1 transition-all h-24 sm:h-28">
-              <div :class="`w-10 h-10 rounded-xl ${opt.color} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform shrink-0`">
-                <component :is="opt.icon" :size="22" class="text-white" :stroke-width="3" />
+              class="group bg-white p-1.5 rounded-3xl border-4 border-transparent hover:border-indigo-100 shadow-xl active:scale-95 flex flex-col items-center justify-center gap-1 transition-all h-20 sm:h-24">
+              <div :class="`w-8 h-8 rounded-xl ${opt.color} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform shrink-0`">
+                <component :is="opt.icon" :size="18" class="text-white" :stroke-width="3" />
               </div>
               <div class="text-center">
-                <h3 class="text-[15px] sm:text-base font-black text-slate-800 leading-none uppercase tracking-tighter">{{ opt.label }}</h3>
-                <p class="text-slate-400 font-bold text-[8px] sm:text-[9px] mt-0.5 tracking-widest uppercase">{{ opt.desc }}</p>
+                <h3 class="text-[14px] sm:text-[15px] font-black text-slate-800 leading-none uppercase tracking-tighter">{{ opt.label }}</h3>
+                <p class="text-slate-400 font-bold text-[8px] mt-0.5 tracking-widest uppercase">{{ opt.desc }}</p>
               </div>
             </button>
           </div>
 
-          <div class="px-4 w-full flex flex-col gap-2.5 shrink-0 max-w-md mx-auto z-10 mt-2">
+          <div class="px-4 w-full flex flex-col gap-1.5 shrink-0 max-w-md mx-auto z-10 mt-1.5">
               
-              <button @click="emit('open-portal-welcome')" class="w-full bg-gradient-to-r from-yellow-400 to-orange-500 rounded-[2.5rem] p-1 shadow-[0_4px_0_rgb(194,65,12)] active:translate-y-1 transition-all group">
-                <div class="bg-white/10 rounded-[2.2rem] py-2 px-4 flex items-center gap-4">
-                    <div class="w-10 h-10 shrink-0 rounded-full bg-white flex items-center justify-center group-hover:scale-110 transition-transform shadow-inner">
-                        <Target size="22" class="text-orange-500" fill="currentColor" />
+              <button @click="emit('open-decimal-lobby')" class="w-full bg-gradient-to-r from-teal-400 to-emerald-500 rounded-[2.5rem] p-1 shadow-[0_4px_0_rgb(4,120,87)] active:translate-y-1 transition-all group">
+                <div class="bg-white/10 rounded-[2.2rem] py-1.5 px-4 flex items-center gap-3">
+                    <div class="w-9 h-9 shrink-0 rounded-full bg-white border border-teal-200 flex items-center justify-center group-hover:scale-110 transition-transform shadow-inner">
+                        <span class="text-teal-600 font-black text-2xl leading-none -mt-1.5">,</span>
                     </div>
                     <div class="text-left text-white flex-1">
-                        <h3 class="font-black text-lg leading-tight uppercase tracking-tighter">Portal de Desafíos</h3>
-                        <p class="text-orange-100 text-[10px] font-bold uppercase leading-none mt-0.5">🎯 ¡Gana monedas extra aquí!</p>
+                        <h3 class="font-black text-[17px] leading-tight uppercase tracking-tighter">Zona Decimal</h3>
+                        <p class="text-teal-50 text-[9px] font-bold uppercase leading-none mt-0.5">⏱️ Aprende con precisión</p>
+                    </div>
+                </div>
+              </button>
+
+              <button @click="emit('open-portal-welcome')" class="w-full bg-gradient-to-r from-yellow-400 to-orange-500 rounded-[2.5rem] p-1 shadow-[0_4px_0_rgb(194,65,12)] active:translate-y-1 transition-all group">
+                <div class="bg-white/10 rounded-[2.2rem] py-1.5 px-4 flex items-center gap-3">
+                    <div class="w-9 h-9 shrink-0 rounded-full bg-white flex items-center justify-center group-hover:scale-110 transition-transform shadow-inner">
+                        <Target size="20" class="text-orange-500" fill="currentColor" />
+                    </div>
+                    <div class="text-left text-white flex-1">
+                        <h3 class="font-black text-[17px] leading-tight uppercase tracking-tighter">Portal de Desafíos</h3>
+                        <p class="text-orange-100 text-[9px] font-bold uppercase leading-none mt-0.5">🎯 ¡Gana monedas extra aquí!</p>
                     </div>
                 </div>
               </button>
@@ -327,49 +338,47 @@ const currentSubjectLabel = computed(() => options.find(o => o.id === selectedSu
               <button @click="emit('open-crystal-dimension')" class="w-full bg-slate-950 rounded-[2.5rem] p-1 shadow-[0_4px_0_rgb(2,6,23),0_0_15px_rgba(34,211,238,0.3)] border border-cyan-500/30 active:translate-y-1 transition-all group relative overflow-hidden">
                   <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-cyan-400/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
                   <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-emerald-400/20 via-transparent to-transparent"></div>
-                  <div class="bg-white/5 backdrop-blur-md rounded-[2.2rem] py-2 px-4 flex items-center gap-4 relative z-10 border border-white/5">
-                      <div class="w-10 h-10 shrink-0 rounded-full bg-slate-900 border border-cyan-400/50 flex items-center justify-center group-hover:scale-110 group-hover:rotate-12 transition-all shadow-[inset_0_0_15px_rgba(34,211,238,0.3)]">
-                          <Hexagon size="22" class="text-cyan-400" />
+                  <div class="bg-white/5 backdrop-blur-md rounded-[2.2rem] py-1.5 px-4 flex items-center gap-3 relative z-10 border border-white/5">
+                      <div class="w-9 h-9 shrink-0 rounded-full bg-slate-900 border border-cyan-400/50 flex items-center justify-center group-hover:scale-110 group-hover:rotate-12 transition-all shadow-[inset_0_0_15px_rgba(34,211,238,0.3)]">
+                          <Hexagon size="20" class="text-cyan-400" />
                       </div>
                       <div class="text-left flex-1">
-                          <h3 class="font-black text-lg leading-tight uppercase tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-emerald-300 drop-shadow-[0_0_8px_rgba(34,211,238,0.5)]">Dimensión de Cristal</h3>
-                          <p class="text-cyan-200/80 text-[10px] font-bold uppercase tracking-widest leading-none mt-0.5">✨ Entra al Reino Cuántico</p>
+                          <h3 class="font-black text-[17px] leading-tight uppercase tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-emerald-300 drop-shadow-[0_0_8px_rgba(34,211,238,0.5)]">Dimensión de Cristal</h3>
+                          <p class="text-cyan-200/80 text-[9px] font-bold uppercase tracking-widest leading-none mt-0.5">✨ Entra al Reino Cuántico</p>
                       </div>
                   </div>
               </button>
 
-              <div class="grid grid-cols-2 gap-2.5 w-full">
-                  
+              <div class="grid grid-cols-2 gap-2 w-full">
                   <button @click="emit('open-tools-hub')" class="w-full bg-slate-950 rounded-[2rem] p-1 shadow-[0_4px_0_rgb(2,6,23)] border border-fuchsia-500/30 active:translate-y-1 transition-all group relative overflow-hidden">
                       <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-fuchsia-400/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                      <div class="bg-white/5 backdrop-blur-md rounded-[1.8rem] py-2 px-1 flex flex-col items-center justify-center gap-1 h-full relative z-10 border border-white/5">
-                          <div class="w-8 h-8 shrink-0 rounded-full bg-slate-900 border border-fuchsia-400/50 flex items-center justify-center group-hover:scale-110 group-hover:-rotate-12 transition-all shadow-[inset_0_0_10px_rgba(217,70,239,0.3)]">
-                              <Beaker size="16" class="text-fuchsia-400" />
+                      <div class="bg-white/5 backdrop-blur-md rounded-[1.8rem] py-1.5 px-1 flex flex-col items-center justify-center gap-0.5 h-full relative z-10 border border-white/5">
+                          <div class="w-7 h-7 shrink-0 rounded-full bg-slate-900 border border-fuchsia-400/50 flex items-center justify-center group-hover:scale-110 group-hover:-rotate-12 transition-all shadow-[inset_0_0_10px_rgba(217,70,239,0.3)]">
+                              <Beaker size="14" class="text-fuchsia-400" />
                           </div>
                           <div class="text-center w-full">
-                              <h3 class="font-black text-sm leading-tight uppercase tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-300 to-purple-300 drop-shadow-[0_0_8px_rgba(217,70,239,0.5)] truncate px-1">Laboratorio</h3>
+                              <h3 class="font-black text-[13px] leading-tight uppercase tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-300 to-purple-300 drop-shadow-[0_0_8px_rgba(217,70,239,0.5)] truncate px-1">Laboratorio</h3>
                           </div>
                       </div>
                   </button>
 
                   <button @click="emit('open-game-lobby')" class="w-full bg-slate-950 rounded-[2rem] p-1 shadow-[0_4px_0_rgb(2,6,23)] border border-rose-500/30 active:translate-y-1 transition-all group relative overflow-hidden">
                       <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-rose-400/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                      <div class="bg-white/5 backdrop-blur-md rounded-[1.8rem] py-2 px-1 flex flex-col items-center justify-center gap-1 h-full relative z-10 border border-white/5">
-                          <div class="w-8 h-8 shrink-0 rounded-full bg-slate-900 border border-rose-400/50 flex items-center justify-center group-hover:scale-110 group-hover:rotate-12 transition-all shadow-[inset_0_0_10px_rgba(244,63,94,0.3)]">
-                              <Gamepad2 size="16" class="text-rose-400" />
+                      <div class="bg-white/5 backdrop-blur-md rounded-[1.8rem] py-1.5 px-1 flex flex-col items-center justify-center gap-0.5 h-full relative z-10 border border-white/5">
+                          <div class="w-7 h-7 shrink-0 rounded-full bg-slate-900 border border-rose-400/50 flex items-center justify-center group-hover:scale-110 group-hover:rotate-12 transition-all shadow-[inset_0_0_10px_rgba(244,63,94,0.3)]">
+                              <Gamepad2 size="14" class="text-rose-400" />
                           </div>
                           <div class="text-center w-full">
-                              <h3 class="font-black text-sm leading-tight uppercase tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-rose-300 to-pink-300 drop-shadow-[0_0_8px_rgba(244,63,94,0.5)] truncate px-1">Recreación</h3>
+                              <h3 class="font-black text-[13px] leading-tight uppercase tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-rose-300 to-pink-300 drop-shadow-[0_0_8px_rgba(244,63,94,0.5)] truncate px-1">Recreación</h3>
                           </div>
                       </div>
                   </button>
-
               </div>
               
           </div>
         </div>
 
-        <div class="shrink-0 pb-2 md:pb-4 px-4 w-full">
+        <div class="shrink-0 pb-1 px-4 w-full">
             <StatusBoard />
         </div>
 

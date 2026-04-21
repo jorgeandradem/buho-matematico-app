@@ -1,5 +1,12 @@
 [
   {
+    "updateId": "upd_1777215600000",
+    "version": "2.12.7",
+    "date": "21/04/2026",
+    "title": "ZONA DECIMAL: CIRUGÍA AL LIENZO Y RESTA LÓGICA",
+    "description": "Capitán, hemos inaugurado la 'Zona Decimal' con un Hub central (Lobby) 2.5D en tonos turquesa. Incorporamos cuadernos operativos con tecnología 'Cero Scroll' y una revolucionaria 'Máquina de Estados de Resta'. Este motor matemático simula el proceso físico de papel y lápiz, implementando un sistema de dos filas auxiliares para la gestión de préstamos ('borrows'), alertas visuales rojas interactivas y un Búho Profesor que guía al alumno paso a paso con precisión pedagógica absoluta."
+  },
+  {
     "updateId": "upd_1777042800000",
     "version": "2.12.6",
     "date": "19/04/2026",
