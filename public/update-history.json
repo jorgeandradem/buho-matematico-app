@@ -1,5 +1,12 @@
 [
   {
+    "updateId": "upd_1777474800000",
+    "version": "2.12.8",
+    "date": "24/04/2026",
+    "title": "ZONA DECIMAL: DIVISIÓN DE CUADERNO Y CERO SCROLL",
+    "description": "Capitán, hemos conquistado la división exacta en la Zona Decimal. Hemos reescrito el núcleo inyectando una 'Pizarra de Razonamiento' basada en descomposición polinómica (Suma Inversa) y una lógica estricta de cuaderno con multiplicaciones de derecha a izquierda y llevadas. Optimizamos la arquitectura visual erradicando el scroll (regla 70/30) para que el teclado, la galera y la pizarra convivan en perfecta sincronía. Incorporamos un 'Tip Ninja' matemático dinámico, un sistema de 'Acción Dual' táctil y un clímax visual con pantalla verde traslúcida y lluvia de confeti CSS nativo para coronar la victoria."
+  },
+  {
     "updateId": "upd_1777215600000",
     "version": "2.12.7",
     "date": "21/04/2026",

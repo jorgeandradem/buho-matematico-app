@@ -27,7 +27,6 @@ import { auth, db } from '../firebaseConfig';
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { doc, onSnapshot, updateDoc } from "firebase/firestore";
 
-// 🛠️ FIX: Cambiamos 'open-decimal-notebook' por 'open-decimal-lobby'
 const emit = defineEmits(['select', 'exit', 'open-portal-welcome', 'open-crystal-dimension', 'open-tools-hub', 'open-game-lobby', 'open-decimal-lobby']);
 const props = defineProps(['fromView', 'config']);
 

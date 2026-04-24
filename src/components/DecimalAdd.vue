@@ -1,7 +1,8 @@
 <script setup>
 /** * ARCHIVO: DecimalNotebook.vue
- * ESTADO: VERSIÓN PRODUCCIÓN (V18) - ENCUADRE PC BLINDADO
- * LÓGICA: Contenedor absoluto para respetar límites del Lobby y del app-canvas.
+ * ESTADO: MÓDULO EXCLUSIVO DE SUMAS (V18) - ENCUADRE PC BLINDADO
+ * LÓGICA: Contenedor para los ejercicios de SUMA (+). Maneja "carries" (llevadas).
+ * IMPORTANTE: ¡No mezclar con la lógica de restas (DecimalSub.vue)!
  */
 import { ref, computed, onMounted } from 'vue';
 import { X as CloseIcon, Check, ArrowLeft } from 'lucide-vue-next';

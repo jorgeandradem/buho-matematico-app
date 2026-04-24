@@ -4,10 +4,9 @@ import { Delete } from 'lucide-vue-next';
 const emit = defineEmits(['press', 'delete']);
 
 const keys = [
-  [1, 2, 3],
-  [4, 5, 6],
-  [7, 8, 9],
-  [',', 0, 'del']
+  [1, 2, 3, 'del'],
+  [4, 5, 6, ','],
+  [7, 8, 9, 0]
 ];
 
 const handlePress = (key) => {
@@ -21,7 +20,7 @@ const handlePress = (key) => {
 
 <template>
   <div class="w-full bg-slate-100 p-2 sm:p-4 rounded-t-3xl border-t-4 border-slate-200 shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">
-    <div class="grid grid-cols-3 gap-2 sm:gap-3 max-w-sm mx-auto">
+    <div class="grid grid-cols-4 gap-2 sm:gap-3 max-w-md mx-auto">
       <template v-for="(row, rowIndex) in keys" :key="rowIndex">
         <button
           v-for="key in row"

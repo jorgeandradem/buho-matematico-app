@@ -1,12 +1,15 @@
 <script setup>
 /** * ARCHIVO: DecimalLobby.vue
- * ESTADO: HUB CENTRAL DE DECIMALES CONECTADO Y ENCUADRADO (V19)
- * LÓGICA: Menú intermedio con posicionamiento absolute para respetar el app-canvas. Integración de Suma y Resta.
+ * ESTADO: HUB CENTRAL DE DECIMALES CONECTADO Y ENCUADRADO (V22)
+ * LÓGICA: Menú intermedio con posicionamiento absolute para respetar el app-canvas. 
+ * Integración modular de Suma, Resta, Multiplicación y División.
  */
 import { ref } from 'vue';
 import { Plus, Minus, X as MultiplyIcon, Divide, ArrowLeft } from 'lucide-vue-next';
-import DecimalNotebook from './DecimalNotebook.vue'; 
-import DecimalSub from './DecimalSub.vue'; // 🟢 NUEVO: Importamos el cuaderno de restas
+import DecimalAdd from './DecimalAdd.vue'; 
+import DecimalSub from './DecimalSub.vue'; 
+import DecimalMult from './DecimalMult.vue'; 
+import DecimalDiv from './DecimalDiv.vue'; // 🟢 NUEVO: Importación del módulo de División
 
 const emit = defineEmits(['close']);
 
@@ -20,8 +23,8 @@ const operations = [
 ];
 
 const openNotebook = (opId) => {
-    // 🟢 ACTUALIZADO: Ahora permitimos abrir tanto 'add' (Suma) como 'sub' (Resta)
-    if (opId === 'add' || opId === 'sub') {
+    // 🟢 VALIDACIÓN ACTUALIZADA: Ahora incluye 'div' y permite abrir los 4 cuadernos
+    if (opId === 'add' || opId === 'sub' || opId === 'mult' || opId === 'div') {
         activeOperation.value = opId;
     } else {
         alert("¡Pronto construiremos este cuaderno, Jorge!");
@@ -61,7 +64,7 @@ const openNotebook = (opId) => {
 
     </div>
 
-    <DecimalNotebook 
+    <DecimalAdd 
         v-if="activeOperation === 'add'" 
         @close="activeOperation = null" 
     />
@@ -71,10 +74,23 @@ const openNotebook = (opId) => {
         @close="activeOperation = null" 
     />
 
+    <DecimalMult 
+        v-if="activeOperation === 'mult'" 
+        @close="activeOperation = null" 
+    />
+
+    <DecimalDiv 
+        v-if="activeOperation === 'div'" 
+        @close="activeOperation = null" 
+    />
+
   </div>
 </template>
 
 <style scoped>
 .animate-fade-in { animation: fadeIn 0.2s ease-out forwards; }
-@keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+@keyframes fadeIn { 
+  from { opacity: 0; transform: scale(0.95); } 
+  to { opacity: 1; transform: scale(1); } 
+}
 </style>

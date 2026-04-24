@@ -1,7 +1,7 @@
 <script setup>
 /** * ARCHIVO: DecimalSub.vue
- * ESTADO: VERSIÓN PRODUCCIÓN (V24) - LÉXICO Y TACHE FINO
- * LÓGICA: Ajuste de mensaje de préstamo y grosor de línea roja.
+ * ESTADO: VERSIÓN PRODUCCIÓN (V26) - SONIDO WRONG1 Y TIEMPO DE LECTURA AMPLIADO
+ * LÓGICA: Ajuste de mensaje de préstamo, grosor de línea roja, y delay de transición.
  */
 import { ref, computed, onMounted } from 'vue';
 import { X as CloseIcon, Check, ArrowLeft, AlertTriangle } from 'lucide-vue-next';
@@ -49,7 +49,7 @@ const getDigit = (num, col) => {
     return '';
 };
 
-// --- CEREBRO V24: CONSTRUCTOR DE TAREAS (LÉXICO ACTUALIZADO) ---
+// --- CEREBRO V25: CONSTRUCTOR DE TAREAS (LÉXICO DIRECTO Y CONCISO) ---
 const buildTasksForExercise = (ex) => {
     let newTasks = [];
     let topValues = {};
@@ -75,7 +75,7 @@ const buildTasksForExercise = (ex) => {
             // ADVERTENCIA MANUAL
             newTasks.push({
                 id: `warn-${col}`, col: col, type: 'warn', expected: 'CLICK',
-                msg: `A ${tVal} no le puedes quitar ${bVal}. ¡Toca la casilla ROJA para pedir prestado a tu vecino!`
+                msg: `A ${tVal} no le puedes quitar ${bVal}. ¡Toca la casilla ROJA y pide prestado a la izquierda!`
             });
 
             // FILA 1 (BAJA): EL QUE PRESTA
@@ -95,10 +95,10 @@ const buildTasksForExercise = (ex) => {
                 
                 topValues[currentBorrowCol] = newVal;
                 
-                // 🟢 LÉXICO CORREGIDO: "Presta a tu vecino..."
+                // LÉXICO CORREGIDO: Sin "vecinos" ni "decenas"
                 let msg = currentBorrowVal === 0
-                    ? `El 0 recibe 1 decena (10), pero presta a su vecino de la derecha. Queda en 9. Escribe 9.`
-                    : `Presta a tu vecino 1 decena (10). Si era ${currentBorrowVal}, queda en ${newVal}. Escribe ${newVal}.`;
+                    ? `Recibes 1 de la izquierda, pero prestas a la derecha. Eres 0, quedas en 9. Escríbelo.`
+                    : `Presta 1. Eres ${currentBorrowVal}, resta y quedas en ${newVal}. Escríbelo.`;
 
                 newTasks.push({
                     id: `top1-${currentBorrowCol}`, col: currentBorrowCol, type: 'borrow', expected: newVal.toString(), msg: msg
@@ -111,13 +111,13 @@ const buildTasksForExercise = (ex) => {
             
             newTasks.push({
                 id: `top2-${col}`, col: col, type: 'receive', expected: myNewVal.toString(),
-                msg: `Recibes 1 decena (10 unidades). ${tVal} + 10 = ${myNewVal}. Escribe ${myNewVal}.`
+                msg: `Recibes 1 de la izquierda que equivale a 10. Suma: ${tVal} + 10 = ${myNewVal}. Escríbelo.`
             });
 
-            // RESULTADO
+            // RESULTADO DESPUÉS DE PRESTAR
              newTasks.push({
                 id: `res-${col}`, col: col, type: 'res', expected: (myNewVal - bVal).toString(),
-                msg: `¡Ahora sí! Resta: ${myNewVal} - ${bVal} = ${myNewVal - bVal}. Escribe ${myNewVal - bVal}.`
+                msg: `¡Ahora sí! Resta: ${myNewVal} - ${bVal} = ${myNewVal - bVal}. Escríbelo.`
             });
 
         } else {
@@ -125,7 +125,7 @@ const buildTasksForExercise = (ex) => {
             if (getDigit(ex.top, col) !== '' || getDigit(ex.bot, col) !== '') {
                  newTasks.push({
                     id: `res-${col}`, col: col, type: 'res', expected: (tVal - bVal).toString(),
-                    msg: `Resta la columna: ${tVal} - ${bVal} = ${tVal - bVal}. Escribe ${tVal - bVal}.`
+                    msg: `Resta la columna: ${tVal} - ${bVal} = ${tVal - bVal}. Escríbelo.`
                 });
             }
         }
@@ -211,6 +211,15 @@ const completeExercise = () => {
     exercises.value[currentExIdx.value].completed = true;
     errorCol.value = null;
     
+    // 🟢 SONIDO 'WRONG1' AL COMPLETAR EL EJERCICIO INDIVIDUAL
+    try {
+        const transAudio = new Audio('/audios/wrong1.mp3');
+        transAudio.play();
+    } catch(e) {
+        console.error("Error reproduciendo audio de transición:", e);
+    }
+    
+    // 🟢 TIEMPO AMPLIADO A 2.5 SEGUNDOS (2500ms) PARA PERMITIR LECTURA
     setTimeout(() => {
         if (currentExIdx.value < exercises.value.length - 1) {
             currentExIdx.value++;
@@ -220,7 +229,7 @@ const completeExercise = () => {
             isTransitioning.value = false;
             try { new Audio('/audios/finish.mp3').play(); } catch(e){}
         }
-    }, 1200);
+    }, 2500); 
 };
 
 const handleDelete = () => {};
@@ -328,7 +337,7 @@ onMounted(() => {
                     <div v-else :class="['col-start-'+col, 'flex items-center justify-center z-10 leading-none transition-all relative', crossedOut[col] ? 'text-slate-300 scale-90' : 'text-slate-800']">
                         {{ getDigit(currentEx.top, col) }}
                         <div v-if="crossedOut[col]" class="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
-                            <div class="w-6 sm:w-8 h-[2px] bg-red-500 transform -rotate-45 animate-fade-in rounded-sm"></div>
+                            <div class="w-6 sm:w-8 h-[3px] bg-red-500 transform -rotate-45 scale-110 animate-fade-in rounded-sm drop-shadow-sm"></div>
                         </div>
                     </div>
                 </template>
