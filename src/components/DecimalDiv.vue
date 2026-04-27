@@ -1,7 +1,7 @@
 <script setup>
 /** * ARCHIVO: DecimalDiv.vue
- * ESTADO: FASE 7 (V9.1 - PANTALLA VERDE AL FINALIZAR EJERCICIO)
- * LÓGICA: Se movió el check gigante y el fondo verde traslúcido a la transición de finalización.
+ * ESTADO: FASE 7 (V9.5 - OPTIMIZACIÓN DE ESPACIOS EN PIZARRA DE RAZONAMIENTO)
+ * LÓGICA: Flecha animada debajo del número activo y botón "Continuar" para observar el resultado inicial sin generar salto de pantalla.
  */
 import { ref, computed, onMounted } from 'vue';
 import { ChevronLeft, HelpCircle, Check, RotateCcw, X as CloseIcon, ChevronRight as IconRight, ChevronLeft as IconLeft } from 'lucide-vue-next';
@@ -36,12 +36,26 @@ let isDragging = false;
 const showDecompPopup = ref(false);
 const testQuotient = ref(''); 
 const decompSuccess = ref(false);
-const showSmartTip = ref(false); 
 
 const currentTask = computed(() => tasks.value[currentTaskIdx.value]);
 const currentEx = computed(() => exercises.value[currentExIdx.value] || { origDiv: '0', origDvr: '1', adjDiv: '0', adjDvr: '1', divisor: 1 });
 const dvrLineCol = computed(() => currentEx.value ? currentEx.value.adjDiv.length + 2 : 6);
-const isPrepPhase = computed(() => currentTask.value?.type === 'prep');
+
+// NUEVO: La fase de preparación ahora incluye la pausa reflexiva (action_continue)
+const isPrepPhase = computed(() => currentTask.value?.type === 'prep' || currentTask.value?.type === 'action_continue');
+
+// MARCA DE AGUA DINÁMICA: Calcula dónde poner la palabra "RESIDUO"
+const currentRemainderRow = computed(() => {
+    if (isTransitioning.value || showRewardModal.value) return 0;
+    let row = 3; 
+    for (let i = 0; i <= currentTaskIdx.value; i++) {
+        const t = tasks.value[i];
+        if (t && (t.type === 'rem' || t.type === 'sub' || t.type === 'drop_dual')) {
+            if (t.row > row) row = t.row;
+        }
+    }
+    return row;
+});
 
 // --- LÓGICA MATEMÁTICA DE LA DESCOMPOSICIÓN ---
 const decomposedDivisor = computed(() => {
@@ -69,7 +83,14 @@ const decompOwlMessage = computed(() => {
     }
     
     if (!testQuotient.value) {
-        return `Escribe un número en el cociente, que multiplicado por el divisor: <b>${currentEx.value.divisor}</b> nos de un resultado igual al dividendo: <b>${target}</b> o menor. Razonemos.`;
+        const divisor = currentEx.value.divisor;
+        if (divisor >= 10) {
+            const decena = Math.floor(divisor / 10) * 10;
+            const unidad = divisor % 10;
+            const digitoIzquierdo = Math.floor(divisor / 10);
+            return `Razonemos: Separa el divisor en decena: <b>${decena}</b> y unidad: <b>${unidad}</b>. Extraes el dígito izquierdo de la decena. En este caso es: <b>${digitoIzquierdo}</b> y lo multiplicas por un número (?) que sea igual o menor al dividendo actual (<b>${target}</b>). Recuerda que al resultado de tu multiplicación le agregas el 0 al final. Escribe el número en el círculo amarillo.`;
+        }
+        return `Escribe un número en el cociente, que multiplicado por el divisor: <b>${divisor}</b> nos de un resultado igual al dividendo: <b>${target}</b> o menor. Razonemos.`;
     }
     
     const total = parseInt(decompTotal.value);
@@ -80,34 +101,6 @@ const decompOwlMessage = computed(() => {
     if (currentQ < expectedQ) return `Da <b>${total}</b>. Aún podemos acercarnos más a ${target}. Intenta con un número <b>MAYOR</b>.`;
     
     return ''; 
-});
-
-const smartTipContent = computed(() => {
-    if (!currentTask.value || !currentEx.value) return '';
-    
-    const target = currentTask.value.hintPart; 
-    const dvr = currentEx.value.divisor; 
-    const expectedQ = parseInt(currentTask.value.expected); 
-    
-    if (dvr < 10) return `Prueba multiplicando en tu mente la tabla del ${dvr} hasta acercarte a ${target}.`;
-
-    const dvrStr = String(dvr);
-    const firstDigit = parseInt(dvrStr[0]); 
-    const zerosCount = dvrStr.length - 1; 
-    const firstPartVal = firstDigit * Math.pow(10, zerosCount); 
-    const restVal = dvr - firstPartVal; 
-    
-    const step1 = firstPartVal * expectedQ; 
-    const step2 = restVal * expectedQ; 
-    const total = step1 + step2; 
-    
-    return `
-        Fíjate en el primer dígito (<b>${firstDigit}</b>).<br>
-        Multiplica <b>${firstDigit} &times; ${expectedQ} = ${firstDigit * expectedQ}</b>. Si le agregas el cero, da <b class="text-blue-600">${step1}</b>.<br><br>
-        Luego el resto: <b>${restVal} &times; ${expectedQ}</b> da <b class="text-blue-600">${step2}</b>.<br>
-        Al sumarlos tienes <b class="text-green-600">${total}</b>.<br><br>
-        <i>¡Eso significa que el <b>${expectedQ}</b> es un valor súper apropiado! (A veces puede ser un número menor o mayor, toca ajustar).</i>
-    `;
 });
 
 const currentMsg = computed(() => {
@@ -186,7 +179,6 @@ const setupExercise = () => {
     showDecompPopup.value = false;
     testQuotient.value = '';
     decompSuccess.value = false;
-    showSmartTip.value = false;
     buildTaskQueue();
 };
 
@@ -207,7 +199,7 @@ const buildTaskQueue = () => {
             id: `prep-div-${i}`, expected: adjDivStr[i],
             msg: divOrigIsInteger 
                  ? `Equilibra la división: Multiplica el dividendo <b>${ex.origDiv}</b> por 10 = <b>${ex.adjDiv}</b>. Como no tiene coma, añade un cero al final. ${focusBadge(adjDivStr[i])}`
-                 : `Equilibra la división: Multiplica el dividendo <b>${ex.origDiv}</b> por 10 = <b>${ex.adjDiv}</b>. Corre la coma un espacio a la derecha. ${focusBadge(adjDivStr[i])}`,
+                 : `Equilibra la división: Multiplica el dividendo <b>${ex.origDiv}</b> por 10 = <b>${ex.adjDiv}</b>. Corre la coma a la derecha. ${focusBadge(adjDivStr[i])}`,
             type: 'prep'
         });
     }
@@ -216,10 +208,17 @@ const buildTaskQueue = () => {
     for(let i=0; i<adjDvrStr.length; i++) {
         q.push({
             id: `prep-dvr-${i}`, expected: adjDvrStr[i],
-            msg: `El divisor <b>${ex.origDvr}</b> tiene decimales. Multiplícalo por 10 = <b>${ex.adjDvr}</b>. (Corre la coma un espacio a la derecha). ${focusBadge(adjDvrStr[i])}`,
+            msg: `El divisor <b>${ex.origDvr}</b> tiene decimales. Multiplícalo por 10 = <b>${ex.adjDvr}</b>. (Corre la coma a la derecha). ${focusBadge(adjDvrStr[i])}`,
             type: 'prep'
         });
     }
+
+    // NUEVO: LA PAUSA REFLEXIVA
+    q.push({
+        id: `prep-continue`, expected: '',
+        msg: `¡Excelente! Observa cómo quedaron los números equilibrados.<br>Pulsa el botón <b>CONTINUAR</b> para iniciar.`,
+        type: 'action_continue'
+    });
 
     const divStr = ex.adjDiv; 
     const cleanDivStr = divStr.replace(',', ''); 
@@ -358,7 +357,6 @@ const advanceTask = () => {
     
     decompSuccess.value = false;
     testQuotient.value = '';
-    showSmartTip.value = false;
 
     if (currentTask.value && currentTask.value.needsPedagogicDeduction) {
         showDecompPopup.value = true;
@@ -367,6 +365,11 @@ const advanceTask = () => {
     }
 
     if (currentTaskIdx.value >= tasks.value.length) completeExercise();
+};
+
+const handleActionContinue = () => {
+    try { new Audio('/audios/success.mp3').play(); } catch(e){}
+    advanceTask();
 };
 
 const handleDelete = () => {
@@ -381,13 +384,22 @@ const handleKeypress = (key) => {
     if (isTransitioning.value || showRewardModal.value || showHelpModal.value || !currentTask.value) return;
     
     if (key === 'Enter') {
-        if (showDecompPopup.value && decompSuccess.value) verifyDecompStep();
-        return;
+        if (showDecompPopup.value && decompSuccess.value) {
+            verifyDecompStep();
+            return;
+        }
+        if (currentTask.value.type === 'action_continue') {
+            handleActionContinue();
+            return;
+        }
     }
     if (key === 'c' || key === 'Backspace' || key === 'Delete') {
         handleDelete();
         return;
     }
+
+    // Bloquea el teclado numérico en la pausa reflexiva
+    if (currentTask.value.type === 'action_continue') return;
 
     if (!/[0-9,]/.test(key)) return;
     const inputStr = key.toString();
@@ -519,6 +531,8 @@ const restartGame = () => {
 };
 
 // --- HELPERS DE RENDERIZADO ---
+const isActiveTaskPrepGroup = (group) => isPrepPhase.value && currentTask.value?.id.startsWith(group);
+
 const getStaticCell = (r, c) => {
     const divStr = currentEx.value.adjDiv;
     if (r === 1 && c >= 2 && c < 2 + divStr.length) return divStr[c - 2];
@@ -646,17 +660,23 @@ onMounted(() => {
                     <div class="h-full flex flex-col items-center justify-center p-4 sm:p-8 text-center shrink-0" :style="{ width: `${100/totalSlides}%` }">
                         <div class="text-5xl sm:text-7xl mb-2 sm:mb-4 drop-shadow-lg">🕵️‍♂️</div>
                         <h2 class="text-xl sm:text-2xl font-black text-slate-800 mb-2 sm:mb-3 uppercase tracking-wide">2. ¿Quién es Quién?</h2>
-                        <p class="text-slate-600 font-medium text-sm sm:text-base mb-4 sm:mb-8">Reconocer los roles es el primer paso vital.</p>
-                        <div class="flex flex-col gap-3 sm:gap-5 w-full">
-                            <div class="bg-blue-50 rounded-2xl sm:rounded-3xl p-3 sm:p-5 flex flex-col justify-center items-center border-b-4 border-blue-200 shadow-sm relative overflow-hidden">
-                                <div class="absolute -right-2 top-1 text-4xl sm:text-5xl opacity-5 font-black text-blue-900 -rotate-6 tracking-tighter">4.8</div>
-                                <span class="font-black text-blue-700 text-xl sm:text-2xl mb-1 sm:mb-2 z-10">Dividendo</span>
-                                <span class="font-bold text-slate-600 text-xs sm:text-sm bg-white px-3 sm:px-4 py-1 sm:py-1.5 rounded-full shadow-inner z-10">El número a repartir</span>
+                        <p class="text-slate-600 font-medium text-sm sm:text-base mb-4">Reconocer los roles es vital.</p>
+                        <div class="grid grid-cols-2 gap-3 w-full">
+                            <div class="bg-blue-50 rounded-2xl p-3 flex flex-col justify-center items-center border-b-4 border-blue-200 shadow-sm relative overflow-hidden">
+                                <span class="font-black text-blue-700 text-lg z-10">Dividendo</span>
+                                <span class="font-bold text-slate-600 text-[10px] bg-white px-2 py-1 rounded-full shadow-inner z-10 mt-1">A repartir</span>
                             </div>
-                            <div class="bg-orange-50 rounded-2xl sm:rounded-3xl p-3 sm:p-5 flex flex-col justify-center items-center border-b-4 border-orange-200 shadow-sm relative overflow-hidden">
-                                <div class="absolute -right-2 top-1 text-4xl sm:text-5xl opacity-5 font-black text-orange-900 -rotate-6 tracking-tighter">1.2</div>
-                                <span class="font-black text-orange-700 text-xl sm:text-2xl mb-1 sm:mb-2 z-10">Divisor</span>
-                                <span class="font-bold text-slate-600 text-xs sm:text-sm bg-white px-3 sm:px-4 py-1 sm:py-1.5 rounded-full shadow-inner z-10">Las partes a crear</span>
+                            <div class="bg-orange-50 rounded-2xl p-3 flex flex-col justify-center items-center border-b-4 border-orange-200 shadow-sm relative overflow-hidden">
+                                <span class="font-black text-orange-700 text-lg z-10">Divisor</span>
+                                <span class="font-bold text-slate-600 text-[10px] bg-white px-2 py-1 rounded-full shadow-inner z-10 mt-1">Las partes</span>
+                            </div>
+                            <div class="bg-green-50 rounded-2xl p-3 flex flex-col justify-center items-center border-b-4 border-green-200 shadow-sm relative overflow-hidden">
+                                <span class="font-black text-green-700 text-lg z-10">Cociente</span>
+                                <span class="font-bold text-slate-600 text-[10px] bg-white px-2 py-1 rounded-full shadow-inner z-10 mt-1">Resultado</span>
+                            </div>
+                            <div class="bg-red-50 rounded-2xl p-3 flex flex-col justify-center items-center border-b-4 border-red-200 shadow-sm relative overflow-hidden">
+                                <span class="font-black text-red-700 text-lg z-10">Residuo</span>
+                                <span class="font-bold text-slate-600 text-[10px] bg-white px-2 py-1 rounded-full shadow-inner z-10 mt-1">Lo que sobra</span>
                             </div>
                         </div>
                     </div>
@@ -780,9 +800,11 @@ onMounted(() => {
     <div class="px-4 z-20 mb-3 w-full max-w-[480px] mx-auto flex items-center mt-1">
         <div class="bg-white rounded-xl p-2.5 shadow-sm flex items-start gap-3 border-b-2 border-slate-200 flex-1">
             <div class="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center text-xl shrink-0 border border-blue-100 shadow-inner">🦉</div>
-            <div class="flex-1 pt-1">
-                <p class="text-[10px] font-bold text-blue-500 uppercase tracking-wider mb-1 leading-none">Profesor Búho dice:</p>
-                <p class="text-sm font-semibold text-slate-700 leading-snug" v-html="currentMsg"></p>
+            <div class="flex-1 pt-1 min-w-0">
+                <p class="text-[10px] font-bold text-blue-500 uppercase tracking-wider mb-1 leading-none shrink-0">Profesor Búho dice:</p>
+                <div class="max-h-[4.2rem] overflow-y-auto scrollbar-hide scroll-smooth pr-1">
+                    <p class="text-sm font-semibold text-slate-700 leading-snug" v-html="currentMsg"></p>
+                </div>
             </div>
         </div>
     </div>
@@ -801,34 +823,40 @@ onMounted(() => {
                     </div>
                 </div>
 
-                <div class="w-full flex-1 overflow-y-auto scrollbar-hide flex flex-col items-center pt-2">
+                <div class="w-full flex-1 overflow-y-auto scrollbar-hide flex flex-col pt-0 relative">
                     
-                    <div v-if="isPrepPhase" class="w-full flex flex-col items-center gap-4 animate-fade-in px-4 mx-auto max-w-[380px] pb-4">
-                        <div class="text-center w-full mb-1 border-b border-slate-100 pb-4">
-                            <span class="bg-blue-50 text-blue-600 font-bold text-[10px] px-3 py-1 rounded-full uppercase tracking-wider">Desarrollo Inicial</span>
-                            <div class="flex items-start justify-center gap-3 mt-4">
-                                <span class="text-slate-700 font-bold text-[16px] pt-1">Misión: Dividir</span>
+                    <div v-if="isPrepPhase" class="w-full flex flex-col pb-2 animate-fade-in">
+                        <div class="text-center w-full sticky top-0 bg-white z-20 pb-2 pt-2 border-b-2 border-slate-100 shadow-[0_2px_10px_rgba(0,0,0,0.03)] shrink-0">
+                            <span class="bg-blue-50 text-blue-600 font-bold text-[10px] px-3 py-0.5 rounded-full uppercase tracking-wider">Desarrollo Inicial</span>
+                            <div class="flex items-start justify-center gap-3 mt-2 relative">
+                                <span class="text-slate-700 font-bold text-[15px] pt-1">Misión: Dividir</span>
                                 <div class="flex flex-col items-center">
-                                    <b class="text-[20px] leading-none text-slate-800">{{ currentEx.origDiv }}</b>
-                                    <span class="text-[9px] font-black text-blue-600 bg-blue-50 border border-blue-100 px-1.5 py-0.5 rounded mt-1 uppercase">Dividendo</span>
+                                    <b class="text-[18px] leading-none text-slate-800">{{ currentEx.origDiv }}</b>
+                                    <span class="text-[9px] font-black text-blue-600 bg-blue-50 border border-blue-100 px-1 py-0.5 rounded mt-0.5 uppercase">Dividendo</span>
                                 </div>
-                                <span class="text-slate-700 font-bold text-[20px] pt-0.5">&divide;</span>
+                                <span class="text-slate-700 font-bold text-[18px] pt-0.5">&divide;</span>
                                 <div class="flex flex-col items-center">
-                                    <b class="text-[20px] leading-none text-slate-800">{{ currentEx.origDvr }}</b>
-                                    <span class="text-[9px] font-black text-orange-600 bg-orange-50 border border-orange-100 px-1.5 py-0.5 rounded mt-1 uppercase">Divisor</span>
+                                    <b class="text-[18px] leading-none text-slate-800">{{ currentEx.origDvr }}</b>
+                                    <span class="text-[9px] font-black text-orange-600 bg-orange-50 border border-orange-100 px-1 py-0.5 rounded mt-0.5 uppercase">Divisor</span>
                                 </div>
                             </div>
                         </div>
                         
-                        <div class="flex flex-col gap-3 w-full">
-                            <div class="flex items-center justify-between bg-slate-50/50 p-3 rounded-xl border border-slate-100">
-                                <div class="flex flex-col items-start">
-                                    <span class="text-[10px] font-bold text-blue-500 uppercase mb-0.5">1. Arreglar Dividendo</span>
-                                    <span class="text-[16px] font-semibold text-slate-700">{{ currentEx.origDiv }} <span class="text-blue-400 font-bold">&times; 10 =</span></span>
+                        <div class="flex-1 flex flex-col gap-2 w-full max-w-full px-2 sm:px-4 pt-2">
+                            <div class="flex flex-row items-center justify-between bg-slate-50/50 p-2 sm:p-2.5 rounded-xl border border-slate-100">
+                                <div class="flex flex-col items-start min-w-[120px]">
+                                    <span class="text-[9px] font-bold text-blue-500 uppercase mb-0.5">1. Arreglar Dividendo</span>
+                                    <div class="text-[14px] font-semibold text-slate-700 flex items-center">
+                                        <span class="relative inline-block">
+                                            {{ currentEx.origDiv }}
+                                            <span v-if="isActiveTaskPrepGroup('prep-div')" class="absolute -bottom-2.5 left-1/2 -translate-x-1/2 text-blue-500 text-base leading-none animate-slide-right pointer-events-none">&rarr;</span>
+                                        </span>
+                                        <span class="text-blue-400 font-bold ml-1">&times; 10 =</span>
+                                    </div>
                                 </div>
-                                <div class="flex gap-1.5">
+                                <div class="flex gap-1 sm:gap-1.5 justify-end">
                                     <div v-for="(d, i) in currentEx.adjDiv" :key="'pdiv-'+i"
-                                         class="w-9 h-9 sm:w-10 sm:h-10 border rounded-full flex items-center justify-center text-xl font-black transition-colors bg-white"
+                                         class="w-7 h-7 sm:w-8 sm:h-8 border rounded-full flex items-center justify-center text-base sm:text-lg font-black transition-colors bg-white shrink-0"
                                          :class="[ isActiveTaskPrep('prep-div-'+i) ? 'border-yellow-300 bg-yellow-50' : 
                                                    (userInputs['prep-div-'+i] ? 'bg-green-50 border-green-300 text-green-700' : 'border-slate-200 text-slate-700'),
                                                    errorCol === 'prep-div-'+i ? 'bg-red-50 border-red-400 text-red-500 animate-shake' : '']">
@@ -838,14 +866,21 @@ onMounted(() => {
                                     </div>
                                 </div>
                             </div>
-                            <div class="flex items-center justify-between bg-slate-50/50 p-3 rounded-xl border border-slate-100">
-                                <div class="flex flex-col items-start">
-                                    <span class="text-[10px] font-bold text-orange-500 uppercase mb-0.5">2. Arreglar Divisor</span>
-                                    <span class="text-[16px] font-semibold text-slate-700">{{ currentEx.origDvr }} <span class="text-blue-400 font-bold">&times; 10 =</span></span>
+                            
+                            <div class="flex flex-row items-center justify-between bg-slate-50/50 p-2 sm:p-2.5 rounded-xl border border-slate-100">
+                                <div class="flex flex-col items-start min-w-[120px]">
+                                    <span class="text-[9px] font-bold text-orange-500 uppercase mb-0.5">2. Arreglar Divisor</span>
+                                    <div class="text-[14px] font-semibold text-slate-700 flex items-center">
+                                        <span class="relative inline-block">
+                                            {{ currentEx.origDvr }}
+                                            <span v-if="isActiveTaskPrepGroup('prep-dvr')" class="absolute -bottom-2.5 left-1/2 -translate-x-1/2 text-orange-500 text-base leading-none animate-slide-right pointer-events-none">&rarr;</span>
+                                        </span>
+                                        <span class="text-blue-400 font-bold ml-1">&times; 10 =</span>
+                                    </div>
                                 </div>
-                                <div class="flex gap-1.5">
+                                <div class="flex gap-1 sm:gap-1.5 justify-end">
                                     <div v-for="(d, i) in currentEx.adjDvr" :key="'pd-'+i"
-                                         class="w-9 h-9 sm:w-10 sm:h-10 border rounded-full flex items-center justify-center text-xl font-black transition-colors bg-white"
+                                         class="w-7 h-7 sm:w-8 sm:h-8 border rounded-full flex items-center justify-center text-base sm:text-lg font-black transition-colors bg-white shrink-0"
                                          :class="[ isActiveTaskPrep('prep-dvr-'+i) ? 'border-yellow-300 bg-yellow-50' : 
                                                    (userInputs['prep-dvr-'+i] ? 'bg-green-50 border-green-300 text-green-700' : 'border-slate-200 text-slate-700'),
                                                    errorCol === 'prep-dvr-'+i ? 'bg-red-50 border-red-400 text-red-500 animate-shake' : '']">
@@ -855,10 +890,17 @@ onMounted(() => {
                                     </div>
                                 </div>
                             </div>
+
+                            <div v-if="currentTask?.type === 'action_continue'" class="w-full flex justify-center mt-1 animate-fade-in pb-1">
+                                <button @click="handleActionContinue" class="px-5 py-2 bg-green-500 hover:bg-green-600 text-white font-bold text-sm rounded-xl shadow-[0_3px_0_rgb(21,128,61)] active:translate-y-1 active:shadow-none transition-all flex items-center gap-2">
+                                    <Check :size="16" stroke-width="4" /> CONTINUAR
+                                </button>
+                            </div>
+
                         </div>
                     </div>
 
-                    <div v-else class="grid grid-cols-12 gap-0 font-mono text-[22px] sm:text-2xl text-slate-800 w-full max-w-[420px] mx-auto pb-4 animate-fade-in pt-4 select-none">
+                    <div v-else class="grid grid-cols-12 gap-0 font-mono text-[22px] sm:text-2xl text-slate-800 w-full max-w-[420px] mx-auto pb-4 animate-fade-in pt-6 select-none relative">
                         <template v-for="r in 10" :key="'r-'+r">
                             <div v-for="c in 12" :key="'c-'+r+'-'+c" 
                                  @click="handleGridClick(r, c)"
@@ -869,6 +911,11 @@ onMounted(() => {
                                      'cursor-pointer': isClickTarget(r, c)
                                  }">
                                  
+                                 <span v-if="r === 1 && c === 2" class="absolute -top-3 left-0 text-[8px] font-black text-blue-300/70 uppercase tracking-widest pointer-events-none z-0">Dividendo</span>
+                                 <span v-if="r === 1 && c === dvrLineCol + 1" class="absolute -top-3 left-0 text-[8px] font-black text-orange-300/70 uppercase tracking-widest pointer-events-none z-0">Divisor</span>
+                                 <span v-if="r === 3 && c === dvrLineCol + 1" class="absolute top-0 left-0 text-[8px] font-black text-green-300/70 uppercase tracking-widest pointer-events-none z-0">Cociente</span>
+                                 <span v-if="r === currentRemainderRow && c === 2" class="absolute top-1 left-0 text-[8px] font-black text-red-300/70 uppercase tracking-widest pointer-events-none z-0 transition-all duration-500">Residuo</span>
+
                                  <div v-if="isActiveTask(r, c) && !showDecompPopup" class="absolute inset-0 bg-yellow-50/80 border border-yellow-200 z-10 rounded m-0.5 pointer-events-none"></div>
                                  <div v-if="isClickTarget(r, c) && !showDecompPopup" class="absolute inset-0 bg-yellow-50/80 border border-yellow-200 z-10 rounded m-0.5 hover:bg-yellow-100/80 transition-colors"></div>
                                  
@@ -895,53 +942,54 @@ onMounted(() => {
 
                 </div>
 
-                <div v-if="showDecompPopup" class="mt-auto w-full bg-slate-50 border-t-4 border-yellow-400 flex flex-col shrink-0 animate-fade-in-up z-20 rounded-b-xl shadow-[0_-5px_15px_rgba(0,0,0,0.05)] overflow-y-auto scrollbar-hide relative max-h-[45%]">
+                <div v-if="showDecompPopup" class="mt-auto w-full bg-slate-50 border-t-4 border-yellow-400 flex flex-col shrink-0 animate-fade-in-up z-20 rounded-b-xl shadow-[0_-5px_15px_rgba(0,0,0,0.05)] overflow-hidden">
                     
-                    <header class="bg-yellow-50/50 border-b border-yellow-100 shrink-0 w-full py-2 sticky top-0 z-30">
-                        <div class="max-w-[340px] mx-auto w-full px-3 flex items-center justify-between">
+                    <header class="bg-yellow-50/50 border-b border-yellow-100 shrink-0 w-full py-1.5 px-3 relative z-30">
+                        <div class="w-full flex items-center justify-between">
                             <div class="flex items-center gap-2">
                                 <span class="text-yellow-700 font-black text-[11px] uppercase tracking-widest">Razonamiento</span>
                                 <button v-if="decompSuccess" @click="verifyDecompStep" class="px-2 py-0.5 bg-green-500 hover:bg-green-600 text-white rounded shadow-sm active:scale-95 transition-all flex items-center justify-center animate-fade-in">
-                                    <Check :size="16" stroke-width="4" />
+                                    <Check :size="14" stroke-width="4" />
                                 </button>
                             </div>
-                            <div class="flex items-center gap-3">
-                                <span class="bg-white px-2 py-0.5 rounded text-xs font-bold text-slate-500 shadow-sm border border-slate-100">Meta: {{ currentTask.hintPart }}</span>
-                                <span class="font-black text-xl w-12 text-right transition-colors" :class="[decompSuccess ? 'text-green-600' : 'text-blue-600']">
+                            <div class="flex items-center gap-2">
+                                <span class="bg-white px-1.5 py-0.5 rounded text-[11px] font-bold text-slate-500 shadow-sm border border-slate-100">Meta: {{ currentTask.hintPart }}</span>
+                                <span class="font-black text-lg w-10 text-right transition-colors" :class="[decompSuccess ? 'text-green-600' : 'text-blue-600']">
                                     {{ testQuotient ? decompTotal : '0' }}
                                 </span>
                             </div>
                         </div>
                     </header>
                     
-                    <div class="p-2 sm:p-3 flex flex-col gap-1.5 max-w-[340px] mx-auto w-full pb-3">
-                        <div v-for="(part, index) in decomposedDivisor" :key="index" class="flex justify-between items-center bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm">
-                            <span class="font-black text-slate-500 w-12 text-right text-lg">{{ part }} &times;</span>
-                            <div class="w-8 h-8 rounded-full flex items-center justify-center font-black transition-colors"
-                                 :class="[decompSuccess ? 'bg-green-100 border-2 border-green-400 text-green-600' : 'bg-yellow-100 border border-yellow-400 text-amber-600 ring-2 ring-amber-200 animate-pulse']">
-                                {{ testQuotient || '_' }}
-                            </div>
-                            <span class="font-bold text-slate-400 text-lg">=</span>
-                            <span class="font-black text-slate-700 w-12 text-right text-lg">{{ testQuotient ? part * parseInt(testQuotient) : '0' }}</span>
-                        </div>
-
-                        <div v-if="!decompSuccess" class="flex flex-col items-center mt-2 pb-1 relative z-10">
-                            <button @click="showSmartTip = !showSmartTip" class="flex items-center gap-1.5 text-slate-500 hover:text-amber-600 transition-colors bg-white px-3 py-1 rounded-full shadow-sm border border-slate-200 text-[10px] font-bold uppercase tracking-wider active:scale-95">
-                                <span class="text-base" :class="{'animate-pulse text-amber-500': !showSmartTip}">💡</span> {{ showSmartTip ? 'Ocultar Truco' : 'Ver Truco Ninja' }}
-                            </button>
-                            
-                            <div v-if="showSmartTip" class="mt-2 bg-amber-50/50 border border-amber-200 rounded-xl p-3 text-xs sm:text-sm text-slate-700 shadow-inner animate-fade-in-up text-left leading-relaxed">
-                                <p v-html="smartTipContent"></p>
+                    <div class="p-2 sm:p-2.5 flex flex-col gap-1.5 w-full max-w-[360px] mx-auto pb-2.5">
+                        <div v-for="(part, index) in decomposedDivisor" :key="index" class="flex items-center gap-1.5 w-full">
+                            <span class="text-[9px] font-black text-slate-400 w-8 text-right tracking-tight leading-none shrink-0">{{ part >= 10 ? 'DEC.' : 'UND.' }}</span>
+                            <div class="flex-1 flex items-center bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm">
+                                
+                                <span class="font-black text-slate-500 text-sm w-12 text-right whitespace-nowrap shrink-0">{{ part }} &times;</span>
+                                
+                                <div class="flex-1 flex justify-center items-center gap-3">
+                                    <div class="w-6 h-6 rounded-full flex items-center justify-center font-black transition-colors text-[13px] shrink-0"
+                                         :class="[decompSuccess ? 'bg-green-100 border-2 border-green-400 text-green-600' : 'bg-yellow-100 border border-yellow-400 text-amber-600 ring-2 ring-amber-200 animate-pulse']">
+                                        {{ testQuotient || '_' }}
+                                    </div>
+                                    <span class="font-bold text-slate-400 text-sm shrink-0">=</span>
+                                </div>
+                                
+                                <span class="font-black text-slate-700 w-12 text-right text-sm whitespace-nowrap shrink-0">{{ testQuotient ? part * parseInt(testQuotient) : '0' }}</span>
+                                
                             </div>
                         </div>
                     </div>
+
                 </div>
 
             </div>
         </div>
     </main>
 
-    <footer class="shrink-0 w-full bg-white border-t border-slate-200 pb-2 pt-1 rounded-t-[1.5rem] shadow-[0_-5px_15px_rgba(0,0,0,0.05)] relative z-[110]">
+    <footer class="shrink-0 w-full bg-white border-t border-slate-200 pb-2 pt-1 rounded-t-[1.5rem] shadow-[0_-5px_15px_rgba(0,0,0,0.05)] relative z-[110]"
+            :class="{'opacity-50 grayscale pointer-events-none': currentTask?.type === 'action_continue'}">
         <DecimalKeypad @press="handleKeypress" @delete="handleDelete" />
     </footer>
 
@@ -949,6 +997,14 @@ onMounted(() => {
 </template>
 
 <style scoped>
+.animate-slide-right { animation: slideRight 1.2s infinite ease-in-out; }
+@keyframes slideRight { 
+    0% { transform: translateX(0); opacity: 0; } 
+    30% { opacity: 1; } 
+    70% { opacity: 1; } 
+    100% { transform: translateX(15px); opacity: 0; } 
+}
+
 .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
@@ -962,16 +1018,8 @@ onMounted(() => {
 @keyframes bounceSoft { 0%, 100% { transform: translateY(-5%); } 50% { transform: translateY(5%); } }
 
 /* ANIMACIÓN DEL CONFETI CSS */
-.confetti-piece {
-    position: absolute;
-    top: -50px;
-    font-size: 28px;
-    animation: fall linear forwards infinite;
-    opacity: 0.9;
-}
-@keyframes fall {
-    to { transform: translateY(100vh) rotate(720deg); }
-}
+.confetti-piece { position: absolute; top: -50px; font-size: 28px; animation: fall linear forwards infinite; opacity: 0.9; }
+@keyframes fall { to { transform: translateY(100vh) rotate(720deg); } }
 
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }

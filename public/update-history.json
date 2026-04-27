@@ -1,5 +1,12 @@
 [
   {
+    "updateId": "upd_1777561200000",
+    "version": "2.12.9",
+    "date": "27/04/2026",
+    "title": "MULTIPLICACIÓN DECIMAL: MOTOR EXPERTO DE LLEVADAS Y CERO SCROLL",
+    "description": "Capitán, el motor de Multiplicación Decimal ha alcanzado su forma final (Build V5). Hemos fusionado el conteo de espacios y el algoritmo tradicional en un solo módulo de flujo continuo. Diseñamos un sistema experto de 'Llevadas Dinámicas' con salto diagonal para múltiples cifras y una UI de 'Escalera Gris' que guía visualmente al alumno. Optimizamos el lienzo completo bajo la doctrina 'Cero Auto-Scroll', garantizando que el teclado virtual (VirtualKeyPad) y la pizarra coexistan inamovibles en cualquier smartphone. Para el gran final, inyectamos una animación cuántica donde la coma viaja hacia su posición matemática exacta, cerrando la sesión con un trofeo interactivo."
+  },
+  {
     "updateId": "upd_1777474800000",
     "version": "2.12.8",
     "date": "24/04/2026",

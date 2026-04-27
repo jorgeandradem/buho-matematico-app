@@ -1,15 +1,15 @@
 <script setup>
 /** * ARCHIVO: DecimalLobby.vue
- * ESTADO: HUB CENTRAL DE DECIMALES CONECTADO Y ENCUADRADO (V22)
- * LÓGICA: Menú intermedio con posicionamiento absolute para respetar el app-canvas. 
- * Integración modular de Suma, Resta, Multiplicación y División.
+ * ESTADO: HUB CENTRAL CONECTADO A MULTIPLICACIÓN MODULAR (V23)
+ * LÓGICA: Redirección del cuaderno de multiplicación hacia el nuevo Lobby de niveles.
  */
 import { ref } from 'vue';
 import { Plus, Minus, X as MultiplyIcon, Divide, ArrowLeft } from 'lucide-vue-next';
 import DecimalAdd from './DecimalAdd.vue'; 
 import DecimalSub from './DecimalSub.vue'; 
-import DecimalMult from './DecimalMult.vue'; 
-import DecimalDiv from './DecimalDiv.vue'; // 🟢 NUEVO: Importación del módulo de División
+import DecimalDiv from './DecimalDiv.vue';
+// 🔄 CAMBIO: Ahora importamos el Lobby de Multiplicación en lugar del módulo directo
+import DecimalMultLobby from './DecimalMultLobby.vue'; 
 
 const emit = defineEmits(['close']);
 
@@ -23,8 +23,8 @@ const operations = [
 ];
 
 const openNotebook = (opId) => {
-    // 🟢 VALIDACIÓN ACTUALIZADA: Ahora incluye 'div' y permite abrir los 4 cuadernos
-    if (opId === 'add' || opId === 'sub' || opId === 'mult' || opId === 'div') {
+    // El cableado se mantiene igual, la magia ocurre en el template con el componente nuevo
+    if (['add', 'sub', 'mult', 'div'].includes(opId)) {
         activeOperation.value = opId;
     } else {
         alert("¡Pronto construiremos este cuaderno, Jorge!");
@@ -35,9 +35,9 @@ const openNotebook = (opId) => {
 <template>
   <div class="absolute inset-0 z-[250] bg-gradient-to-br from-teal-400/90 to-cyan-600/90 backdrop-blur-md shadow-[inset_0_0_80px_rgba(8,145,178,0.4)] flex justify-center items-center animate-fade-in">
     
-    <div v-show="activeOperation === null" class="bg-white w-full max-w-md rounded-[2.5rem] p-6 sm:p-8 shadow-2xl border-4 border-teal-200 relative flex flex-col mx-4">
+    <div v-show="activeOperation === null" class="bg-white w-full max-w-md rounded-[2.5rem] p-6 sm:p-8 shadow-2xl border-4 border-teal-200 relative flex flex-col mx-4 font-primary text-slate-800">
         
-        <button @click="emit('close')" class="absolute top-4 right-4 z-50 p-2 bg-slate-100 rounded-full text-slate-500 hover:text-red-500 hover:bg-red-50 transition-colors active:scale-95" title="Volver al menú principal">
+        <button @click="emit('close')" class="absolute top-4 right-4 z-50 p-2 bg-slate-100 rounded-full text-slate-500 hover:text-red-500 hover:bg-red-50 transition-colors active:scale-95">
             <ArrowLeft :size="24" stroke-width="2.5" />
         </button>
 
@@ -61,28 +61,14 @@ const openNotebook = (opId) => {
                 </div>
             </button>
         </div>
-
     </div>
 
-    <DecimalAdd 
-        v-if="activeOperation === 'add'" 
-        @close="activeOperation = null" 
-    />
+    <DecimalAdd v-if="activeOperation === 'add'" @close="activeOperation = null" />
+    <DecimalSub v-if="activeOperation === 'sub'" @close="activeOperation = null" />
 
-    <DecimalSub 
-        v-if="activeOperation === 'sub'" 
-        @close="activeOperation = null" 
-    />
+    <DecimalMultLobby v-if="activeOperation === 'mult'" @close="activeOperation = null" />
 
-    <DecimalMult 
-        v-if="activeOperation === 'mult'" 
-        @close="activeOperation = null" 
-    />
-
-    <DecimalDiv 
-        v-if="activeOperation === 'div'" 
-        @close="activeOperation = null" 
-    />
+    <DecimalDiv v-if="activeOperation === 'div'" @close="activeOperation = null" />
 
   </div>
 </template>
