@@ -1,7 +1,7 @@
 <script setup>
 /** * ARCHIVO: DecimalMult.vue
- * ESTADO: VERSIÓN MOTOR FINAL (V27 - RUTINA 3 CICLOS Y MODAL)
- * LÓGICA: Límite de 3 ejercicios, popup de victoria, sonidos restaurados.
+ * ESTADO: VERSIÓN MOTOR FINAL (V31 - DESFASE CORREGIDO Y PEDAGOGÍA EXACTA)
+ * LÓGICA: Sincronización de anchos de cuadrícula (min-w) para evitar desfase. Textos dinámicos exactos.
  */
 import { ref, computed, onMounted } from 'vue';
 import { X as CloseIcon, Check, RotateCcw } from 'lucide-vue-next';
@@ -12,7 +12,7 @@ const emit = defineEmits(['close']);
 const exercises = ref([]);
 const currentExIdx = ref(0);
 const isTransitioning = ref(false);
-const showRewardModal = ref(false); // NUEVO: Estado del modal final
+const showRewardModal = ref(false); 
 const errorCol = ref(null);
 let errorTimeout = null; 
 const staircaseCells = ref(new Set()); 
@@ -26,7 +26,6 @@ const currentMsg = computed(() => currentTask.value?.msg || '¡A multiplicar!');
 
 const generateBatch = () => {
     let batch = [];
-    // LÓGICA NUEVA: Rutina fijada a 3 ciclos exactos
     for(let i = 0; i < 3; i++) {
         const tInt = Math.floor(Math.random() * 999) + 1; 
         const tDec = Math.floor(Math.random() * 90) + 10; 
@@ -55,6 +54,7 @@ const setupExercise = () => {
 
 const getCol = (p) => p < 4 ? 12 - p : 11 - p;
 
+// --- CEREBRO PEDAGÓGICO DE SECUENCIA EXACTA ---
 const buildTaskQueue = () => {
     const ex = currentEx.value;
     const tArr = ex.tStr.split('').reverse();
@@ -74,20 +74,23 @@ const buildTaskQueue = () => {
             staircaseCells.value.add(`r${i}-${getCol(p)}`);
         }
         
+        // 1. Colocación de los ceros de alineación (Escalera)
         for(let z = 0; z < i; z++) {
             let p = z + shiftProd;
             let col = getCol(p);
             q.push({
                 id: `r${i}-${col}`, expected: '0', 
-                msg: `Fila ${i+1}: Pon un <b>0</b> en la zona gris para alinear.`, 
+                msg: `<b>Regla de valor:</b> Al iniciar la nueva fila deja un espacio en blanco tipo escalera. Escribe <b><span class="text-red-600">0</span></b> para desplazar.`, 
                 type: 'zero', row: i, col
             });
             rowValStr = "0" + rowValStr;
         }
         
+        // 2. Multiplicación paso a paso (SIN PARAR)
         tArr.forEach((tDigitStr, j) => {
             const tDigit = Number(tDigitStr);
-            const prod = bDigit * tDigit + carry;
+            const prodWithoutCarry = bDigit * tDigit;
+            const prod = prodWithoutCarry + carry;
             const res = prod % 10;
             const nextCarry = Math.floor(prod / 10);
             
@@ -96,21 +99,41 @@ const buildTaskQueue = () => {
             let currentTCol = getCol(j + (4 - ex.tDec));
             let currentBCol = getCol(i + (4 - ex.bDec));
             
-            let sumText = carry > 0 ? ` + ${carry}` : '';
+            let posContext = '';
+            if (i === 0 && j === 0) {
+                posContext = `<b>Inicio:</b> Contamos los decimales del multiplicando y multiplicador = <b>${dTotal}</b>. Comenzamos en la casilla ${dTotal} contadas de derecha a izquierda. `;
+            } else if (j === 0) {
+                posContext = `<b>Inicio:</b> `;
+            }
+
+            let carryInstruction = (nextCarry > 0) ? ` y lleva <b><span class="text-red-600">${nextCarry}</span></b> a la casilla siguiente` : '';
+            if (nextCarry > 0 && j === tArr.length - 1) {
+                carryInstruction = ` y lleva <b><span class="text-red-600">${nextCarry}</span></b>`;
+            }
+
+            let msgText = '';
+            if (carry > 0) {
+                msgText = `${posContext}Multiplica <b><span class="text-red-600">${bDigit}</span></b> x <b><span class="text-red-600">${tDigit}</span></b> = ${prodWithoutCarry} + <b><span class="text-red-600">${carry}</span></b> (llevada) <b>= <span class="text-red-600">${prod}</span></b>. Escribe <b><span class="text-red-600">${res}</span></b>${carryInstruction}.`;
+            } else {
+                let verbWrite = (i === 0 && j === 0) ? `Escribe el <b><span class="text-red-600">${res}</span></b>` : `Escribe <b><span class="text-red-600">${res}</span></b>`;
+                msgText = `${posContext}Multiplica <b><span class="text-red-600">${bDigit}</span></b> x <b><span class="text-red-600">${tDigit}</span></b> <b>= <span class="text-red-600">${prod}</span></b>. ${verbWrite}${carryInstruction}.`;
+            }
+
             q.push({
                 id: `r${i}-${col}`, expected: res.toString(), 
-                msg: `Multiplica <b>${bDigit}</b> x <b>${tDigit}</b>${sumText} <b>= ${prod}</b>. Escribe <b>${res}</b>.`, 
+                msg: msgText, 
                 type: 'res', row: i, col,
                 tCol: currentTCol,
                 bCol: currentBCol,
                 sourceCarryCol: carry > 0 ? currentTCol : null
             });
 
-            if (nextCarry > 0 && j < tArr.length - 1) {
+            // 3. Escribir la llevada
+            if (nextCarry > 0) {
                 let cCol = getCol(j + 1 + (4 - ex.tDec));
                 q.push({
                     id: `c${i}-${cCol}`, expected: nextCarry.toString(), 
-                    msg: `Llevas <b>${nextCarry}</b>. Anótalo para no olvidarlo.`, 
+                    msg: `Escribe el <b><span class="text-red-600">${nextCarry}</span></b> que llevas en la parte superior para no perder la secuencia.`, 
                     type: 'carry', row: i, col: cCol
                 });
             }
@@ -119,12 +142,13 @@ const buildTaskQueue = () => {
             carry = nextCarry;
         });
         
+        // 4. Acarreo final de la fila
         if (carry > 0) {
             let p = i + tArr.length + shiftProd;
             let col = getCol(p);
             q.push({
                 id: `r${i}-${col}`, expected: carry.toString(), 
-                msg: `Baja el <b>${carry}</b> final de esta línea.`, 
+                msg: `Finalmente, baja el <b><span class="text-red-600">${carry}</span></b> que llevabas a esta casilla para completar la fila.`, 
                 type: 'res', row: i, col
             });
             rowValStr = carry.toString() + rowValStr;
@@ -133,10 +157,12 @@ const buildTaskQueue = () => {
         rowSums.push({ val: rowValStr });
     });
     
+    // Configuración de las celdas grises
     for (let p = 0; p < shiftProd; p++) {
         staircaseCells.value.add(`sum-${getCol(p)}`);
     }
 
+    // 5. Lógica de Suma de las filas obtenidas
     let maxLen = Math.max(...rowSums.map(r => r.val.length));
     let sumCarry = 0;
     
@@ -149,7 +175,7 @@ const buildTaskQueue = () => {
             if (pRel < r.val.length) {
                 let digit = Number(r.val[r.val.length - 1 - pRel]);
                 colSum += digit;
-                addends.push(`<b>${digit}</b>`);
+                addends.push(`<b><span class="text-red-600">${digit}</span></b>`);
                 hasVal = true;
             }
         });
@@ -160,7 +186,7 @@ const buildTaskQueue = () => {
         let col = getCol(p);
 
         if (sumCarry > 0) {
-            addends.push(`<b>${sumCarry}</b> (del acarreo)`);
+            addends.push(`<b><span class="text-red-600">${sumCarry}</span></b> (llevada)`);
         }
         
         let res = colSum % 10;
@@ -168,11 +194,11 @@ const buildTaskQueue = () => {
         
         let msgText = '';
         if (addends.length > 1) {
-            msgText = `Suma la columna: ${addends.join(' + ')} = <b>${colSum}</b>. Escribe <b>${res}</b>.`;
+            msgText = `<b>Fase de Suma:</b> Suma la columna: ${addends.join(' + ')} = <b><span class="text-red-600">${colSum}</span></b>. Escribe <b><span class="text-red-600">${res}</span></b> abajo${nextSumCarry > 0 ? ` y lleva <b><span class="text-red-600">${nextSumCarry}</span></b> a la casilla siguiente` : ''}.`;
         } else if (addends.length === 1 && sumCarry > 0 && !hasVal) {
-             msgText = `Baja el <b>${sumCarry}</b> del acarreo final de la suma.`;
+             msgText = `Baja el <b><span class="text-red-600">${sumCarry}</span></b> de la llevada final a esta casilla para terminar la suma.`;
         } else {
-             msgText = `Baja el <b>${res}</b>, ya que no hay con qué sumar en esta columna.`;
+             msgText = `Baja el <b><span class="text-red-600">${res}</span></b>, ya que no hay con qué sumar en esta posición.`;
         }
         
         q.push({
@@ -185,7 +211,7 @@ const buildTaskQueue = () => {
         if(nextSumCarry > 0) {
            q.push({
                 id: `csum-${getCol(p+1)}`, expected: nextSumCarry.toString(), 
-                msg: `Llevas <b>${nextSumCarry}</b> a la siguiente columna. Anótalo.`, 
+                msg: `Escribe el <b><span class="text-red-600">${nextSumCarry}</span></b> que llevas en la parte superior para continuar la suma.`, 
                 type: 'carry', row: 'sum', col: getCol(p+1)
             }); 
         }
@@ -213,7 +239,6 @@ const handleKeypress = (key) => {
         errorCol.value = currentTask.value.id;
         if (navigator.vibrate) navigator.vibrate(200);
         
-        // SONIDO REPUESTO: Sonido de error al equivocarse
         try { new Audio('/audios/wrong.mp3').play(); } catch(e){}
         
         if (errorTimeout) clearTimeout(errorTimeout);
@@ -224,7 +249,6 @@ const handleKeypress = (key) => {
 const completeExercise = () => {
     isTransitioning.value = true;
     
-    // SONIDO REPUESTO: Check verde de éxito individual
     try { new Audio('/audios/success.mp3').play(); } catch(e){}
     
     setTimeout(() => {
@@ -232,7 +256,6 @@ const completeExercise = () => {
             currentExIdx.value++;
             setupExercise();
         } else {
-            // LÓGICA NUEVA: Fin de los 3 ciclos, disparamos el Modal y el Jingle final
             showRewardModal.value = true;
             try { new Audio('/audios/win-jingle-soft.mp3').play(); } catch(e){}
         }
@@ -322,16 +345,16 @@ onMounted(() => {
     </div>
 
     <header class="flex items-center justify-between px-4 py-2 border-b border-slate-200 shrink-0 bg-white z-20 shadow-sm">
-        <div class="flex items-center gap-3">
-            <div class="w-10 h-10 sm:w-12 sm:h-12 bg-purple-100 rounded-full flex items-center justify-center text-xl sm:text-2xl shadow-sm border-2 border-purple-200">🦉</div>
-            <div :class="['border-2 rounded-xl px-3 py-1.5 sm:px-4 sm:py-2 max-w-[280px] transition-all duration-300', isTransitioning ? 'bg-green-100 border-green-300' : 'bg-yellow-50 border-yellow-200']">
-                <p class="font-bold text-[12px] sm:text-sm leading-tight" :class="isTransitioning ? 'text-green-800' : 'text-slate-700'">
+        <div class="flex items-center gap-3 w-full pr-4">
+            <div class="w-10 h-10 sm:w-12 sm:h-12 bg-purple-100 rounded-full flex items-center justify-center text-xl sm:text-2xl shadow-sm border-2 border-purple-200 shrink-0">🦉</div>
+            <div :class="['border-2 rounded-xl px-3 py-2 sm:px-4 sm:py-2.5 flex-1 transition-all duration-300 shadow-sm', isTransitioning ? 'bg-green-100 border-green-300' : 'bg-yellow-50 border-yellow-300']">
+                <p class="font-medium text-[12px] sm:text-[14px] leading-snug" :class="isTransitioning ? 'text-green-800 font-bold' : 'text-slate-700'">
                     <span v-if="isTransitioning">¡Excelente trabajo! Preparando el siguiente...</span>
                     <span v-else v-html="currentMsg"></span>
                 </p>
             </div>
         </div>
-        <div class="flex gap-2">
+        <div class="flex gap-2 shrink-0">
             <div class="px-4 py-1.5 bg-slate-100 rounded-full text-slate-600 font-bold text-sm flex items-center border border-slate-200">
                 {{ currentExIdx + 1 }} / 3
             </div>
@@ -345,11 +368,11 @@ onMounted(() => {
         <div class="w-full max-w-[480px] bg-white border border-slate-200 rounded-2xl p-3 sm:p-5 shadow-md relative">
             
             <div class="grid grid-cols-12 gap-0 mb-1 w-full z-10">
-                <div v-for="c in 12" :key="'carry-'+c" class="h-6 flex items-center justify-center text-[11px] sm:text-xs font-black text-yellow-600 relative">
+                <div v-for="c in 12" :key="'carry-'+c" class="h-6 flex items-center justify-center text-[11px] sm:text-xs font-black text-yellow-600 relative w-full min-w-[22px] sm:min-w-[30px]">
                     
                     <div v-if="isActiveTask(-1, c)" class="absolute w-5 h-5 sm:w-6 sm:h-6 bg-yellow-100 rounded-full animate-pulse border border-yellow-400"></div>
                     
-                    <Check v-if="currentTask?.sourceCarryCol === c" :size="14" stroke-width="5" class="text-green-500 absolute -top-1 -right-2 bg-white rounded-full shadow-sm z-20 animate-bounce-soft" />
+                    <Check v-if="currentTask?.sourceCarryCol === c" :size="14" stroke-width="5" class="text-green-500 absolute -top-1 right-0 bg-white/90 rounded-full shadow-sm z-20 animate-bounce-soft" />
 
                     <div v-if="errorCol && (errorCol === `c${currentTask?.row}-${c}` || errorCol === `csum-${c}`)" class="absolute w-5 h-5 sm:w-6 sm:h-6 bg-red-100 rounded-full animate-shake border border-red-500"></div>
                     
@@ -375,7 +398,7 @@ onMounted(() => {
                              'border-b-2 border-b-slate-800': r === 2 || r === numRows - 1
                          }">
                          
-                         <div v-if="staircaseCells.has(getCellId(r-1, c)) && !isTransitioning" class="absolute inset-0 bg-slate-100 z-0"></div>
+                         <div v-if="staircaseCells.has(getCellId(r-1, c)) && !isTransitioning" class="absolute inset-0 bg-slate-300 border border-slate-400/60 z-0 shadow-inner"></div>
 
                          <div v-if="isActiveTask(r-1, c) && !isTransitioning" class="absolute inset-0 bg-yellow-50 ring-2 ring-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.5)] animate-pulse z-10"></div>
                          

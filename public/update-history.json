@@ -1,5 +1,12 @@
 [
   {
+    "updateId": "upd_1777734000000",
+    "version": "2.12.10",
+    "date": "29/04/2026",
+    "title": "MULTIPLICACIÓN DECIMAL: PEDAGOGÍA PROGRESIVA Y SINCRONÍA VISUAL",
+    "description": "Capitán, hemos inyectado un 'Cerebro Pedagógico Avanzado' en el motor de Multiplicación Decimal. Ahora el Búho explica dinámicamente el *por qué* de cada paso, justificando la 'Regla de valor' y dictando las llevadas en una secuencia ininterrumpida hasta el infinito. Solucionamos el desfase estructural igualando las tensiones métricas de las cuadrículas, oscurecimos la 'Escalera de Alineación' con sombreados internos para mayor contraste y anclamos el encabezado de la misión para no perder el norte. Finalmente, coronamos la experiencia con un auto-scroll cinemático que centra la cámara en la celda activa y revela los botones de acción suavemente, asegurando una visibilidad táctica impecable en smartphones."
+  },
+  {
     "updateId": "upd_1777561200000",
     "version": "2.12.9",
     "date": "27/04/2026",
@@ -116,7 +123,7 @@
     "version": "2.11.2",
     "date": "01/04/2026",
     "title": "EQUILIBRIO MAESTRO",
-    "description": "Capitán, hemos alcanzado la simetría total. La IndexScreen ahora cuenta con un sistema de 'acordeón dinámico' que alinea el contenido verticalmente de forma perfecta en smartphones y tablets, eliminando desbordes laterales. Se estandarizó la posición del HUD de premios en todos los retos, se ajustó la altura de los poliedros 3D para mejorar la visibilidad y aplicamos blindaje de compatibilidad CSS estándar (propiedad appearance) en el laboratorio de fracciones. Además, restauramos los protocolos de reglas en el sistema de vistas."
+    "description": "Capitán, hemos alcanzado la simetría total. La IndexScreen ahora cuenta con un sistema de 'acordeón dinámico' que alinea el contenido verticalmente de forma perfecta en smartphones y tablets, eliminando desbordes laterales. Se estandarizó la position del HUD de premios en todos los retos, se ajustó la altura de los poliedros 3D para mejorar la visibilidad y aplicamos blindaje de compatibilidad CSS estándar (propiedad appearance) en el laboratorio de fracciones. Además, restauramos los protocolos de reglas en el sistema de vistas."
   },
   {
     "updateId": "upd_1775010600000",

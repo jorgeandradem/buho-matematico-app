@@ -1,9 +1,9 @@
 <script setup>
 /** * ARCHIVO: DecimalDiv.vue
- * ESTADO: FASE 7 (V9.5 - OPTIMIZACIÓN DE ESPACIOS EN PIZARRA DE RAZONAMIENTO)
- * LÓGICA: Flecha animada debajo del número activo y botón "Continuar" para observar el resultado inicial sin generar salto de pantalla.
+ * ESTADO: FASE 7 (V10.0 - HEADER PERSISTENTE Y SEGUIMIENTO DE CÁMARA)
+ * LÓGICA: Header "Misión" anclado (sticky) en todo momento y auto-scroll centrado al paso activo.
  */
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch, nextTick } from 'vue';
 import { ChevronLeft, HelpCircle, Check, RotateCcw, X as CloseIcon, ChevronRight as IconRight, ChevronLeft as IconLeft } from 'lucide-vue-next';
 import DecimalKeypad from './DecimalKeypad.vue';
 
@@ -24,6 +24,9 @@ const currentTaskIdx = ref(0);
 const userInputs = ref({}); 
 const selectedIndices = ref(new Set()); 
 
+// Referencia para el auto-scroll del botón Continuar
+const continueBtnRef = ref(null);
+
 // --- ESTADOS DEL MANUAL DIDÁCTICO ---
 const showHelpModal = ref(false);
 const currentHelpSlide = ref(0);
@@ -43,6 +46,32 @@ const dvrLineCol = computed(() => currentEx.value ? currentEx.value.adjDiv.lengt
 
 // NUEVO: La fase de preparación ahora incluye la pausa reflexiva (action_continue)
 const isPrepPhase = computed(() => currentTask.value?.type === 'prep' || currentTask.value?.type === 'action_continue');
+
+// 🛠️ VIGILANTE DE ESTADO PARA AUTO-SCROLL (Botón Continuar y Celda Activa)
+watch(() => currentTask.value?.type, async (newType) => {
+    if (newType === 'action_continue') {
+        await nextTick(); 
+        setTimeout(() => {
+            if (continueBtnRef.value) {
+                continueBtnRef.value.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }, 150); 
+    }
+});
+
+// 🛠️ VIGILANTE PARA AUTO-CENTRAR LA CÁMARA EN LA CUADRÍCULA
+watch(() => currentTaskIdx.value, async () => {
+    if (!isPrepPhase.value) {
+        await nextTick();
+        setTimeout(() => {
+            const activeCell = document.getElementById('active-task-cell');
+            if (activeCell) {
+                // Centra la vista en la celda activa para no ocultarla bajo el popup ni el header
+                activeCell.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }, 150);
+    }
+});
 
 // MARCA DE AGUA DINÁMICA: Calcula dónde poner la palabra "RESIDUO"
 const currentRemainderRow = computed(() => {
@@ -88,7 +117,7 @@ const decompOwlMessage = computed(() => {
             const decena = Math.floor(divisor / 10) * 10;
             const unidad = divisor % 10;
             const digitoIzquierdo = Math.floor(divisor / 10);
-            return `Razonemos: Separa el divisor en decena: <b>${decena}</b> y unidad: <b>${unidad}</b>. Extraes el dígito izquierdo de la decena. En este caso es: <b>${digitoIzquierdo}</b> y lo multiplicas por un número (?) que sea igual o menor al dividendo actual (<b>${target}</b>). Recuerda que al resultado de tu multiplicación le agregas el 0 al final. Escribe el número en el círculo amarillo.`;
+            return `Razonemos: Separa el divisor en decena: <b>${decena}</b> y unidad: <b>${unidad}</b>. Extraes el dígito izquierdo de la decena. En este caso es: <b>${digitoIzquierdo}</b> y lo multiplicas por un número (?) cuyo resultado sea igual o menor al dividendo actual (<b>${target}</b>). Recuerda que al resultado de tu multiplicación le agregas el 0 al final. Escribe el número en el círculo amarillo.`;
         }
         return `Escribe un número en el cociente, que multiplicado por el divisor: <b>${divisor}</b> nos de un resultado igual al dividendo: <b>${target}</b> o menor. Razonemos.`;
     }
@@ -368,7 +397,7 @@ const advanceTask = () => {
 };
 
 const handleActionContinue = () => {
-    try { new Audio('/audios/success.mp3').play(); } catch(e){}
+    try { new Audio('/audios/clip.mp3').play(); } catch(e){}
     advanceTask();
 };
 
@@ -411,10 +440,10 @@ const handleKeypress = (key) => {
         testQuotient.value = inputStr; 
         if (inputStr === currentTask.value.expected) {
             decompSuccess.value = true;
-            try { new Audio('/audios/success.mp3').play(); } catch(e){}
+            try { new Audio('/audios/clip.mp3').play(); } catch(e){}
         } else {
             decompSuccess.value = false;
-            try { new Audio('/audios/select.mp3').play(); } catch(e){}
+            try { new Audio('/audios/clip.mp3').play(); } catch(e){}
         }
         return;
     }
@@ -422,7 +451,7 @@ const handleKeypress = (key) => {
     if (currentTask.value.type === 'select_top') {
         if (inputStr === currentTask.value.expected) {
             selectedIndices.value.add(currentTask.value.digitIdx);
-            try { new Audio('/audios/success.mp3').play(); } catch(e){}
+            try { new Audio('/audios/clip.mp3').play(); } catch(e){}
             advanceTask();
         } else triggerError(currentTask.value.id);
         return; 
@@ -432,7 +461,7 @@ const handleKeypress = (key) => {
         if (inputStr === currentTask.value.expected) {
             selectedIndices.value.add(currentTask.value.topDigitIdx);
             userInputs.value[currentTask.value.id] = inputStr;
-            try { new Audio('/audios/success.mp3').play(); } catch(e){}
+            try { new Audio('/audios/clip.mp3').play(); } catch(e){}
             advanceTask();
         } else triggerError(currentTask.value.id);
         return;
@@ -442,6 +471,7 @@ const handleKeypress = (key) => {
 
     if (inputStr === currentTask.value.expected) {
         userInputs.value[currentTask.value.id] = inputStr;
+        try { new Audio('/audios/clip.mp3').play(); } catch(e){}
         advanceTask();
     } else {
         triggerError(currentTask.value.id);
@@ -472,7 +502,7 @@ const handleGridClick = (r, c) => {
         const expectedCol = getGridCol(currentTask.value.digitIdx);
         if (r === 1 && c === expectedCol) {
             selectedIndices.value.add(currentTask.value.digitIdx);
-            try { new Audio('/audios/success.mp3').play(); } catch(e){}
+            try { new Audio('/audios/clip.mp3').play(); } catch(e){}
             advanceTask();
         } else {
             if (navigator.vibrate) navigator.vibrate(200);
@@ -491,7 +521,7 @@ const handleGridClick = (r, c) => {
         if ((r === 1 && c === expectedColTop) || (r === expectedRowBot && c === expectedColBot)) {
             selectedIndices.value.add(currentTask.value.topDigitIdx);
             userInputs.value[currentTask.value.id] = currentTask.value.expected;
-            try { new Audio('/audios/success.mp3').play(); } catch(e){}
+            try { new Audio('/audios/clip.mp3').play(); } catch(e){}
             advanceTask();
         } else {
             if (navigator.vibrate) navigator.vibrate(200);
@@ -780,7 +810,7 @@ onMounted(() => {
         </div>
     </div>
 
-    <header class="flex items-center justify-between px-4 py-2 shrink-0 text-white z-20">
+    <header class="flex items-center justify-between px-4 py-2 shrink-0 text-white z-20" style="padding-top: max(0.5rem, env(safe-area-inset-top));">
         <button @click="emit('close')" class="flex items-center gap-1 font-semibold text-sm hover:text-blue-200 transition-colors">
             <ChevronLeft :size="20" /> VOLVER
         </button>
@@ -797,20 +827,20 @@ onMounted(() => {
         </button>
     </header>
 
-    <div class="px-4 z-20 mb-3 w-full max-w-[480px] mx-auto flex items-center mt-1">
-        <div class="bg-white rounded-xl p-2.5 shadow-sm flex items-start gap-3 border-b-2 border-slate-200 flex-1">
-            <div class="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center text-xl shrink-0 border border-blue-100 shadow-inner">🦉</div>
-            <div class="flex-1 pt-1 min-w-0">
-                <p class="text-[10px] font-bold text-blue-500 uppercase tracking-wider mb-1 leading-none shrink-0">Profesor Búho dice:</p>
-                <div class="max-h-[4.2rem] overflow-y-auto scrollbar-hide scroll-smooth pr-1">
-                    <p class="text-sm font-semibold text-slate-700 leading-snug" v-html="currentMsg"></p>
+    <div class="px-4 z-20 mb-1 w-full max-w-[480px] mx-auto flex items-center mt-0.5">
+        <div class="bg-white rounded-xl p-2 shadow-sm flex items-start gap-2 border-b-2 border-slate-200 flex-1">
+            <div class="w-9 h-9 bg-blue-50 rounded-full flex items-center justify-center text-lg shrink-0 border border-blue-100 shadow-inner">🦉</div>
+            <div class="flex-1 pt-0.5 min-w-0">
+                <p class="text-[9px] font-bold text-blue-500 uppercase tracking-wider mb-0.5 leading-none shrink-0">Profesor Búho dice:</p>
+                <div class="max-h-[3.6rem] overflow-y-auto scrollbar-hide scroll-smooth pr-1">
+                    <p class="text-[13px] sm:text-sm font-semibold text-slate-700 leading-snug" v-html="currentMsg"></p>
                 </div>
             </div>
         </div>
     </div>
 
-    <main class="flex-1 w-full px-4 pb-2 flex flex-col items-center justify-start z-[120] relative overflow-hidden gap-2">
-        <div class="w-full max-w-[480px] bg-[#FEF9C3] border border-[#FDE047] rounded-2xl p-1.5 sm:p-2 shadow-sm relative flex flex-col flex-1 overflow-hidden z-10">
+    <main class="flex-1 w-full px-4 pb-2 flex flex-col items-center justify-start z-[120] relative overflow-hidden gap-2 min-h-0">
+        <div class="w-full max-w-[480px] bg-[#FEF9C3] border border-[#FDE047] rounded-2xl p-1.5 shadow-sm relative flex flex-col flex-1 overflow-hidden z-10">
             
             <div class="bg-white rounded-xl w-full h-full shadow-inner flex flex-col overflow-hidden relative z-10">
                 
@@ -823,87 +853,98 @@ onMounted(() => {
                     </div>
                 </div>
 
-                <div class="w-full flex-1 overflow-y-auto scrollbar-hide flex flex-col pt-0 relative">
+                <div class="w-full flex-1 overflow-y-auto scrollbar-hide flex flex-col pt-0 relative" id="operation-scroll-container">
                     
-                    <div v-if="isPrepPhase" class="w-full flex flex-col pb-2 animate-fade-in">
-                        <div class="text-center w-full sticky top-0 bg-white z-20 pb-2 pt-2 border-b-2 border-slate-100 shadow-[0_2px_10px_rgba(0,0,0,0.03)] shrink-0">
-                            <span class="bg-blue-50 text-blue-600 font-bold text-[10px] px-3 py-0.5 rounded-full uppercase tracking-wider">Desarrollo Inicial</span>
-                            <div class="flex items-start justify-center gap-3 mt-2 relative">
-                                <span class="text-slate-700 font-bold text-[15px] pt-1">Misión: Dividir</span>
-                                <div class="flex flex-col items-center">
-                                    <b class="text-[18px] leading-none text-slate-800">{{ currentEx.origDiv }}</b>
-                                    <span class="text-[9px] font-black text-blue-600 bg-blue-50 border border-blue-100 px-1 py-0.5 rounded mt-0.5 uppercase">Dividendo</span>
+                    <div class="text-center w-full sticky top-0 bg-white z-30 py-2 border-b-2 border-slate-100 shadow-[0_2px_10px_rgba(0,0,0,0.03)] shrink-0">
+                        <div class="flex items-start justify-center gap-2 relative">
+                            <span class="text-slate-700 font-bold text-[14px] pt-1">Misión:</span>
+                            <div class="flex flex-col items-center">
+                                <b class="text-[16px] leading-none text-slate-800">{{ currentEx.origDiv }}</b>
+                                <span class="text-[8px] font-black text-blue-600 bg-blue-50 border border-blue-100 px-1 py-0.5 rounded mt-0.5 uppercase">Dividendo</span>
+                            </div>
+                            <span class="text-slate-700 font-bold text-[16px] pt-0.5">&divide;</span>
+                            <div class="flex flex-col items-center">
+                                <b class="text-[16px] leading-none text-slate-800">{{ currentEx.origDvr }}</b>
+                                <span class="text-[8px] font-black text-orange-600 bg-orange-50 border border-orange-100 px-1 py-0.5 rounded mt-0.5 uppercase">Divisor</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div v-if="isPrepPhase" class="flex-1 flex flex-col justify-start w-full max-w-full px-2 sm:px-4 py-2 sm:py-3 gap-3 animate-fade-in pb-2">
+                        
+                        <div class="flex flex-col items-center bg-slate-50/50 p-3 sm:p-4 rounded-xl border border-slate-100 w-full shadow-sm">
+                            <div class="w-full flex flex-col items-center text-center mb-1.5">
+                                <span class="text-[9px] sm:text-[10px] font-bold text-blue-500 uppercase tracking-wider mb-0.5">1. Arreglar Dividendo</span>
+                                <div class="text-base sm:text-lg font-black text-slate-700 flex items-center justify-center">
+                                    <span class="relative inline-block text-lg sm:text-xl">
+                                        {{ currentEx.origDiv }}
+                                        <span v-if="isActiveTaskPrepGroup('prep-div')" class="absolute -bottom-2 left-1/2 -translate-x-1/2 text-blue-500 text-sm leading-none animate-slide-right pointer-events-none">&rarr;</span>
+                                    </span>
+                                    <span class="text-blue-400 font-black ml-1.5 text-lg sm:text-xl">&times; 10 =</span>
                                 </div>
-                                <span class="text-slate-700 font-bold text-[18px] pt-0.5">&divide;</span>
-                                <div class="flex flex-col items-center">
-                                    <b class="text-[18px] leading-none text-slate-800">{{ currentEx.origDvr }}</b>
-                                    <span class="text-[9px] font-black text-orange-600 bg-orange-50 border border-orange-100 px-1 py-0.5 rounded mt-0.5 uppercase">Divisor</span>
+                            </div>
+                            <div class="flex gap-1.5 sm:gap-2 justify-center w-full">
+                                <div v-for="(d, i) in currentEx.adjDiv" :key="'pdiv-'+i"
+                                     class="w-8 h-8 sm:w-10 sm:h-10 border-2 rounded-full flex items-center justify-center text-lg sm:text-xl font-black transition-all duration-200 bg-white shrink-0 shadow-sm"
+                                     :class="[
+                                        errorCol === 'prep-div-'+i 
+                                            ? 'bg-red-100 border-red-500 text-red-600 animate-shake scale-105 shadow-md' 
+                                            : isActiveTaskPrep('prep-div-'+i) 
+                                                ? 'border-yellow-400 bg-yellow-50 ring-4 ring-yellow-100 scale-110' 
+                                                : userInputs['prep-div-'+i] 
+                                                    ? 'bg-green-50 border-green-400 text-green-700' 
+                                                    : 'border-slate-200 text-slate-700'
+                                     ]">
+                                     <span :class="{'animate-pulse text-amber-500': isActiveTaskPrep('prep-div-'+i) && errorCol !== 'prep-div-'+i}">
+                                         {{ userInputs['prep-div-'+i] || (isActiveTaskPrep('prep-div-'+i) ? '_' : '') }}
+                                     </span>
                                 </div>
                             </div>
                         </div>
                         
-                        <div class="flex-1 flex flex-col gap-2 w-full max-w-full px-2 sm:px-4 pt-2">
-                            <div class="flex flex-row items-center justify-between bg-slate-50/50 p-2 sm:p-2.5 rounded-xl border border-slate-100">
-                                <div class="flex flex-col items-start min-w-[120px]">
-                                    <span class="text-[9px] font-bold text-blue-500 uppercase mb-0.5">1. Arreglar Dividendo</span>
-                                    <div class="text-[14px] font-semibold text-slate-700 flex items-center">
-                                        <span class="relative inline-block">
-                                            {{ currentEx.origDiv }}
-                                            <span v-if="isActiveTaskPrepGroup('prep-div')" class="absolute -bottom-2.5 left-1/2 -translate-x-1/2 text-blue-500 text-base leading-none animate-slide-right pointer-events-none">&rarr;</span>
-                                        </span>
-                                        <span class="text-blue-400 font-bold ml-1">&times; 10 =</span>
-                                    </div>
-                                </div>
-                                <div class="flex gap-1 sm:gap-1.5 justify-end">
-                                    <div v-for="(d, i) in currentEx.adjDiv" :key="'pdiv-'+i"
-                                         class="w-7 h-7 sm:w-8 sm:h-8 border rounded-full flex items-center justify-center text-base sm:text-lg font-black transition-colors bg-white shrink-0"
-                                         :class="[ isActiveTaskPrep('prep-div-'+i) ? 'border-yellow-300 bg-yellow-50' : 
-                                                   (userInputs['prep-div-'+i] ? 'bg-green-50 border-green-300 text-green-700' : 'border-slate-200 text-slate-700'),
-                                                   errorCol === 'prep-div-'+i ? 'bg-red-50 border-red-400 text-red-500 animate-shake' : '']">
-                                         <span :class="{'animate-pulse text-amber-500': isActiveTaskPrep('prep-div-'+i)}">
-                                             {{ userInputs['prep-div-'+i] || (isActiveTaskPrep('prep-div-'+i) ? '_' : '') }}
-                                         </span>
-                                    </div>
+                        <div class="flex flex-col items-center bg-slate-50/50 p-3 sm:p-4 rounded-xl border border-slate-100 w-full shadow-sm">
+                            <div class="w-full flex flex-col items-center text-center mb-1.5">
+                                <span class="text-[9px] sm:text-[10px] font-bold text-orange-500 uppercase tracking-wider mb-0.5">2. Arreglar Divisor</span>
+                                <div class="text-base sm:text-lg font-black text-slate-700 flex items-center justify-center">
+                                    <span class="relative inline-block text-lg sm:text-xl">
+                                        {{ currentEx.origDvr }}
+                                        <span v-if="isActiveTaskPrepGroup('prep-dvr')" class="absolute -bottom-2 left-1/2 -translate-x-1/2 text-orange-500 text-sm leading-none animate-slide-right pointer-events-none">&rarr;</span>
+                                    </span>
+                                    <span class="text-blue-400 font-black ml-1.5 text-lg sm:text-xl">&times; 10 =</span>
                                 </div>
                             </div>
-                            
-                            <div class="flex flex-row items-center justify-between bg-slate-50/50 p-2 sm:p-2.5 rounded-xl border border-slate-100">
-                                <div class="flex flex-col items-start min-w-[120px]">
-                                    <span class="text-[9px] font-bold text-orange-500 uppercase mb-0.5">2. Arreglar Divisor</span>
-                                    <div class="text-[14px] font-semibold text-slate-700 flex items-center">
-                                        <span class="relative inline-block">
-                                            {{ currentEx.origDvr }}
-                                            <span v-if="isActiveTaskPrepGroup('prep-dvr')" class="absolute -bottom-2.5 left-1/2 -translate-x-1/2 text-orange-500 text-base leading-none animate-slide-right pointer-events-none">&rarr;</span>
-                                        </span>
-                                        <span class="text-blue-400 font-bold ml-1">&times; 10 =</span>
-                                    </div>
-                                </div>
-                                <div class="flex gap-1 sm:gap-1.5 justify-end">
-                                    <div v-for="(d, i) in currentEx.adjDvr" :key="'pd-'+i"
-                                         class="w-7 h-7 sm:w-8 sm:h-8 border rounded-full flex items-center justify-center text-base sm:text-lg font-black transition-colors bg-white shrink-0"
-                                         :class="[ isActiveTaskPrep('prep-dvr-'+i) ? 'border-yellow-300 bg-yellow-50' : 
-                                                   (userInputs['prep-dvr-'+i] ? 'bg-green-50 border-green-300 text-green-700' : 'border-slate-200 text-slate-700'),
-                                                   errorCol === 'prep-dvr-'+i ? 'bg-red-50 border-red-400 text-red-500 animate-shake' : '']">
-                                         <span :class="{'animate-pulse text-amber-500': isActiveTaskPrep('prep-dvr-'+i)}">
-                                             {{ userInputs['prep-dvr-'+i] || (isActiveTaskPrep('prep-dvr-'+i) ? '_' : '') }}
-                                         </span>
-                                    </div>
+                            <div class="flex gap-1.5 sm:gap-2 justify-center w-full">
+                                <div v-for="(d, i) in currentEx.adjDvr" :key="'pd-'+i"
+                                     class="w-8 h-8 sm:w-10 sm:h-10 border-2 rounded-full flex items-center justify-center text-lg sm:text-xl font-black transition-all duration-200 bg-white shrink-0 shadow-sm"
+                                     :class="[
+                                        errorCol === 'prep-dvr-'+i 
+                                            ? 'bg-red-100 border-red-500 text-red-600 animate-shake scale-105 shadow-md' 
+                                            : isActiveTaskPrep('prep-dvr-'+i) 
+                                                ? 'border-yellow-400 bg-yellow-50 ring-4 ring-yellow-100 scale-110' 
+                                                : userInputs['prep-dvr-'+i] 
+                                                    ? 'bg-green-50 border-green-400 text-green-700' 
+                                                    : 'border-slate-200 text-slate-700'
+                                     ]">
+                                     <span :class="{'animate-pulse text-amber-500': isActiveTaskPrep('prep-dvr-'+i) && errorCol !== 'prep-dvr-'+i}">
+                                         {{ userInputs['prep-dvr-'+i] || (isActiveTaskPrep('prep-dvr-'+i) ? '_' : '') }}
+                                     </span>
                                 </div>
                             </div>
-
-                            <div v-if="currentTask?.type === 'action_continue'" class="w-full flex justify-center mt-1 animate-fade-in pb-1">
-                                <button @click="handleActionContinue" class="px-5 py-2 bg-green-500 hover:bg-green-600 text-white font-bold text-sm rounded-xl shadow-[0_3px_0_rgb(21,128,61)] active:translate-y-1 active:shadow-none transition-all flex items-center gap-2">
-                                    <Check :size="16" stroke-width="4" /> CONTINUAR
-                                </button>
-                            </div>
-
                         </div>
+
+                        <div v-if="currentTask?.type === 'action_continue'" ref="continueBtnRef" class="w-full flex justify-center mt-2 min-h-[40px] items-center shrink-0 animate-fade-in-up pb-2">
+                            <button @click="handleActionContinue" class="px-5 py-2 bg-green-500 hover:bg-green-600 text-white font-black text-sm sm:text-base rounded-xl shadow-[0_4px_0_rgb(21,128,61)] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-2 w-full max-w-[200px]">
+                                <Check :size="18" stroke-width="4" /> CONTINUAR
+                            </button>
+                        </div>
+
                     </div>
 
-                    <div v-else class="grid grid-cols-12 gap-0 font-mono text-[22px] sm:text-2xl text-slate-800 w-full max-w-[420px] mx-auto pb-4 animate-fade-in pt-6 select-none relative">
+                    <div v-else class="grid grid-cols-12 gap-0 font-mono text-[22px] sm:text-2xl text-slate-800 w-full max-w-[420px] mx-auto pb-24 animate-fade-in pt-6 select-none relative">
                         <template v-for="r in 10" :key="'r-'+r">
                             <div v-for="c in 12" :key="'c-'+r+'-'+c" 
                                  @click="handleGridClick(r, c)"
+                                 :id="isActiveTask(r, c) && !showDecompPopup ? 'active-task-cell' : undefined"
                                  class="h-9 flex items-center justify-center relative transition-all duration-200"
                                  :class="{
                                      'border-l-2 border-slate-300': (r === 1 || r === 2) && c === dvrLineCol,
@@ -989,7 +1030,8 @@ onMounted(() => {
     </main>
 
     <footer class="shrink-0 w-full bg-white border-t border-slate-200 pb-2 pt-1 rounded-t-[1.5rem] shadow-[0_-5px_15px_rgba(0,0,0,0.05)] relative z-[110]"
-            :class="{'opacity-50 grayscale pointer-events-none': currentTask?.type === 'action_continue'}">
+            :class="{'opacity-50 grayscale pointer-events-none': currentTask?.type === 'action_continue'}"
+            style="padding-bottom: max(1.5rem, env(safe-area-inset-bottom));">
         <DecimalKeypad @press="handleKeypress" @delete="handleDelete" />
     </footer>
 

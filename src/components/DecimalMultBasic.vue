@@ -1,11 +1,10 @@
 <script setup>
 /**
- * ARCHIVO: DecimalMultBasic.vue - BUILD V5.4.0 (VERSIÓN MAESTRA)
- * FIX: Eliminación TOTAL de auto-scrolls molestos en móviles.
- * FIX: Círculos amarillos de llevadas pegados al recuadro central.
+ * ARCHIVO: DecimalMultBasic.vue - BUILD V5.4.1 (VERSIÓN MAESTRA)
+ * FIX: Auto-scroll cinemático inyectado para el botón "RECUPERAR LA COMA".
  * LÓGICA: Tablero inamovible, prioridad a la cuadrícula.
  */
-import { ref, computed, onMounted, nextTick } from 'vue';
+import { ref, computed, onMounted, nextTick, watch } from 'vue';
 import { ChevronLeft, HelpCircle, ArrowRight, CheckCircle2, BookOpen, Check, Star, Trophy, RotateCcw } from 'lucide-vue-next';
 import DecimalKeypad from './DecimalKeypad.vue';
 
@@ -16,6 +15,7 @@ const emit = defineEmits(['close', 'next-phase']);
 // ==========================================
 const currentPhase = ref('phase1'); 
 const scrollContainer = ref(null); 
+const recoverCommaBtnRef = ref(null); // 🛠️ FIX: Referencia para el auto-scroll del botón
 
 const currentRound = ref(1);
 const maxRounds = 2;
@@ -138,6 +138,18 @@ const staircaseCells = ref(new Set());
 
 const currentTask = computed(() => p2Tasks.value[p2TaskIdx.value]);
 const numRows = computed(() => 2 + exercise.value.bStr.length + 1);
+
+// 🛠️ FIX: Vigilante que dispara el scroll suave cuando el botón "RECUPERAR LA COMA" aparece
+watch(p2Complete, async (newVal) => {
+    if (newVal) {
+        await nextTick();
+        setTimeout(() => {
+            if (recoverCommaBtnRef.value) {
+                recoverCommaBtnRef.value.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }, 150);
+    }
+});
 
 const setupPhase2 = () => {
     p2Inputs.value = {};
@@ -406,7 +418,6 @@ const handleKeypress = (key) => {
             if (p2TaskIdx.value >= p2Tasks.value.length) {
                 p2Complete.value = true;
             }
-            // 🛠️ FIX: Se eliminaron completamente los auto-scrolls aquí para no ocultar la pizarra jamás.
         } else {
             errorCol.value = currentTask.value.id;
             if (errorTimeout) clearTimeout(errorTimeout);
@@ -453,7 +464,7 @@ onMounted(() => {
     <div class="app-canvas flex flex-col h-full overflow-hidden">
         
         <div class="shrink-0 w-full z-40 bg-[#f8fafc] flex flex-col shadow-sm border-b border-slate-200">
-            <header class="header-standard border-none shadow-none pb-0">
+            <header class="header-standard border-none shadow-none pb-0 px-2 pt-2">
                 <button @click="emit('close')" class="flex items-center gap-1 font-black text-[11px] tracking-widest uppercase text-slate-500 active:scale-90 transition-all">
                     <ChevronLeft :size="20" stroke-width="4" /> VOLVER
                 </button>
@@ -525,11 +536,11 @@ onMounted(() => {
                     <div class="w-full max-w-sm h-[88px] flex items-end justify-center mt-1">
                         <transition name="fade">
                             <div v-if="p1Step === 'sum_total' || p1Step === 'complete' || p1Step === 'remove_commas'" 
-                                 class="w-full flex items-center justify-between p-4 bg-orange-500 text-white rounded-3xl shadow-xl border-b-[5px] border-orange-700/30 relative z-20 w-full"
+                                 class="w-full flex items-center justify-between px-4 py-2.5 bg-orange-500 text-white rounded-3xl shadow-xl border-b-[5px] border-orange-700/30 relative z-20"
                                  :class="{'opacity-80 scale-[0.98]': p1Step === 'remove_commas'}">
                                 <div class="flex flex-col pl-2">
-                                    <span class="text-[10px] font-black uppercase tracking-widest">Total Decimales</span>
-                                    <span class="text-[9px] opacity-90 font-bold italic">Suma de posiciones 🐸</span>
+                                    <span class="text-[12px] font-black uppercase tracking-widest">Total Decimales</span>
+                                    <span class="text-[11px] opacity-90 font-bold italic">Suma de posiciones 🐸</span>
                                 </div>
                                 <div class="w-12 h-12 rounded-xl flex items-center justify-center text-2xl font-black shadow-lg relative z-30 transition-all bg-white"
                                      :class="[
@@ -550,11 +561,11 @@ onMounted(() => {
                                 INICIAR CONTEO <ArrowRight :size="18" />
                             </button>
                             <button v-else-if="p1Step === 'complete'" @click="p1Step = 'remove_commas'" 
-                                    class="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-3xl shadow-[0_5px_0_#4338ca] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-2 uppercase tracking-wider text-xs animate-pulse-soft">
+                                    class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-3xl shadow-[0_5px_0_#4338ca] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-2 uppercase tracking-wider text-xs animate-pulse-soft">
                                 CONTINUAR <CheckCircle2 :size="18" />
                             </button>
                             <button v-else-if="p1Step === 'remove_commas'" @click="startPhase2" 
-                                    class="w-full py-3.5 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-3xl shadow-[0_5px_0_#059669] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-2 uppercase tracking-wider text-xs animate-bounce-soft">
+                                    class="w-full py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-3xl shadow-[0_5px_0_#059669] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-2 uppercase tracking-wider text-xs animate-bounce-soft">
                                 IR AL CUADERNO <BookOpen :size="18" />
                             </button>
                         </transition>
@@ -566,10 +577,10 @@ onMounted(() => {
                          :class="{'border-emerald-400 shadow-emerald-100': p2Complete}">
                         
                         <div class="grid grid-cols-12 gap-0 w-full z-10">
-                            <div v-for="c in 12" :key="'carry-'+c" class="h-8 flex items-end justify-center pb-1 text-[11px] sm:text-sm font-black text-indigo-600 relative">
+                            <div v-for="c in 12" :key="'carry-'+c" class="h-8 flex items-end justify-center pb-1 text-[11px] sm:text-sm font-black text-indigo-600 relative w-full min-w-[22px] sm:min-w-[30px]">
                                 <div v-if="isActiveTaskP2(-1, c)" class="absolute bottom-0 w-6 h-6 bg-yellow-100 rounded-full animate-glow-gold border-2 border-yellow-400 z-0"></div>
                                 <div v-if="errorCol && (errorCol === `c${currentTask?.row}-${c}` || errorCol === `csum-${c}`)" class="absolute bottom-0 w-6 h-6 bg-red-100 rounded-full animate-shake-soft animate-glow-red border-2 border-red-500 z-0"></div>
-                                <Check v-if="currentTask?.sourceCarryCol === c" :size="14" stroke-width="5" class="text-emerald-500 absolute -top-1 -right-1 bg-white rounded-full shadow-sm z-20 animate-bounce-soft" />
+                                <Check v-if="currentTask?.sourceCarryCol === c" :size="14" stroke-width="5" class="text-emerald-500 absolute -top-1 right-0 bg-white/90 rounded-full shadow-sm z-20 animate-bounce-soft" />
                                 <span class="z-10 relative">{{ currentTask ? p2Inputs[`c${currentTask.row}-${c}`] || p2Inputs[`csum-${c}`] : '' }}</span>
                             </div>
                         </div>
@@ -577,11 +588,11 @@ onMounted(() => {
                         <div class="relative grid grid-cols-12 gap-0 border-t-2 border-l-2 border-slate-100 w-full rounded-tl-xl overflow-hidden bg-slate-50 mt-auto">
                             <template v-for="r in numRows" :key="'row-'+r">
                                 <div v-for="c in 12" :key="'cell-'+r+'-'+c"
-                                     class="w-full min-w-[20px] h-10 sm:h-12 border-b-2 border-r-2 flex items-center justify-center font-mono text-xl sm:text-2xl relative transition-all duration-200"
+                                     class="w-full min-w-[22px] sm:min-w-[30px] h-10 sm:h-12 border-b-2 border-r-2 flex items-center justify-center font-mono text-xl sm:text-2xl relative transition-all duration-200"
                                      :class="[
                                          r <= 2 ? 'bg-white text-slate-800 border-slate-100' : 'text-slate-700 border-slate-100',
                                          r === 2 || r === numRows - 1 ? 'border-b-4 border-b-slate-800' : '',
-                                         staircaseCells.has(getCellId(r-1, c)) ? 'bg-slate-200 border-2 border-slate-300 shadow-inner' : '',
+                                         staircaseCells.has(getCellId(r-1, c)) ? 'bg-slate-300 border-2 border-slate-400/60 shadow-inner' : '',
                                          isActiveTaskP2(r-1, c) ? 'bg-yellow-100 border-yellow-400 ring-inset ring-2 ring-yellow-400 animate-glow-gold z-10 text-yellow-900 shadow-md rounded-md' : '',
                                          errorCol && errorCol === getCellId(r-1, c) ? 'bg-red-100 border-red-500 ring-inset ring-2 ring-red-500 animate-shake-soft animate-glow-red z-20 text-red-900 rounded-md' : '',
                                          getUserInputP2(r-1, c) !== '' && !isActiveTaskP2(r-1, c) && errorCol !== getCellId(r-1, c) ? 'bg-emerald-50 text-emerald-900 font-bold' : ''
@@ -600,7 +611,7 @@ onMounted(() => {
 
                         <div class="w-full flex justify-center mt-4 relative z-50 min-h-[50px]">
                             <transition name="fade">
-                                <button v-if="p2Complete" @click="startPhase3" 
+                                <button v-if="p2Complete" ref="recoverCommaBtnRef" @click="startPhase3" 
                                         class="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-full shadow-[0_5px_0_#4338ca] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-2 uppercase tracking-wider text-sm animate-pulse-soft">
                                     RECUPERAR LA COMA <ArrowRight :size="18" />
                                 </button>
@@ -685,8 +696,9 @@ onMounted(() => {
 @media (min-width: 1025px) { .app-canvas { width: 1024px; height: 90dvh; border-radius: 45px; box-shadow: 0 40px 100px rgba(0,0,0,0.15); border: 8px solid white; padding: 0; overflow: hidden; } }
 @media (min-width: 600px) and (max-width: 1024px) { .app-canvas { width: 85vw; max-width: 800px; height: 95dvh; border-radius: 35px; box-shadow: 0 20px 50px rgba(0,0,0,0.1); padding: 0; } }
 
-.header-standard { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1rem; background: white; }
-.game-title { font-size: clamp(1.2rem, 4vw, 1.8rem); font-weight: 900; text-transform: uppercase; font-style: italic; letter-spacing: -0.02em; }
+.header-standard { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 0.4rem 0.5rem; background: white; }
+.game-title { font-size: clamp(0.85rem, 3vw, 1.2rem); line-height: 1.1; font-weight: 900; text-transform: uppercase; font-style: italic; letter-spacing: -0.02em; }
+
 .rules-panel { background: white; padding: 0.8rem 1rem 0.8rem 1rem; border-radius: 1.5rem; border: 2px solid #e2e8f0; position: relative; }
 .rules-badge { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); color: white; font-size: 11px; font-weight: 900; padding: 4px 14px; border-radius: 9999px; letter-spacing: 0.05em; }
 .custom-scrollbar::-webkit-scrollbar { width: 4px; } .custom-scrollbar::-webkit-scrollbar-track { background: transparent; } .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 10px; }

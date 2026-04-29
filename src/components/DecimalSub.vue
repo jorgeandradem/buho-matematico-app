@@ -244,13 +244,13 @@ onMounted(() => {
     
     <div class="bg-white w-full max-w-[560px] h-full flex flex-col relative shadow-2xl border-x-0 sm:border-x-[6px] border-orange-400 overflow-hidden">
       
-      <div class="absolute top-4 right-4 z-50">
+      <div class="absolute top-2 right-2 sm:top-3 sm:right-3 z-50">
           <button @click="emit('close')" class="p-2 bg-slate-100 rounded-full text-slate-500 hover:text-red-500 hover:bg-red-50 transition-colors active:scale-95" title="Salir al Lobby">
             <CloseIcon :size="24" stroke-width="2.5" />
           </button>
       </div>
 
-      <div class="pl-3 pr-14 pt-5 pb-1 flex items-start gap-2 sm:gap-3 shrink-0">
+      <div class="pl-3 pr-12 pt-3 sm:pt-4 pb-1 flex items-start gap-2 sm:gap-3 shrink-0">
         <div class="w-14 h-14 sm:w-16 sm:h-16 shrink-0 relative z-10">
           <div class="w-full h-full bg-orange-100 rounded-full flex items-center justify-center border-2 border-orange-200 text-2xl shadow-sm">🦉</div>
           <div class="absolute -top-1 -right-1 bg-orange-500 text-white text-[10px] font-black px-1.5 rounded-full border-2 border-white z-20">{{ currentExIdx + 1 }}/5</div>
@@ -265,7 +265,7 @@ onMounted(() => {
         </div>
       </div>
 
-      <div v-if="isFinished" class="absolute inset-0 top-[100px] z-[250] bg-white/95 backdrop-blur-sm flex flex-col items-center justify-center animate-fade-in px-6 text-center">
+      <div v-if="isFinished" class="absolute inset-0 top-[100px] z-[250] bg-white/95 backdrop-blur-sm flex flex-col items-center justify-center animate-fade-in px-6 text-center overflow-y-auto">
           <div class="absolute inset-0 overflow-hidden pointer-events-none">
               <div v-for="c in confettiPieces" :key="c.id" class="confetti-piece"
                    :style="{ left: c.left, animationDelay: c.animationDelay, backgroundColor: c.backgroundColor, transform: c.transform }">
@@ -289,7 +289,7 @@ onMounted(() => {
           </div>
       </div>
 
-      <div class="flex-1 w-full bg-[#f8fafc] flex flex-col items-center justify-start pt-2 pb-2 sm:pb-4 px-2 sm:px-4 relative min-h-0">
+      <div class="flex-1 w-full bg-[#f8fafc] flex flex-col items-center justify-start pt-2 pb-2 sm:pb-4 px-2 sm:px-4 relative min-h-0 overflow-y-auto overflow-x-hidden">
         
         <div class="w-full bg-white border-4 rounded-3xl shadow-md py-3 px-2 sm:py-5 sm:px-4 relative mt-3 sm:mt-5 mb-auto transition-colors duration-500"
              :class="isTransitioning ? 'border-green-400 bg-green-50/30' : 'border-slate-200'"
@@ -384,7 +384,9 @@ onMounted(() => {
         </div>
       </div>
 
-      <div class="shrink-0 w-full z-20 pb-8 sm:pb-6 bg-white border-t-2 border-slate-100" :class="isTransitioning || isFinished ? 'opacity-50 pointer-events-none' : ''">
+      <div class="shrink-0 w-full z-20 pt-4 pb-8 sm:pb-10 bg-white border-t-2 border-slate-100" 
+           :class="isTransitioning || isFinished ? 'opacity-50 pointer-events-none' : ''"
+           style="padding-bottom: max(2.5rem, env(safe-area-inset-bottom));">
           <DecimalKeypad @press="handleKeypress" @delete="handleDelete" />
       </div>
 
