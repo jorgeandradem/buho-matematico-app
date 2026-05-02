@@ -1,8 +1,7 @@
 <script setup>
 /**
- * ARCHIVO: DecimalMultBasic.vue - BUILD V5.4.1 (VERSIÓN MAESTRA)
- * FIX: Auto-scroll cinemático inyectado para el botón "RECUPERAR LA COMA".
- * LÓGICA: Tablero inamovible, prioridad a la cuadrícula.
+ * ARCHIVO: DecimalMultBasic.vue - BUILD V5.5.0 (VERSIÓN MAESTRA)
+ * FIX: Auto-Piloto en Escaleras. Los ceros se rellenan automáticamente con delay visual.
  */
 import { ref, computed, onMounted, nextTick, watch } from 'vue';
 import { ChevronLeft, HelpCircle, ArrowRight, CheckCircle2, BookOpen, Check, Star, Trophy, RotateCcw } from 'lucide-vue-next';
@@ -15,7 +14,7 @@ const emit = defineEmits(['close', 'next-phase']);
 // ==========================================
 const currentPhase = ref('phase1'); 
 const scrollContainer = ref(null); 
-const recoverCommaBtnRef = ref(null); // 🛠️ FIX: Referencia para el auto-scroll del botón
+const recoverCommaBtnRef = ref(null); 
 
 const currentRound = ref(1);
 const maxRounds = 2;
@@ -108,6 +107,14 @@ const triggerError = () => {
     setTimeout(() => errorActive.value = false, 800);
 };
 
+const playTapSound = () => {
+    try { 
+        const tap = new Audio('/audios/ui.mp3');
+        tap.playbackRate = 0.95 + Math.random() * 0.1;
+        tap.play(); 
+    } catch(e){}
+};
+
 const getCellClassP1 = (stepTarget, val) => {
     if (val !== '') return 'bg-emerald-100 border-2 border-emerald-400 text-emerald-900 shadow-sm';
     if (p1Step.value === stepTarget) {
@@ -139,7 +146,6 @@ const staircaseCells = ref(new Set());
 const currentTask = computed(() => p2Tasks.value[p2TaskIdx.value]);
 const numRows = computed(() => 2 + exercise.value.bStr.length + 1);
 
-// 🛠️ FIX: Vigilante que dispara el scroll suave cuando el botón "RECUPERAR LA COMA" aparece
 watch(p2Complete, async (newVal) => {
     if (newVal) {
         await nextTick();
@@ -150,6 +156,24 @@ watch(p2Complete, async (newVal) => {
         }, 150);
     }
 });
+
+// 🛠️ FIX MAESTRO: Auto-Piloto para ceros de la escalera
+watch(currentTask, (newTask) => {
+    if (currentPhase.value === 'phase2' && newTask && newTask.type === 'zero') {
+        // Pausa de 750ms para que el alumno visualice el salto lógico
+        setTimeout(() => {
+            // Confirmamos que seguimos en la misma tarea
+            if (currentTask.value === newTask) {
+                p2Inputs.value[newTask.id] = '0';
+                playTapSound();
+                p2TaskIdx.value++;
+                if (p2TaskIdx.value >= p2Tasks.value.length) {
+                    p2Complete.value = true;
+                }
+            }
+        }, 750); 
+    }
+}, { immediate: true });
 
 const setupPhase2 = () => {
     p2Inputs.value = {};
@@ -183,7 +207,7 @@ const buildTaskQueue = () => {
             let col = getCol(z);
             q.push({
                 id: `r${i}-${col}`, expected: '0', 
-                msg: `Fila ${i+1}: Pon un <b>0</b> en la zona gris para alinear.`, 
+                msg: `Fila ${i+1}: Colocamos un <b>0 automático</b> en la escalera para alinear.`, 
                 type: 'zero', row: i, col
             });
             rowValStr = "0" + rowValStr;
@@ -320,9 +344,6 @@ const getCellId = (rowIdx, col) => {
 
 const startPhase3 = () => {
     currentPhase.value = 'phase3';
-    nextTick(() => {
-        if(scrollContainer.value) scrollContainer.value.scrollTo({ top: 0, behavior: 'smooth' });
-    });
 };
 
 // ==========================================
@@ -403,17 +424,26 @@ const handleKeypress = (key) => {
         if (p1Step.value === 'count_a' && inputStr === String(exercise.value.decA)) { p1Inputs.value.countA = inputStr; p1Step.value = 'count_b'; isCorrect = true; }
         else if (p1Step.value === 'count_b' && inputStr === String(exercise.value.decB)) { p1Inputs.value.countB = inputStr; p1Step.value = 'sum_total'; isCorrect = true; }
         else if (p1Step.value === 'sum_total' && inputStr === String(exercise.value.decTotal)) { p1Inputs.value.total = inputStr; p1Step.value = 'complete'; isCorrect = true; }
-        if (!isCorrect) triggerError();
+        
+        if (!isCorrect) {
+            triggerError();
+        } else {
+            playTapSound(); 
+        }
     } 
     else if (currentPhase.value === 'phase2') {
         if (p2Complete.value || !currentTask.value) return;
+
+        // 🛠️ FIX MAESTRO: Si la tarea actual es rellenar un cero, bloqueamos el teclado manual. El sistema lo hará solo.
+        if (currentTask.value.type === 'zero') return;
 
         if (inputStr === currentTask.value.expected) {
             p2Inputs.value[currentTask.value.id] = inputStr;
             p2TaskIdx.value++;
             errorCol.value = null;
             if (errorTimeout) clearTimeout(errorTimeout);
-            try { new Audio('/audios/success.mp3').play(); } catch(e){}
+            
+            playTapSound(); 
 
             if (p2TaskIdx.value >= p2Tasks.value.length) {
                 p2Complete.value = true;
@@ -491,7 +521,7 @@ onMounted(() => {
             </div>
         </div>
 
-        <main ref="scrollContainer" class="flex-1 w-full overflow-y-auto custom-scrollbar relative z-10 flex flex-col items-center pt-3 pb-6 px-2 sm:px-8">
+        <main ref="scrollContainer" class="flex-1 w-full overflow-y-auto custom-scrollbar relative z-10 flex flex-col items-center pt-3 pb-8 px-2 sm:px-8 scroll-smooth">
             <transition name="fade-slide" mode="out-in">
                 
                 <div v-if="currentPhase === 'phase1'" key="fase1" class="w-full flex flex-col items-center">
@@ -500,7 +530,7 @@ onMounted(() => {
                         
                         <div class="flex items-center justify-between p-2 rounded-2xl transition-all">
                             <div class="flex flex-col pl-2">
-                                <span class="text-[9px] font-black uppercase tracking-tighter" :class="p1Step === 'remove_commas' ? 'text-emerald-700' : 'text-teal-600'">Multiplicando</span>
+                                <span class="text-[10px] font-black uppercase tracking-tighter" :class="p1Step === 'remove_commas' ? 'text-emerald-700' : 'text-teal-600'">Multiplicando</span>
                                 <div class="text-2xl font-black italic flex items-baseline" :class="p1Step === 'remove_commas' ? 'text-emerald-900' : 'text-slate-700'">
                                     <span>{{ factorA_parts[0] }}</span>
                                     <span class="transition-all duration-1000 ease-in-out overflow-hidden"
@@ -518,7 +548,7 @@ onMounted(() => {
 
                         <div class="flex items-center justify-between p-2 rounded-2xl transition-all">
                             <div class="flex flex-col pl-2">
-                                <span class="text-[9px] font-black uppercase tracking-tighter" :class="p1Step === 'remove_commas' ? 'text-emerald-700' : 'text-teal-600'">Multiplicador</span>
+                                <span class="text-[10px] font-black uppercase tracking-tighter" :class="p1Step === 'remove_commas' ? 'text-emerald-700' : 'text-teal-600'">Multiplicador</span>
                                 <div class="text-2xl font-black italic flex items-baseline" :class="p1Step === 'remove_commas' ? 'text-emerald-900' : 'text-slate-700'">
                                     <span>{{ factorB_parts[0] }}</span>
                                     <span class="transition-all duration-1000 ease-in-out overflow-hidden"
@@ -554,10 +584,10 @@ onMounted(() => {
                         </transition>
                     </div>
 
-                    <div class="w-full max-w-sm mt-4 flex items-center justify-center relative z-20">
+                    <div class="w-full max-w-sm mt-4 mb-6 flex items-center justify-center relative z-20">
                         <transition name="fade" mode="out-in">
                             <button v-if="p1Step === 'intro'" @click="p1Step = 'count_a'" 
-                                    class="w-full py-3.5 bg-yellow-400 hover:bg-yellow-500 text-slate-800 font-black rounded-3xl shadow-[0_5px_0_#ca8a04] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-2 uppercase tracking-wider text-xs">
+                                    class="w-full py-4 bg-yellow-400 hover:bg-yellow-500 text-slate-800 font-black rounded-full shadow-[0_5px_0_#ca8a04] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-2 uppercase tracking-wider text-xs">
                                 INICIAR CONTEO <ArrowRight :size="18" />
                             </button>
                             <button v-else-if="p1Step === 'complete'" @click="p1Step = 'remove_commas'" 
@@ -609,7 +639,7 @@ onMounted(() => {
                             </template>
                         </div>
 
-                        <div class="w-full flex justify-center mt-4 relative z-50 min-h-[50px]">
+                        <div class="w-full flex justify-center mt-4 mb-4 relative z-50 min-h-[50px]">
                             <transition name="fade">
                                 <button v-if="p2Complete" ref="recoverCommaBtnRef" @click="startPhase3" 
                                         class="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-full shadow-[0_5px_0_#4338ca] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-2 uppercase tracking-wider text-sm animate-pulse-soft">
@@ -622,7 +652,7 @@ onMounted(() => {
 
                 <div v-else-if="currentPhase === 'phase3'" key="fase3" class="w-full flex-1 flex flex-col items-center justify-center">
                     
-                    <div class="w-full max-w-sm bg-white rounded-[1.5rem] shadow-sm border-2 border-slate-200 p-3 pt-5 mb-3 relative mt-4">
+                    <div class="w-full max-w-sm bg-white rounded-[1.5rem] shadow-sm border-2 border-slate-200 p-3 pt-4 mb-3 relative mt-2">
                         <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-orange-500 text-white text-[10px] font-black px-4 py-1 rounded-full uppercase tracking-widest shadow-sm">
                             Memoria
                         </div>

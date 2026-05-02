@@ -1,7 +1,7 @@
 <script setup>
 /** * ARCHIVO: App.vue 
  * ESTADO: ESTABLE + ZONA DECIMAL (LOBBY HUB)
- * NOTA: Reconstrucción sobre v4.0.3 para integrar el DecimalLobby.
+ * NOTA: Reconstrucción sobre v4.0.3 para integrar el DecimalLobby y ParticleSynth.
  */
 import { ref, onMounted } from 'vue';
 import { Plus, Minus, X as MultiplyIcon, Divide } from 'lucide-vue-next';
@@ -40,6 +40,7 @@ import GameCardTable from './components/GameCardTable.vue';
 import GameMastermind from './components/GameMastermind.vue'; 
 import GameConnect4 from './components/GameConnect4.vue'; 
 import GameSudoku from './components/GameSudoku.vue';
+import ParticleSynth from './components/ParticleSynth.vue';
 
 // 🏷️ CONTROL DE VERSIÓN
 const APP_VERSION = "4.0.4"; // Incremento por integración de Decimal Lobby
@@ -126,6 +127,8 @@ const navigateTo = (viewName, config) => {
         <GameMastermind v-else-if="currentView === 'mastermind'" :gameMode="currentConfig.mode" @close="navigateTo('game-lobby')" />
         <GameConnect4 v-else-if="currentView === 'connect4'" :gameMode="currentConfig.mode" @close="navigateTo('game-lobby')" />
         <GameSudoku v-else-if="currentView === 'sudoku'" :gameMode="currentConfig.mode" @close="navigateTo('game-lobby')" />
+        
+        <ParticleSynth v-else-if="currentView === 'particles'" @close="navigateTo('game-lobby')" />
 
         <QuantumConverter v-else-if="currentView === 'converter'" @close="navigateTo('tools-hub')" />
         <FinancialSimulator v-else-if="currentView === 'simulator'" @close="navigateTo('tools-hub')" />

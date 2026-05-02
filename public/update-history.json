@@ -1,5 +1,12 @@
 [
   {
+    "updateId": "upd_1777820400000",
+    "version": "2.12.11",
+    "date": "02/05/2026",
+    "title": "MULTIPLICACIÓN DECIMAL: AUTO-PILOTO Y SINCRONÍA ACÚSTICA",
+    "description": "Capitán, el Nivel Experto ahora cuenta con un 'Auto-Piloto de Escalera': el sistema inyecta ceros de alineación automáticamente con una latencia visual de 750ms, acelerando la fluidez sin sacrificar la comprensión matemática. Hemos sincronizado milimétricamente el rastro de las llevadas (Check Verde) con el desplazamiento diagonal de las columnas. Además, purificamos el motor acústico integrando un feedback táctil orgánico de baja latencia para el teclado virtual, y anclamos la pizarra de forma absoluta para erradicar cualquier auto-scroll invasivo en dispositivos móviles."
+  },
+  {
     "updateId": "upd_1777734000000",
     "version": "2.12.10",
     "date": "29/04/2026",
@@ -123,7 +130,7 @@
     "version": "2.11.2",
     "date": "01/04/2026",
     "title": "EQUILIBRIO MAESTRO",
-    "description": "Capitán, hemos alcanzado la simetría total. La IndexScreen ahora cuenta con un sistema de 'acordeón dinámico' que alinea el contenido verticalmente de forma perfecta en smartphones y tablets, eliminando desbordes laterales. Se estandarizó la position del HUD de premios en todos los retos, se ajustó la altura de los poliedros 3D para mejorar la visibilidad y aplicamos blindaje de compatibilidad CSS estándar (propiedad appearance) en el laboratorio de fracciones. Además, restauramos los protocolos de reglas en el sistema de vistas."
+    "description": "Capitán, hemos alcanzado la simetría total. La IndexScreen ahora cuenta con un sistema de 'acordeón dinámico' que alinea el contenido verticalmente de forma perfecta en smartphones y tablets, eliminando desbordes laterales. Se estandarizó la posición del HUD de premios en todos los retos, se ajustó la altura de los poliedros 3D para mejorar la visibilidad y aplicamos blindaje de compatibilidad CSS estándar (propiedad appearance) en el laboratorio de fracciones. Además, restauramos los protocolos de reglas en el sistema de vistas."
   },
   {
     "updateId": "upd_1775010600000",

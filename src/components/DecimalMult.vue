@@ -1,9 +1,10 @@
 <script setup>
 /** * ARCHIVO: DecimalMult.vue
- * ESTADO: VERSIÓN MOTOR FINAL (V31 - DESFASE CORREGIDO Y PEDAGOGÍA EXACTA)
+ * ESTADO: VERSIÓN MOTOR FINAL (V32 - AUTO-PILOTO DE ESCALERA INTEGRADO)
  * LÓGICA: Sincronización de anchos de cuadrícula (min-w) para evitar desfase. Textos dinámicos exactos.
+ * FIX: Los ceros de la escalera se rellenan automáticamente con delay visual.
  */
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { X as CloseIcon, Check, RotateCcw } from 'lucide-vue-next';
 import DecimalKeypad from './DecimalKeypad.vue';
 
@@ -23,6 +24,31 @@ const userInputs = ref({});
 
 const currentTask = computed(() => tasks.value[currentTaskIdx.value]);
 const currentMsg = computed(() => currentTask.value?.msg || '¡A multiplicar!');
+
+// 🛠️ FIX: AUTO-PILOTO PARA LA ESCALERA DE CEROS
+watch(currentTask, (newTask) => {
+    if (newTask && newTask.type === 'zero') {
+        // Pausa de 750ms para que el alumno lea y visualice el relleno
+        setTimeout(() => {
+            // Confirmamos que seguimos en la misma tarea para evitar desincronizaciones
+            if (currentTask.value === newTask) {
+                userInputs.value[newTask.id] = '0';
+                
+                // Sonido de sistema automático
+                try { 
+                    const tap = new Audio('/audios/ui.mp3');
+                    tap.playbackRate = 0.9 + Math.random() * 0.1;
+                    tap.play(); 
+                } catch(e){}
+
+                currentTaskIdx.value++;
+                if (currentTaskIdx.value >= tasks.value.length) {
+                    completeExercise();
+                }
+            }
+        }, 750); 
+    }
+}, { immediate: true });
 
 const generateBatch = () => {
     let batch = [];
@@ -80,13 +106,13 @@ const buildTaskQueue = () => {
             let col = getCol(p);
             q.push({
                 id: `r${i}-${col}`, expected: '0', 
-                msg: `<b>Regla de valor:</b> Al iniciar la nueva fila deja un espacio en blanco tipo escalera. Escribe <b><span class="text-red-600">0</span></b> para desplazar.`, 
+                msg: `<b>Regla de valor:</b> Colocamos un <b><span class="text-red-600">0 automático</span></b> en la escalera para desplazar la fila.`, 
                 type: 'zero', row: i, col
             });
             rowValStr = "0" + rowValStr;
         }
         
-        // 2. Multiplicación paso a paso (SIN PARAR)
+        // 2. Multiplicación paso a paso
         tArr.forEach((tDigitStr, j) => {
             const tDigit = Number(tDigitStr);
             const prodWithoutCarry = bDigit * tDigit;
@@ -101,7 +127,7 @@ const buildTaskQueue = () => {
             
             let posContext = '';
             if (i === 0 && j === 0) {
-                posContext = `<b>Inicio:</b> Contamos los decimales del multiplicando y multiplicador = <b>${dTotal}</b>. Comenzamos en la casilla ${dTotal} contadas de derecha a izquierda. `;
+                posContext = `<b>Inicio:</b> Total decimales = <b>${dTotal}</b>. Comenzamos en la casilla ${dTotal} de derecha a izquierda. `;
             } else if (j === 0) {
                 posContext = `<b>Inicio:</b> `;
             }
@@ -186,7 +212,7 @@ const buildTaskQueue = () => {
         let col = getCol(p);
 
         if (sumCarry > 0) {
-            addends.push(`<b><span class="text-red-600">${sumCarry}</span></b> (llevada)`);
+            addends.push(`<b><span class="text-red-600">${sumCarry}</span></b> (del acarreo)`);
         }
         
         let res = colSum % 10;
@@ -194,11 +220,11 @@ const buildTaskQueue = () => {
         
         let msgText = '';
         if (addends.length > 1) {
-            msgText = `<b>Fase de Suma:</b> Suma la columna: ${addends.join(' + ')} = <b><span class="text-red-600">${colSum}</span></b>. Escribe <b><span class="text-red-600">${res}</span></b> abajo${nextSumCarry > 0 ? ` y lleva <b><span class="text-red-600">${nextSumCarry}</span></b> a la casilla siguiente` : ''}.`;
+            msgText = `Suma la columna: ${addends.join(' + ')} = <b><span class="text-red-600">${colSum}</span></b>. Escribe <b><span class="text-red-600">${res}</span></b>.`;
         } else if (addends.length === 1 && sumCarry > 0 && !hasVal) {
-             msgText = `Baja el <b><span class="text-red-600">${sumCarry}</span></b> de la llevada final a esta casilla para terminar la suma.`;
+             msgText = `Baja el <b><span class="text-red-600">${sumCarry}</span></b> del acarreo final de la suma.`;
         } else {
-             msgText = `Baja el <b><span class="text-red-600">${res}</span></b>, ya que no hay con qué sumar en esta posición.`;
+             msgText = `Baja el <b><span class="text-red-600">${res}</span></b>, ya que no hay con qué sumar en esta columna.`;
         }
         
         q.push({
@@ -211,7 +237,7 @@ const buildTaskQueue = () => {
         if(nextSumCarry > 0) {
            q.push({
                 id: `csum-${getCol(p+1)}`, expected: nextSumCarry.toString(), 
-                msg: `Escribe el <b><span class="text-red-600">${nextSumCarry}</span></b> que llevas en la parte superior para continuar la suma.`, 
+                msg: `Llevas <b><span class="text-red-600">${nextSumCarry}</span></b> a la siguiente columna. Anótalo.`, 
                 type: 'carry', row: 'sum', col: getCol(p+1)
             }); 
         }
@@ -225,6 +251,9 @@ const buildTaskQueue = () => {
 const handleKeypress = (key) => {
     if (isTransitioning.value || showRewardModal.value || !currentTask.value) return;
 
+    // 🛠️ FIX: Bloqueo del teclado si el sistema está ejecutando una acción automática (escalera)
+    if (currentTask.value.type === 'zero') return;
+
     const inputStr = key.toString();
 
     if (inputStr === currentTask.value.expected) {
@@ -234,11 +263,19 @@ const handleKeypress = (key) => {
         errorCol.value = null;
         if (errorTimeout) clearTimeout(errorTimeout);
         
+        // Sonido de UI
+        try { 
+            const tap = new Audio('/audios/ui.mp3');
+            tap.playbackRate = 0.95 + Math.random() * 0.1;
+            tap.play(); 
+        } catch(e){}
+
         if (currentTaskIdx.value >= tasks.value.length) completeExercise();
     } else {
         errorCol.value = currentTask.value.id;
         if (navigator.vibrate) navigator.vibrate(200);
         
+        // SONIDO: Alerta de Error
         try { new Audio('/audios/wrong.mp3').play(); } catch(e){}
         
         if (errorTimeout) clearTimeout(errorTimeout);
@@ -367,20 +404,20 @@ onMounted(() => {
     <main class="flex-1 w-full p-2 sm:p-4 overflow-hidden flex flex-col items-center justify-center">
         <div class="w-full max-w-[480px] bg-white border border-slate-200 rounded-2xl p-3 sm:p-5 shadow-md relative">
             
-            <div class="grid grid-cols-12 gap-0 mb-1 w-full z-10">
+            <div class="grid grid-cols-12 gap-0 w-full z-10">
                 <div v-for="c in 12" :key="'carry-'+c" class="h-6 flex items-center justify-center text-[11px] sm:text-xs font-black text-yellow-600 relative w-full min-w-[22px] sm:min-w-[30px]">
                     
-                    <div v-if="isActiveTask(-1, c)" class="absolute w-5 h-5 sm:w-6 sm:h-6 bg-yellow-100 rounded-full animate-pulse border border-yellow-400"></div>
+                    <div v-if="isActiveTask(-1, c)" class="absolute w-5 h-5 sm:w-6 sm:h-6 bg-yellow-100 rounded-full animate-pulse border border-yellow-400 z-0"></div>
                     
                     <Check v-if="currentTask?.sourceCarryCol === c" :size="14" stroke-width="5" class="text-green-500 absolute -top-1 right-0 bg-white/90 rounded-full shadow-sm z-20 animate-bounce-soft" />
 
-                    <div v-if="errorCol && (errorCol === `c${currentTask?.row}-${c}` || errorCol === `csum-${c}`)" class="absolute w-5 h-5 sm:w-6 sm:h-6 bg-red-100 rounded-full animate-shake border border-red-500"></div>
+                    <div v-if="errorCol && (errorCol === `c${currentTask?.row}-${c}` || errorCol === `csum-${c}`)" class="absolute w-5 h-5 sm:w-6 sm:h-6 bg-red-100 rounded-full animate-shake border border-red-500 z-0"></div>
                     
                     <span class="z-10">{{ userInputs[`c${currentTask?.row}-${c}`] || userInputs[`csum-${c}`] || '' }}</span>
                 </div>
             </div>
 
-            <div class="relative grid grid-cols-12 gap-0 border-t border-l border-slate-300 w-full transition-colors duration-500 rounded-sm overflow-hidden" 
+            <div class="relative grid grid-cols-12 gap-0 border-t border-l border-slate-300 w-full transition-colors duration-500 rounded-sm overflow-hidden mt-1" 
                  :class="isTransitioning ? 'bg-green-50 border-green-300' : 'bg-white'"
                  v-if="numRows > 0">
                  

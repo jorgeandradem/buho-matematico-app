@@ -7,7 +7,7 @@ import { ref, computed } from 'vue';
 import { 
   X as CloseIcon, Crown, Circle, Club, Lightbulb, 
   LayoutGrid, Grid3x3, Play, Zap, Ticket, AlertTriangle, Gamepad2,
-  User, Users, Globe, Cpu
+  User, Users, Globe, Cpu, Sparkles
 } from 'lucide-vue-next';
 import { useGamificationStore } from '../stores/useGamificationStore';
 
@@ -29,7 +29,8 @@ const recreationGames = [
   { id: 'solitaire', name: 'Solitario', icon: Club, cost: 15, isVolando: false, desc: 'Paciencia y Orden', color: 'bg-emerald-700', modes: ['solo'] },
   { id: 'mastermind', name: 'Código Secreto', icon: Lightbulb, cost: 15, isVolando: false, desc: 'Lógica Deductiva', color: 'bg-purple-700', modes: ['solo', 'vs-pc'] },
   { id: 'connect4', name: 'Conecta 4', icon: LayoutGrid, cost: 15, isVolando: false, desc: 'Bloqueo Espacial', color: 'bg-blue-600', modes: ['vs-pc', 'local'] },
-  { id: 'sudoku', name: 'Sudoku', icon: Grid3x3, cost: 15, isVolando: false, desc: 'Concentración Pura', color: 'bg-teal-600', modes: ['solo'] }
+  { id: 'sudoku', name: 'Sudoku', icon: Grid3x3, cost: 15, isVolando: false, desc: 'Concentración Pura', color: 'bg-teal-600', modes: ['solo'] },
+  { id: 'particles', name: 'Sintetizador', icon: Sparkles, cost: 5, isVolando: false, desc: 'Música y Números', color: 'bg-fuchsia-600', modes: ['solo'] }
 ];
 
 // --- 🎟️ LÓGICA DE LA TAQUILLA ---
